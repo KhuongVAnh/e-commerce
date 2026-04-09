@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PaymentMethod {
+  COD
+  VNPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  COD_PENDING
+}
+
+enum OrderStatus {
+  PENDING
+  AWAITING_PAYMENT
+  CONFIRMED
+  PROCESSING
+  SHIPPING
+  DELIVERED
+  CANCELLED
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model Cart {
+  id         BigInt     @id @default(autoincrement())
+  customerId BigInt     @unique @map("customer_id")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+  items      CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        BigInt   @id @default(autoincrement())
+  cartId    BigInt   @map("cart_id")
+  productId BigInt   @map("product_id")
+  shopId    BigInt   @map("shop_id")
+  quantity  Int      @default(1)
+  selected  Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@index([cartId])
+  @@index([productId])
+  @@index([shopId])
+  @@map("cart_items")
+}
+
+model Order {
+  id              BigInt        @id @default(autoincrement())
+  orderCode       String        @unique @map("order_code")
+  customerId      BigInt        @map("customer_id")
+  shopId          BigInt        @map("shop_id")
+  totalAmount     Decimal       @map("total_amount") @db.Decimal(10, 2)
+  shippingFee     Decimal       @default(0) @map("shipping_fee") @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod @map("payment_method")
+  paymentStatus   PaymentStatus @map("payment_status")
+  orderStatus     OrderStatus   @map("order_status")
+  receiverName    String        @map("receiver_name")
+  receiverPhone   String        @map("receiver_phone")
+  receiverAddress String        @map("receiver_address")
+  note            String?       @db.Text
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  items           OrderItem[]
+  payments        Payment[]
+
+  @@index([customerId])
+  @@index([shopId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                  BigInt  @id @default(autoincrement())
+  orderId             BigInt  @map("order_id")
+  productId           BigInt  @map("product_id")
+  productNameSnapshot String  @map("product_name_snapshot")
+  priceSnapshot       Decimal @map("price_snapshot") @db.Decimal(10, 2)
+  quantity            Int
+  subtotal            Decimal @db.Decimal(10, 2)
+  order               Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model Payment {
+  id               BigInt            @id @default(autoincrement())
+  orderId          BigInt            @map("order_id")
+  method           PaymentMethod
+  amount           Decimal           @db.Decimal(10, 2)
+  status           TransactionStatus
+  transactionRef   String?           @map("transaction_ref")
+  providerResponse String?           @map("provider_response") @db.Text
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  order            Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("payments")
+}
