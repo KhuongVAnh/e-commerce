@@ -7,9 +7,16 @@
 ## Thông tin hiện tại
 
 - Port mặc định: `3001`
-- File chạy chính: `server.js`
-- Biến môi trường hiện có: `PORT`
+- File nguồn chính: `src/server.ts`
+- File build: `dist/server.js`
+- Biến môi trường hiện có: `PORT`, `DATABASE_URL`
 - Có khung `src/` theo hướng MVC
+
+## Cấu hình database
+
+- Prisma đã được setup theo PostgreSQL.
+- Runtime Prisma nằm ở `src/config/prisma.ts`.
+- Seed test hiện nằm ở `prisma/seed.js`.
 
 ## Cách chạy
 

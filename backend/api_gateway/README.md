@@ -7,9 +7,15 @@
 ## Thông tin hiện tại
 
 - Port mặc định: `3000`
-- File chạy chính: `server.js`
-- Biến môi trường hiện có: `PORT`
+- File nguồn chính: `src/server.ts`
+- File build: `dist/server.js`
+- Biến môi trường hiện có: `PORT`, `DATABASE_URL`
 - Có khung `src/` theo hướng MVC
+
+## Cấu hình database
+
+- Prisma đã được setup sẵn theo PostgreSQL.
+- `api_gateway` hiện chưa có bảng nghiệp vụ riêng, nên phần Prisma chủ yếu ở trạng thái chuẩn bị sẵn.
 
 ## Cách chạy
 
