@@ -1,0 +1,10 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// API Gateway currently does not own business tables.
+// Keep this schema empty unless gateway-specific persistence is added later.
