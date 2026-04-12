@@ -1,22 +1,45 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import CustomerLayout from './layouts/CustomerLayout';
+import DashboardLayout from './layouts/DashboardLayout';
+import ProtectedRoute from './components/ProtectedRoute';
 
-// Các trang mẫu để test (sau này FE1 sẽ code các trang này ra file riêng)
+import AdminDashboard from './pages/admin/AdminDashboard';
+import SellerDashboard from './pages/seller/SellerDashboard';
+
+
 const Home = () => <div className="p-8 bg-white rounded-lg shadow min-h-[400px]">Đây là Trang Chủ sản phẩm</div>;
 const Cart = () => <div className="p-8 bg-white rounded-lg shadow min-h-[400px]">Đây là Trang Giỏ Hàng</div>;
-const NotFound = () => <div className="p-4 text-2xl font-bold text-red-500">404 - Trang không tồn tại</div>;
+const Unauthorized = () => <div className="p-10 text-center text-red-500 font-bold text-2xl">403 - Bạn không có quyền truy cập!</div>;
+const NotFound = () => <div className="p-10 text-center text-gray-700 font-bold text-2xl">404 - Trang không tồn tại</div>;
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Đưa CustomerLayout xịn vào đây */}
+        {/* --- DÀNH CHO KHÁCH (AI CŨNG VÀO ĐƯỢC) --- */}
         <Route path="/" element={<CustomerLayout />}>
           <Route index element={<Home />} />
           <Route path="cart" element={<Cart />} />
+          <Route path="unauthorized" element={<Unauthorized />} />
         </Route>
 
+        {/* --- DÀNH CHO ADMIN --- */}
+        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+          <Route path="/admin" element={<DashboardLayout roleTitle="Admin" />}>
+            <Route index element={<AdminDashboard />} />
+          </Route>
+        </Route>
+
+        {/* --- DÀNH CHO SELLER --- */}
+        <Route element={<ProtectedRoute allowedRoles={['seller', 'admin']} />}>
+          <Route path="/seller" element={<DashboardLayout roleTitle="Seller" />}>
+            <Route index element={<SellerDashboard />} />
+          </Route>
+        </Route>
+
+        {/* --- CATCH-ALL: 404 --- */}
         <Route path="*" element={<NotFound />} />
+
       </Routes>
     </BrowserRouter>
   );
