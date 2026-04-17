@@ -7,8 +7,8 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import SellerDashboard from './pages/seller/SellerDashboard';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import Home from './pages/Home';
 
-const Home = () => <div className="p-8 bg-white rounded-lg shadow min-h-[400px]">Đây là Trang Chủ sản phẩm</div>;
 const Cart = () => <div className="p-8 bg-white rounded-lg shadow min-h-[400px]">Đây là Trang Giỏ Hàng</div>;
 const Unauthorized = () => <div className="p-10 text-center text-red-500 font-bold text-2xl">403 - Bạn không có quyền truy cập!</div>;
 const NotFound = () => <div className="p-10 text-center text-gray-700 font-bold text-2xl">404 - Trang không tồn tại</div>;
