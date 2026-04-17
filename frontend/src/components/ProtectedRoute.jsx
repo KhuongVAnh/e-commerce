@@ -4,15 +4,17 @@ const ProtectedRoute = ({ allowedRoles }) => {
   const userRole = localStorage.getItem('userRole'); 
   const token = localStorage.getItem('accessToken');
 
+// TRƯỜNG HỢP 1: Khách vãng lai (Chưa có token)
   if (!token) {
-    alert("Vui lòng đăng nhập để tiếp tục!");
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
-  if (!allowedRoles.includes(userRole)) {
+  // TRƯỜNG HỢP 2: Đã đăng nhập nhưng đi lạc vào khu cấm (Sai Role)
+  if (allowedRoles && !allowedRoles.includes(userRole)) {
     return <Navigate to="/unauthorized" replace />;
   }
 
+  // TRƯỜNG HỢP 3: Mọi thứ hợp lệ -> Mở cửa sổ cho đi tiếp
   return <Outlet />;
 };
 
