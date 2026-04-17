@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const axiosClient = axios.create({
-  baseURL: 'http://localhost:5000', // Sửa cổng nếu Backend chạy port khác
+  baseURL: 'http://localhost:5000/api', // Sửa cổng nếu Backend chạy port khác
   headers: {
     'Content-Type': 'application/json',
   },
@@ -19,7 +19,7 @@ axiosClient.interceptors.response.use(
   (response) => {
     const res = response.data;
     if (res && res.success) {
-      return res.data; // Tự động bóc tách lõi data
+      return res.data;
     }
     return response;
   },
@@ -30,7 +30,7 @@ axiosClient.interceptors.response.use(
       if (errRes.error?.code === 'UNAUTHORIZED' || errRes.error?.code === 'INVALID_TOKEN') {
          localStorage.removeItem('accessToken');
          localStorage.removeItem('userRole');
-         window.location.href = '/';
+         window.location.href = '/login';
       }
       return Promise.reject(errRes);
     }

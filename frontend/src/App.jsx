@@ -5,7 +5,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import SellerDashboard from './pages/seller/SellerDashboard';
-
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
 
 const Home = () => <div className="p-8 bg-white rounded-lg shadow min-h-[400px]">Đây là Trang Chủ sản phẩm</div>;
 const Cart = () => <div className="p-8 bg-white rounded-lg shadow min-h-[400px]">Đây là Trang Giỏ Hàng</div>;
@@ -16,6 +17,11 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        
+        {/* --- TRANG ĐĂNG NHẬP / ĐĂNG KÝ --- */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
         {/* --- DÀNH CHO KHÁCH (AI CŨNG VÀO ĐƯỢC) --- */}
         <Route path="/" element={<CustomerLayout />}>
           <Route index element={<Home />} />
