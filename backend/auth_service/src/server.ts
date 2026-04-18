@@ -1,4 +1,5 @@
 import "dotenv/config";
+import cookieParser from "cookie-parser";
 import express from "express";
 import swaggerUi from "swagger-ui-express";
 import authRoutes from "./routes/authRoutes";
@@ -10,6 +11,7 @@ const app = express();
 const port = Number(process.env.PORT) || 3001;
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(requestContextMiddleware);
 
 app.get("/", (_req, res) => {

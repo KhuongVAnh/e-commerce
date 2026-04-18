@@ -1,3 +1,5 @@
+const REFRESH_TOKEN_COOKIE_NAME = process.env.REFRESH_TOKEN_COOKIE_NAME || "refreshToken";
+
 const openApiDocument = {
   openapi: "3.0.3",
   info: {
@@ -21,6 +23,11 @@ const openApiDocument = {
         scheme: "bearer",
         bearerFormat: "JWT",
       },
+      refreshTokenCookie: {
+        type: "apiKey",
+        in: "cookie",
+        name: REFRESH_TOKEN_COOKIE_NAME,
+      },
     },
     schemas: {
       RegisterRequest: {
@@ -39,13 +46,6 @@ const openApiDocument = {
         properties: {
           email: { type: "string", example: "user@gmail.com" },
           password: { type: "string", example: "123456" },
-        },
-      },
-      RefreshOrLogoutRequest: {
-        type: "object",
-        required: ["refreshToken"],
-        properties: {
-          refreshToken: { type: "string", example: "jwt-refresh-token" },
         },
       },
       SuccessResponse: {
@@ -173,23 +173,22 @@ const openApiDocument = {
     "/api/auth/refresh": {
       post: {
         tags: ["Auth"],
-        summary: "Cap lai access token",
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/RefreshOrLogoutRequest",
-              },
-            },
-          },
-        },
+        summary: "Cap lai access token va rotate refresh token",
+        security: [{ refreshTokenCookie: [] }],
         responses: {
           "200": {
             description: "Lam moi token thanh cong",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/SuccessResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Refresh token khong hop le hoac da het han",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
               },
             },
           },
@@ -200,16 +199,7 @@ const openApiDocument = {
       post: {
         tags: ["Auth"],
         summary: "Dang xuat va thu hoi refresh token",
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/RefreshOrLogoutRequest",
-              },
-            },
-          },
-        },
+        security: [{ refreshTokenCookie: [] }],
         responses: {
           "200": {
             description: "Dang xuat thanh cong",
