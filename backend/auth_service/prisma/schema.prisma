@@ -4,12 +4,15 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["auth_service"]
 }
 
 enum UserStatus {
   ACTIVE
   INACTIVE
   BLOCKED
+
+  @@schema("auth_service")
 }
 
 model Role {
@@ -20,6 +23,7 @@ model Role {
   updatedAt   DateTime @updatedAt @map("updated_at")
   users       User[]
 
+  @@schema("auth_service")
   @@map("roles")
 }
 
@@ -35,6 +39,7 @@ model User {
   refreshTokens RefreshToken[]
   role          Role           @relation(fields: [roleId], references: [id])
 
+  @@schema("auth_service")
   @@index([roleId])
   @@map("users")
 }
@@ -48,6 +53,7 @@ model RefreshToken {
   createdAt DateTime  @default(now()) @map("created_at")
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@schema("auth_service")
   @@index([userId])
   @@map("refresh_tokens")
 }
