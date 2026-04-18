@@ -8,8 +8,23 @@ export type JwtUserPayload = {
   role: string;
 };
 
-const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_SECRET || "access-secret-dev";
-const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET || "refresh-secret-dev";
+function getRequiredEnv(name: "JWT_ACCESS_SECRET" | "JWT_REFRESH_SECRET"): string {
+  const value = process.env[name];
+
+  if (!value || !value.trim()) {
+    throw new Error(`[auth_service] Missing required environment variable: ${name}`);
+  }
+
+  return value;
+}
+
+const ACCESS_TOKEN_SECRET = getRequiredEnv("JWT_ACCESS_SECRET");
+const REFRESH_TOKEN_SECRET = getRequiredEnv("JWT_REFRESH_SECRET");
+
+if (ACCESS_TOKEN_SECRET === REFRESH_TOKEN_SECRET) {
+  throw new Error("[auth_service] JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different");
+}
+
 const ACCESS_TOKEN_EXPIRES_IN = (process.env.JWT_ACCESS_EXPIRES_IN || "1h") as jwt.SignOptions["expiresIn"];
 const REFRESH_TOKEN_EXPIRES_IN = (process.env.JWT_REFRESH_EXPIRES_IN || "7d") as jwt.SignOptions["expiresIn"];
 

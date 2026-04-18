@@ -25,8 +25,6 @@ type RefreshInput = {
   refreshToken?: string;
 };
 
-const REFRESH_EXPIRES_DAYS = Number(process.env.JWT_REFRESH_EXPIRES_DAYS || 7);
-
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -92,6 +90,11 @@ function assertRefreshTokenInput(input: RefreshInput): string {
   return input.refreshToken;
 }
 
+function serializeUserId(userId: bigint): number | string {
+  const asNumber = Number(userId);
+  return Number.isSafeInteger(asNumber) ? asNumber : userId.toString();
+}
+
 function toUserResponse(user: {
   id: bigint;
   email: string;
@@ -101,7 +104,7 @@ function toUserResponse(user: {
   role: { name: string };
 }) {
   return {
-    id: Number(user.id),
+    id: serializeUserId(user.id),
     email: user.email,
     fullName: user.fullName,
     role: user.role.name,
@@ -110,9 +113,15 @@ function toUserResponse(user: {
   };
 }
 
-function getRefreshExpiryDate(): Date {
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + REFRESH_EXPIRES_DAYS);
+function getRefreshExpiryDate(refreshToken: string): Date {
+  const expiresAt = new Date(getTokenExpiryIso(refreshToken));
+
+  if (Number.isNaN(expiresAt.getTime())) {
+    throw new HttpError(500, "Không thể xác định thời gian hết hạn refresh token", {
+      code: "TOKEN_EXPIRY_INVALID",
+    });
+  }
+
   return expiresAt;
 }
 
@@ -196,7 +205,7 @@ export async function login(input: LoginInput) {
 
   const accessToken = signAccessToken(jwtPayload);
   const refreshToken = signRefreshToken(jwtPayload);
-  const refreshExpiresAt = getRefreshExpiryDate();
+  const refreshExpiresAt = getRefreshExpiryDate(refreshToken);
 
   await prisma.refreshToken.create({
     data: {
@@ -208,7 +217,7 @@ export async function login(input: LoginInput) {
 
   return {
     user: {
-      id: Number(user.id),
+      id: serializeUserId(user.id),
       email: user.email,
       fullName: user.fullName,
       role: user.role.name,
@@ -217,7 +226,7 @@ export async function login(input: LoginInput) {
       accessToken,
       refreshToken,
       accessExpiresAt: getTokenExpiryIso(accessToken),
-      refreshExpiresAt: getTokenExpiryIso(refreshToken),
+      refreshExpiresAt: refreshExpiresAt.toISOString(),
     },
   };
 }
@@ -262,17 +271,56 @@ export async function refresh(input: RefreshInput) {
     });
   }
 
-  const accessToken = signAccessToken({
+  if (user.status !== "ACTIVE") {
+    throw new HttpError(403, "Tài khoản không hoạt động", {
+      code: "ACCOUNT_INACTIVE",
+    });
+  }
+
+  const jwtPayload = {
     sub: user.id.toString(),
     email: user.email,
     fullName: user.fullName,
     role: user.role.name,
+  };
+
+  const newRefreshToken = signRefreshToken(jwtPayload);
+  const refreshExpiresAt = getRefreshExpiryDate(newRefreshToken);
+
+  await prisma.$transaction(async (tx) => {
+    const revokeResult = await tx.refreshToken.updateMany({
+      where: {
+        id: storedToken.id,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+
+    if (revokeResult.count !== 1) {
+      throw new HttpError(401, "Refresh token không hợp lệ", {
+        code: "INVALID_REFRESH_TOKEN",
+      });
+    }
+
+    await tx.refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashRefreshToken(newRefreshToken),
+        expiresAt: refreshExpiresAt,
+      },
+    });
   });
+
+  const accessToken = signAccessToken(jwtPayload);
 
   return {
     tokens: {
       accessToken,
+      refreshToken: newRefreshToken,
       accessExpiresAt: getTokenExpiryIso(accessToken),
+      refreshExpiresAt: refreshExpiresAt.toISOString(),
     },
   };
 }
@@ -319,7 +367,7 @@ export async function getMe(userId: string) {
 
   return {
     user: {
-      id: Number(user.id),
+      id: serializeUserId(user.id),
       email: user.email,
       fullName: user.fullName,
       role: user.role.name,
