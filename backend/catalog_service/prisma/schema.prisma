@@ -30,7 +30,7 @@ model Shop {
   slug        String     @unique
   logoUrl     String?    @map("logo_url")
   description String?    @db.Text
-  address     String?
+  address     String
   status      ShopStatus @default(PENDING)
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
