@@ -197,7 +197,7 @@ export async function login(input: LoginInput) {
   }
 
   const jwtPayload = {
-    sub: user.id.toString(),
+    userId: user.id.toString(),
     email: user.email,
     fullName: user.fullName,
     role: user.role.name,
@@ -234,7 +234,7 @@ export async function login(input: LoginInput) {
 export async function refresh(input: RefreshInput) {
   const refreshToken = assertRefreshTokenInput(input);
 
-  let payload: { sub: string; email: string; fullName: string; role: string };
+  let payload: { userId: string; email: string; fullName: string; role: string };
   try {
     payload = verifyRefreshToken(refreshToken);
   } catch {
@@ -243,7 +243,7 @@ export async function refresh(input: RefreshInput) {
     });
   }
 
-  const userId = BigInt(payload.sub);
+  const userId = BigInt(payload.userId);
   const tokenHash = hashRefreshToken(refreshToken);
 
   const storedToken = await prisma.refreshToken.findFirst({
@@ -278,7 +278,7 @@ export async function refresh(input: RefreshInput) {
   }
 
   const jwtPayload = {
-    sub: user.id.toString(),
+    userId: user.id.toString(),
     email: user.email,
     fullName: user.fullName,
     role: user.role.name,
@@ -328,7 +328,7 @@ export async function refresh(input: RefreshInput) {
 export async function logout(input: RefreshInput) {
   const refreshToken = assertRefreshTokenInput(input);
 
-  let payload: { sub: string };
+  let payload: { userId: string };
   try {
     payload = verifyRefreshToken(refreshToken);
   } catch {
@@ -339,7 +339,7 @@ export async function logout(input: RefreshInput) {
 
   const result = await prisma.refreshToken.updateMany({
     where: {
-      userId: BigInt(payload.sub),
+      userId: BigInt(payload.userId),
       tokenHash: hashRefreshToken(refreshToken),
       revokedAt: null,
     },

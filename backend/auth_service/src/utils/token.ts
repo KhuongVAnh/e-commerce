@@ -2,7 +2,7 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
 export type JwtUserPayload = {
-  sub: string;
+  userId: string;
   email: string;
   fullName: string;
   role: string;

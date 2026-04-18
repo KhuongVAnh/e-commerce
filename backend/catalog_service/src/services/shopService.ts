@@ -153,11 +153,12 @@ function toShopResponse(shop: {
 }
 
 // create shop
-export async function createShop(sellerId: bigint, input: createShopInput){
+export async function createShop(sellerId: string, input: createShopInput){
+    const sellerIdAsBigInt = BigInt(sellerId);
     
     // kiểm tra người dùng đã có shop chưa
     const existingShop = await prisma.shop.findFirst({
-        where: { sellerId: BigInt(sellerId) },
+        where: { sellerId: sellerIdAsBigInt },
         select: { id: true },
     });
     
@@ -173,7 +174,7 @@ export async function createShop(sellerId: bigint, input: createShopInput){
 
     const createdShop = await prisma.shop.create({
         data: {
-            sellerId: BigInt(sellerId),
+            sellerId: sellerIdAsBigInt,
             name: payload.name,
             slug,
             logoUrl: payload.logoUrl,
@@ -187,9 +188,11 @@ export async function createShop(sellerId: bigint, input: createShopInput){
     };
 }
 
-export async function getMyShop(sellerId: bigint) {
+export async function getMyShop(sellerId: string) {
+    const sellerIdAsBigInt = BigInt(sellerId);
+
     const shop = await prisma.shop.findUnique({
-        where: { sellerId: BigInt(sellerId) },
+        where: { sellerId: sellerIdAsBigInt },
     });
 
     if (!shop) {
@@ -204,11 +207,12 @@ export async function getMyShop(sellerId: bigint) {
     };
 }
 
-export async function updateMyShop(sellerId: bigint, input: updateShopInput) {
+export async function updateMyShop(sellerId: string, input: updateShopInput) {
+    const sellerIdAsBigInt = BigInt(sellerId);
     const payload = assertUpdateInput(input);
 
     const existingShop = await prisma.shop.findUnique({
-        where: { sellerId: BigInt(sellerId) },
+        where: { sellerId: sellerIdAsBigInt },
     });
 
     if (!existingShop) {

@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { Response } from "express";
 
-const API_VERSION = "v1";
+const API_VERSION = process.env.API_VERSION || "v1";
 
 type FieldError = {
   field: string;

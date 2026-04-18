@@ -13,7 +13,7 @@ declare global {
     namespace Express {
         interface Request {
             authUser?: {
-                userId: bigint;
+                userId: string;
                 email: string;
                 fullName: string;
                 role: string;

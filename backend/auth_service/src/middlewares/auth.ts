@@ -20,7 +20,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   }
 
   const token = authorization.slice("Bearer ".length).trim();
-  let payload: { sub: string };
+  let payload: { userId: string };
 
   try {
     payload = verifyAccessToken(token);
@@ -38,7 +38,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
 
   let userId: bigint;
   try {
-    userId = BigInt(payload.sub);
+    userId = BigInt(payload.userId);
   } catch {
     sendError(res, {
       requestId: res.locals.requestId,
