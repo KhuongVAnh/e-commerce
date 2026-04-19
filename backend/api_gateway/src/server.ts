@@ -1,4 +1,5 @@
 import "dotenv/config";
+import cors from "cors";
 import express from "express";
 import { requestContextMiddleware } from "./middlewares/requestContext";
 import { gatewayAuth } from "./middlewares/gatewayAuth";
@@ -10,7 +11,29 @@ const port = Number(process.env.PORT) || 3000;
 
 const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://localhost:3001";
 const catalogServiceUrl = process.env.CATALOG_SERVICE_URL || "http://localhost:3002";
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
+app.use(cors({
+  origin(origin, callback) {
+    // Cho phép Postman/curl hoặc server-side request không có Origin.
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`Origin ${origin} is not allowed by CORS`));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-request-id"],
+}));
 app.use(express.json());
 // gắn id cho mỗi req đi vào, để dễ dàng trace log sau này
 app.use(requestContextMiddleware);
