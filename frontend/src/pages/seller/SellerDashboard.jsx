@@ -1,117 +1,106 @@
 import React, { useState, useEffect } from 'react';
+import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import axiosClient from '../../utils/axiosClient';
+import useAuthStore from '../../store/useAuthStore';
+
+const chartData = [
+  { name: 'Mon', total: 1200000 }, { name: 'Tue', total: 2100000 }, { name: 'Wed', total: 800000 },
+  { name: 'Thu', total: 4500000 }, { name: 'Fri', total: 3200000 }, { name: 'Sat', total: 5100000 }, { name: 'Sun', total: 3800000 },
+];
 
 const SellerDashboard = () => {
-  const [isApiReady, setIsApiReady] = useState(true);
-
-  const defaultStats = { totalOrders: 245, orderGrowth: "+12%", totalRevenue: 42500000, totalProducts: 18, pendingOrders: 12 };
-  const defaultOrders = [
-    { id: 101, orderCode: "MOCK-001", createdAt: "2023-10-29T10:00:00Z", grandTotal: 1250000, orderStatus: "CONFIRMED" },
-    { id: 102, orderCode: "MOCK-002", createdAt: "2023-10-28T14:30:00Z", grandTotal: 3400000, orderStatus: "PROCESSING" },
-  ];
-
-  const [stats, setStats] = useState(defaultStats);
-  const [recentOrders, setRecentOrders] = useState(defaultOrders);
+  const { user } = useAuthStore();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const getOrders = async () => {
       try {
-        const ordersData = await axiosClient.get('/api/orders/my');
-        setRecentOrders(ordersData);
-        setIsApiReady(true);
-      } catch (error) {
-        console.error("🔴 [SellerDashboard] API Lỗi:", error);
-        setIsApiReady(false);
-        setStats(defaultStats);
-        setRecentOrders(defaultOrders);
+        const res = await axiosClient.get('/orders/my');
+        setOrders(res || []);
+      } catch (err) {
+        console.error("Lỗi lấy đơn hàng");
+      } finally {
+        setLoading(false);
       }
     };
-    fetchDashboardData();
+    getOrders();
   }, []);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'CONFIRMED': return 'bg-emerald-100 text-emerald-700';
-      case 'PROCESSING': return 'bg-indigo-100 text-indigo-700';
-      case 'PENDING': return 'bg-orange-100 text-orange-700';
-      default: return 'bg-slate-100 text-slate-700';
-    }
-  };
+  const totalRevenue = orders.reduce((sum, o) => sum + (o.grandTotal || 0), 0);
+  const pendingCount = orders.filter(o => o.orderStatus === 'PENDING').length;
 
   return (
-    <div className="space-y-6 text-slate-800">
-      
-      {!isApiReady && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md shadow-sm">
-          <div className="flex">
-            <span className="material-symbols-outlined text-yellow-500 mr-3">warning</span>
-            <div>
-              <p className="text-sm font-bold text-yellow-800">Chưa nhận được dữ liệu từ Backend!</p>
-              <p className="text-sm text-yellow-700 mt-1">
-                Hệ thống đang tạm hiển thị giao diện bằng <b>Dữ liệu mẫu (Mock Data)</b>. F12 để xem chi tiết lỗi.
-              </p>
-            </div>
+    <div className="p-6 space-y-6 bg-[#f8fafc] min-h-screen">
+      <header className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-black text-slate-800">Dashboard</h1>
+          <p className="text-sm text-slate-400 font-bold uppercase tracking-tighter">Chào mừng, {user?.fullName || 'Seller'}</p>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Orders', val: orders.length, color: 'text-indigo-600' },
+          { label: 'Total Revenue', val: `${totalRevenue.toLocaleString()} ₫`, color: 'text-slate-800' },
+          { label: 'Total Products', val: '18', color: 'text-slate-800' },
+          { label: 'Pending Orders', val: pendingCount, color: 'text-rose-600', border: 'border-l-4 border-indigo-500' },
+        ].map((kpi, i) => (
+          <div key={i} className={`bg-white p-5 rounded-2xl shadow-sm border border-slate-100 ${kpi.border || ''}`}>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{kpi.label}</p>
+            <h3 className={`text-2xl font-black ${kpi.color}`}>{kpi.val}</h3>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
-          <span className="text-xs font-semibold text-slate-400 tracking-wider mb-2">TOTAL ORDERS</span>
-          <div className="flex items-end gap-3"><span className="text-3xl font-bold">{stats.totalOrders}</span></div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
-          <span className="text-xs font-semibold text-slate-400 tracking-wider mb-2">TOTAL REVENUE</span>
-          <div className="flex items-end gap-3"><span className="text-3xl font-bold">{stats.totalRevenue.toLocaleString()} ₫</span></div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
-          <span className="text-xs font-semibold text-slate-400 tracking-wider mb-2">TOTAL PRODUCTS</span>
-          <div className="flex items-end gap-3"><span className="text-3xl font-bold">{stats.totalProducts}</span></div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-100 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
-          <span className="text-xs font-semibold text-slate-400 tracking-wider mb-2">PENDING ORDERS</span>
-          <div className="flex items-end gap-3"><span className="text-3xl font-bold text-indigo-900">{stats.pendingOrders}</span></div>
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+        <h2 className="text-sm font-black text-slate-800 mb-6 uppercase tracking-widest">Weekly Sales Performance</h2>
+        <div className="h-[250px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+              <Tooltip contentStyle={{borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+              <Area type="monotone" dataKey="total" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorVal)" />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-        <h2 className="text-lg font-bold text-indigo-900 mb-6">Weekly Sales Performance</h2>
-        <div className="h-64 w-full bg-slate-50 flex items-center justify-center rounded-xl border border-dashed border-slate-200">
-            <span className="text-slate-400 font-medium">Khu vực Render Biểu Đồ (Đợi Chart.js)</span>
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="p-6 border-b border-slate-50 flex justify-between items-center">
+          <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">Recent Orders</h2>
         </div>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 flex justify-between items-center border-b border-slate-50">
-          <h2 className="text-lg font-bold text-indigo-900">Recent Orders</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 text-xs font-semibold text-slate-400 tracking-wider">
-                <th className="px-6 py-4">ORDER ID</th>
-                <th className="px-6 py-4">DATE</th>
-                <th className="px-6 py-4">TOTAL AMOUNT</th>
-                <th className="px-6 py-4">STATUS</th>
+        <table className="w-full text-left">
+          <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase">
+            <tr>
+              <th className="px-6 py-4">Order ID</th>
+              <th className="px-6 py-4">Customer</th>
+              <th className="px-6 py-4">Total</th>
+              <th className="px-6 py-4">Status</th>
+            </tr>
+          </thead>
+          <tbody className="text-xs font-bold text-slate-600">
+            {orders.length === 0 ? (
+              <tr><td colSpan="4" className="p-10 text-center text-slate-300">Chưa có đơn hàng nào</td></tr>
+            ) : orders.map(o => (
+              <tr key={o.id} className="border-t border-slate-50 hover:bg-slate-50/50">
+                <td className="px-6 py-4 text-indigo-600">#{o.orderCode}</td>
+                <td className="px-6 py-4">{o.receiverName || 'N/A'}</td>
+                <td className="px-6 py-4 font-black text-slate-900">{o.grandTotal?.toLocaleString()} ₫</td>
+                <td className="px-6 py-4">
+                  <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[9px] uppercase font-black">{o.orderStatus}</span>
+                </td>
               </tr>
-            </thead>
-            <tbody className="text-sm">
-              {recentOrders.map((order) => (
-                <tr key={order.id} className="border-b border-slate-50 hover:bg-slate-50/50">
-                  <td className="px-6 py-4 font-medium text-indigo-900">#{order.orderCode}</td>
-                  <td className="px-6 py-4 text-slate-500">{new Date(order.createdAt).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 font-bold">{order.grandTotal.toLocaleString()} ₫</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.orderStatus)}`}>
-                      {order.orderStatus}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

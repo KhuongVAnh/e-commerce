@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import SellerDashboard from './pages/seller/SellerDashboard';
+import ShopForm from './pages/seller/ShopForm';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Home from './pages/Home';
@@ -40,6 +41,9 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={['seller', 'admin']} />}>
           <Route path="/seller" element={<DashboardLayout roleTitle="Seller" />}>
             <Route index element={<SellerDashboard />} />
+            
+            {/* /shop/settings sẽ mở Form  */}
+            <Route path="shop/settings" element={<ShopForm />} />
           </Route>
         </Route>
 
