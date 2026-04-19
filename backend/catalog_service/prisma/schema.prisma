@@ -4,23 +4,30 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["catalog_service"]
 }
 
 enum ShopStatus {
   ACTIVE
   INACTIVE
   PENDING
+
+  @@schema("catalog_service")
 }
 
 enum CategoryStatus {
   ACTIVE
   INACTIVE
+
+  @@schema("catalog_service")
 }
 
 enum ProductStatus {
   ACTIVE
   INACTIVE
   OUT_OF_STOCK
+
+  @@schema("catalog_service")
 }
 
 model Shop {
@@ -36,6 +43,7 @@ model Shop {
   updatedAt   DateTime   @updatedAt @map("updated_at")
   products    Product[]
 
+  @@schema("catalog_service")
   @@map("shops")
 }
 
@@ -48,6 +56,7 @@ model Category {
   updatedAt DateTime       @updatedAt @map("updated_at")
   products  Product[]
 
+  @@schema("catalog_service")
   @@map("categories")
 }
 
@@ -68,6 +77,7 @@ model Product {
   category      Category       @relation(fields: [categoryId], references: [id])
   images        ProductImage[]
 
+  @@schema("catalog_service")
   @@index([shopId])
   @@index([categoryId])
   @@map("products")
@@ -80,6 +90,7 @@ model ProductImage {
   sortOrder Int     @default(0) @map("sort_order")
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
+  @@schema("catalog_service")
   @@index([productId])
   @@map("product_images")
 }

@@ -4,11 +4,14 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["commerce_service"]
 }
 
 enum PaymentMethod {
   COD
   VNPAY
+
+  @@schema("commerce_service")
 }
 
 enum PaymentStatus {
@@ -16,6 +19,8 @@ enum PaymentStatus {
   PAID
   FAILED
   COD_PENDING
+
+  @@schema("commerce_service")
 }
 
 enum OrderStatus {
@@ -26,12 +31,16 @@ enum OrderStatus {
   SHIPPING
   DELIVERED
   CANCELLED
+
+  @@schema("commerce_service")
 }
 
 enum TransactionStatus {
   PENDING
   SUCCESS
   FAILED
+
+  @@schema("commerce_service")
 }
 
 model Cart {
@@ -41,6 +50,7 @@ model Cart {
   updatedAt  DateTime   @updatedAt @map("updated_at")
   items      CartItem[]
 
+  @@schema("commerce_service")
   @@map("carts")
 }
 
@@ -55,6 +65,7 @@ model CartItem {
   updatedAt DateTime @updatedAt @map("updated_at")
   cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
 
+  @@schema("commerce_service")
   @@index([cartId])
   @@index([productId])
   @@index([shopId])
@@ -80,6 +91,7 @@ model Order {
   items           OrderItem[]
   payments        Payment[]
 
+  @@schema("commerce_service")
   @@index([customerId])
   @@index([shopId])
   @@map("orders")
@@ -95,6 +107,7 @@ model OrderItem {
   subtotal            Decimal @db.Decimal(10, 2)
   order               Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  @@schema("commerce_service")
   @@index([orderId])
   @@index([productId])
   @@map("order_items")
@@ -112,6 +125,7 @@ model Payment {
   updatedAt        DateTime          @updatedAt @map("updated_at")
   order            Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  @@schema("commerce_service")
   @@index([orderId])
   @@map("payments")
 }

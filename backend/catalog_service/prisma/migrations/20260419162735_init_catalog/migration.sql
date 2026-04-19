@@ -15,7 +15,7 @@ CREATE TABLE "shops" (
     "slug" TEXT NOT NULL,
     "logo_url" TEXT,
     "description" TEXT,
-    "address" TEXT,
+    "address" TEXT NOT NULL,
     "status" "ShopStatus" NOT NULL DEFAULT 'PENDING',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
