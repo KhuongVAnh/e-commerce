@@ -1,34 +1,48 @@
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 
 const CustomerLayout = () => {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   return (
     <div className="bg-surface text-on-surface min-h-screen font-body">
       
       {/* 1. TOP NAVIGATION BAR */}
       <header className="sticky top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-sm">
         <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-          {/* Brand Logo */}
           <Link to="/" className="text-2xl font-bold tracking-tighter text-[#2b3896] font-headline">
             E-commerce
           </Link>
 
-          {/* Search Bar (Desktop) */}
+          {/* Search Bar */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <div className="relative w-full">
+            <form onSubmit={handleSearch} className="relative w-full">
               <input 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-surface-container-highest border-none rounded-full px-6 py-2 text-sm focus:ring-2 focus:ring-[#2b3896]/20 transition-all outline-none" 
                 placeholder="Tìm kiếm sản phẩm..." 
                 type="text" 
               />
-              <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-            </div>
+              <button type="submit" className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-[#2b3896] cursor-pointer bg-transparent border-none">
+                search
+              </button>
+            </form>
           </div>
 
           {/* Action Cluster */}
           <div className="flex items-center gap-6">
             <nav className="hidden md:flex items-center gap-8">
               <Link to="/" className="text-[#2b3896] font-semibold border-b-2 border-[#2b3896] transition-colors duration-200">Home</Link>
-              <Link to="/shops" className="text-slate-600 font-medium hover:text-[#2b3896] transition-colors duration-200">Shop</Link>
+              <Link to="/products" className="text-slate-600 font-medium hover:text-[#2b3896] transition-colors duration-200">Shop</Link>
               <Link to="/categories" className="text-slate-600 font-medium hover:text-[#2b3896] transition-colors duration-200">Categories</Link>
             </nav>
             <div className="flex items-center gap-4">
@@ -37,7 +51,6 @@ const CustomerLayout = () => {
                 <span className="absolute -top-2 -right-2 bg-[#2b3896] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
               </Link>
               <Link to="/profile" className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container cursor-pointer hover:opacity-70 active:scale-95 transition-all bg-gray-200 flex items-center justify-center">
-                {/* Thay ảnh avatar mặc định */}
                 <span className="material-symbols-outlined text-gray-500">person</span>
               </Link>
             </div>
@@ -46,7 +59,7 @@ const CustomerLayout = () => {
         <div className="bg-slate-200 h-[1px] w-full"></div>
       </header>
 
-      {/* 2. MAIN CONTENT (NƠI HIỂN THỊ CÁC TRANG CON) */}
+      {/* 2. MAIN CONTENT */}
       <main className="max-w-7xl mx-auto px-6 pb-24 md:pb-12 mt-8">
         <Outlet />
       </main>

@@ -1,6 +1,8 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Home = () => {
+  const navigate = useNavigate();
+
   return (
     <>
       {/* 1. HERO BANNER */}
@@ -47,12 +49,18 @@ const Home = () => {
             { icon: 'fitness_center', name: 'Thể thao' },
             { icon: 'toys', name: 'Đồ chơi' }
           ].map((cat, index) => (
-            <div key={index} className="flex-shrink-0 flex flex-col items-center gap-3 group cursor-pointer">
+            
+            <div 
+              key={index} 
+              onClick={() => navigate(`/products?category=${encodeURIComponent(cat.name)}`)}
+              className="flex-shrink-0 flex flex-col items-center gap-3 group cursor-pointer"
+            >
               <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-[#2b3896] group-hover:text-white transition-all duration-300">
                 <span className="material-symbols-outlined text-3xl">{cat.icon}</span>
               </div>
               <span className="text-xs font-semibold tracking-wide text-gray-700">{cat.name}</span>
             </div>
+
           ))}
         </div>
       </section>
