@@ -227,7 +227,7 @@ const Register = () => {
       </main>
 
       <footer className="w-full py-6 text-center border-t border-gray-200 bg-gray-50">
-        <p className="text-xs text-gray-400 tracking-widest uppercase font-bold">© 2026 Đồ án E-Commerce. Nhóm 4.</p>
+        <p className="text-xs text-gray-400 tracking-widest uppercase font-bold">© 2026 Đồ án E-Commerce. Nhóm 31.</p>
       </footer>
     </div>
   );
