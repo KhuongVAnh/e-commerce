@@ -1,10 +1,13 @@
 import "dotenv/config";
 import express from "express";
+import { HttpError, sendError } from "./utils/http";
+import { requestContextMiddleware } from "./middlewares/requestContext";
 
 const app = express();
 const port = Number(process.env.PORT) || 3003;
 
 app.use(express.json());
+app.use(requestContextMiddleware);
 
 app.get("/", (_req, res) => {
   res.json({
@@ -17,6 +20,38 @@ app.get("/health", (_req, res) => {
   res.status(200).json({
     status: "ok",
     service: "commerce_service",
+  });
+});
+
+// Middleware xử lý lỗi chung, bắt tất cả lỗi được ném ra từ các controller hoặc middleware phía trên
+app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("[commerce_service] unhandled error:", error);
+
+  // nếu lỗi thuộc lớp httpError đã được định nghĩa, thì trả về lỗi chuẩn cho client
+  if (error instanceof HttpError) {
+    sendError(res, {
+      requestId: res.locals.requestId,
+      statusCode: error.statusCode,
+      message: error.message,
+      error: {
+        code: error.code,
+        details: error.details,
+        fieldErrors: error.fieldErrors,
+        hint: error.hint,
+      },
+    });
+    return;
+  }
+
+  // nếu lỗi không phải là HttpError, trả về lỗi 500 chung
+  sendError(res, {
+    requestId: res.locals.requestId,
+    statusCode: 500,
+    message: "Internal Server Error",
+    error: {
+      code: "INTERNAL_SERVER_ERROR",
+      details: [error.message],
+    },
   });
 });
 
