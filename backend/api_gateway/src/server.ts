@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./config/env";
 import cors from "cors";
 import express from "express";
 import { requestContextMiddleware } from "./middlewares/requestContext";
