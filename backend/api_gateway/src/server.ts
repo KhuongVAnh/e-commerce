@@ -11,6 +11,7 @@ const port = Number(process.env.PORT) || 3000;
 
 const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://localhost:3001";
 const catalogServiceUrl = process.env.CATALOG_SERVICE_URL || "http://localhost:3002";
+const commerceServiceUrl = process.env.COMMERCE_SERVICE_URL || "http://localhost:3003";
 const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
@@ -64,6 +65,7 @@ app.use((req, res, next) => {
 
 app.use("/api/auth", createServiceProxy(authServiceUrl));
 app.use("/api/catalog", createServiceProxy(catalogServiceUrl));
+app.use("/api/commerce", createServiceProxy(commerceServiceUrl));
 
 app.listen(port, () => {
   console.log(`api_gateway listening on port ${port}`);
