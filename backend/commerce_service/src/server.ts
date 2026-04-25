@@ -1,7 +1,8 @@
-import "dotenv/config";
+import "./config/env";
 import express from "express";
 import { HttpError, sendError } from "./utils/http";
 import { requestContextMiddleware } from "./middlewares/requestContext";
+import cartRoutes from "./routes/cart";
 
 const app = express();
 const port = Number(process.env.PORT) || 3003;
@@ -22,6 +23,8 @@ app.get("/health", (_req, res) => {
     service: "commerce_service",
   });
 });
+
+app.use("/api/commerce", cartRoutes);
 
 // Middleware xử lý lỗi chung, bắt tất cả lỗi được ném ra từ các controller hoặc middleware phía trên
 app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
