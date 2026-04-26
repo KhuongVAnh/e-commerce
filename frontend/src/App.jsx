@@ -10,6 +10,7 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Home from './pages/customer/Home';
 import ProductList from './pages/customer/ProductList';
+import ProductDetail from './pages/customer/ProductDetail';
 
 const Cart = () => <div className="p-8 bg-white rounded-lg shadow min-h-[400px]">Đây là Trang Giỏ Hàng</div>;
 const Unauthorized = () => <div className="p-10 text-center text-red-500 font-bold text-2xl">403 - Bạn không có quyền truy cập!</div>;
@@ -30,6 +31,7 @@ function App() {
           <Route path="cart" element={<Cart />} />
           <Route path="unauthorized" element={<Unauthorized />} />
           <Route path="products" element={<ProductList />} />
+          <Route path="product/:id" element={<ProductDetail />} />
         </Route>
 
         {/* --- DÀNH CHO ADMIN --- */}
