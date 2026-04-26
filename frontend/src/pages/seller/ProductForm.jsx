@@ -72,30 +72,27 @@ const ProductForm = () => {
   const handleImageClick = () => fileInputRef.current.click();
 
   return (
-    <div className="p-8 md:p-12 font-sans bg-[#f8fafc] min-h-screen pb-24">
-      {/* Breadcrumbs */}
-      <nav className="flex text-[13px] font-medium text-slate-400 mb-6 gap-2">
+    <div className="p-4 md:p-8 lg:p-12 font-sans bg-[#f8fafc] min-h-screen pb-24">
+      <nav className="flex text-[12px] md:text-[13px] font-medium text-slate-400 mb-6 gap-2 mt-8 md:mt-0">
         <Link to="/seller/products" className="hover:text-indigo-600 transition">Products</Link>
         <span>›</span>
         <span className="text-slate-600">{isUpdate ? 'Edit Product' : 'Add New Product'}</span>
       </nav>
 
-      {/* Header */}
-      <header className="mb-10">
-        <h1 className="text-4xl font-black text-[#2e3785] mb-2">
+      <header className="mb-8 md:mb-10">
+        <h1 className="text-3xl md:text-4xl font-black text-[#2e3785] mb-2">
           {isUpdate ? 'Edit Product' : 'Add New Product'}
         </h1>
-        <p className="text-slate-500 font-medium text-sm">
+        <p className="text-slate-500 font-medium text-xs md:text-sm">
           Create a new editorial listing for your store's collection.
         </p>
       </header>
 
-      <form onSubmit={handleSubmit} className="space-y-8 max-w-5xl">
-        {/* SECTION 1: Product Imagery */}
-        <div className="bg-white rounded-3xl p-10 border border-slate-100 shadow-sm">
+      <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8 max-w-5xl">
+        <div className="bg-white rounded-3xl p-6 md:p-10 border border-slate-100 shadow-sm">
           <div 
             onClick={handleImageClick}
-            className="border-2 border-dashed border-slate-200 rounded-3xl py-14 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-all group"
+            className="border-2 border-dashed border-slate-200 rounded-3xl py-10 md:py-14 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-all group px-4 text-center"
           >
             <input 
               type="file" hidden ref={fileInputRef} 
@@ -108,7 +105,7 @@ const ProductForm = () => {
               <span className="material-symbols-outlined text-[28px]">upload</span>
             </div>
             <h3 className="text-lg font-black text-slate-900 mb-1">Product Imagery</h3>
-            <p className="text-slate-400 text-[13px] font-medium mb-6">
+            <p className="text-slate-400 text-[12px] md:text-[13px] font-medium mb-6">
               Drag and drop high-resolution photos here, or click to browse files.
             </p>
             
@@ -127,8 +124,7 @@ const ProductForm = () => {
           </div>
         </div>
 
-        {/* SECTION 2: Product Details */}
-        <div className="bg-white rounded-3xl p-10 border border-slate-100 shadow-sm space-y-8">
+        <div className="bg-white rounded-3xl p-6 md:p-10 border border-slate-100 shadow-sm space-y-6 md:space-y-8">
           <div>
             <label className="block text-[13px] font-bold text-slate-700 mb-3">Product Name</label>
             <input 
@@ -139,7 +135,7 @@ const ProductForm = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             <div>
               <label className="block text-[13px] font-bold text-slate-700 mb-3">Category</label>
               <div className="relative">
@@ -190,19 +186,19 @@ const ProductForm = () => {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end items-center gap-8 pt-4">
+        {/* Nút hành động dàn ngang trên điện thoại */}
+        <div className="flex flex-col-reverse sm:flex-row justify-end items-center gap-4 sm:gap-8 pt-4">
           <button 
             type="button" 
             onClick={() => navigate('/seller/products')} 
-            className="text-sm font-bold text-slate-600 hover:text-slate-900 transition"
+            className="w-full sm:w-auto py-4 sm:py-0 text-sm font-bold text-slate-600 hover:text-slate-900 transition"
           >
             Cancel
           </button>
           <button 
             type="submit" 
             disabled={loading}
-            className="px-10 py-4 bg-[#313b8e] hover:bg-[#252d70] text-white rounded-xl font-bold shadow-xl shadow-indigo-100 transition-all flex items-center gap-3 disabled:opacity-70"
+            className="w-full sm:w-auto px-10 py-4 bg-[#313b8e] hover:bg-[#252d70] text-white rounded-xl font-bold shadow-xl shadow-indigo-100 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
           >
             <span className="material-symbols-outlined text-[20px]">save</span>
             {loading ? 'Saving...' : 'Save Product'}
