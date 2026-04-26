@@ -51,9 +51,16 @@ const Login = () => {
       }
 
     } catch (error) {
-      if (error && error.message) {
+      // 1. Ưu tiên moi lỗi chi tiết từ fieldErrors (ví dụ: "Mật khẩu phải từ 8 ký tự")
+      if (error && error.error && error.error.fieldErrors && error.error.fieldErrors.length > 0) {
+        setErrorMsg(error.error.fieldErrors[0].message);
+      } 
+      // 2. Nếu không có lỗi chi tiết thì lấy câu thông báo chung ("Sai email hoặc mật khẩu")
+      else if (error && error.message) {
         setErrorMsg(error.message);
-      } else {
+      } 
+      // 3. Lỗi mạng, server sập...
+      else {
         setErrorMsg("Đăng nhập thất bại. Vui lòng kiểm tra lại hệ thống.");
       }
     } finally {
@@ -116,17 +123,15 @@ const Login = () => {
                   <label className="block text-xs font-bold uppercase tracking-widest text-gray-500">
                     Mật khẩu
                   </label>
-                  
                 </div>
                 <div className="relative">
                   <input 
                     name="password"
                     type={showPassword ? "text" : "password"} 
-                    required
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="••••••••" 
-                    className="w-full px-4 py-4 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-[#2b3896]/40 transition-all outline-none text-sm"
+                    className="w-full px-4 py-4 pr-12 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-[#2b3896]/40 transition-all placeholder-gray-400 outline-none text-sm"
                   />
                   <button 
                     type="button"
@@ -135,7 +140,9 @@ const Login = () => {
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
-                  <Link to="/forgot-password" className="text-[11px] font-bold text-[#2b3896] hover:text-[#4551af] transition-colors uppercase tracking-wider">
+                </div>
+                <div className="text-right px-1 pt-1">
+                  <Link to="/forgot-password" className="text-[11px] font-bold text-[#2b3896] hover:text-[#4551af] transition-colors uppercase tracking-wider inline-block">
                     Quên mật khẩu?
                   </Link>
                 </div>
@@ -164,7 +171,7 @@ const Login = () => {
       
       {/* Footer */}
       <footer className="w-full py-6 text-center border-t border-gray-200 bg-gray-50 mt-auto">
-        <p className="text-xs text-gray-400 tracking-widest uppercase font-bold">© 2026 Đồ án E-Commerce. Nhóm 4.</p>
+        <p className="text-xs text-gray-400 tracking-widest uppercase font-bold">© 2026 Đồ án E-Commerce. Nhóm 31.</p>
       </footer>
     </div>
   );
