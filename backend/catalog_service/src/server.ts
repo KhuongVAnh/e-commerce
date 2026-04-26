@@ -1,6 +1,10 @@
 import "./config/env";
 import express from "express";
+import swaggerUi from "swagger-ui-express";
 import shopRoutes from "./routes/shopRoutes";
+import productRoutes from "./routes/productRoutes";
+import categoryRoutes from "./routes/categoryRoutes";
+import openApiDocument from "./docs/openapi";
 import { requestContextMiddleware } from "./middlewares/requestContext";
 import { HttpError, sendError } from "./utils/https";
 
@@ -24,7 +28,11 @@ app.get("/health", (_req, res) => {
   });
 });
 
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
+
 app.use("/api/catalog", shopRoutes);
+app.use("/api/catalog", productRoutes);
+app.use("/api/catalog", categoryRoutes);
 
 // Middleware xử lý lỗi chung, bắt tất cả lỗi được ném ra từ các controller hoặc middleware phía trên
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

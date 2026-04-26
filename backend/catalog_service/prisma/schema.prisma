@@ -26,6 +26,7 @@ enum ProductStatus {
   ACTIVE
   INACTIVE
   OUT_OF_STOCK
+  DELETED
 
   @@schema("catalog_service")
 }
@@ -49,7 +50,7 @@ model Shop {
 
 model Category {
   id        BigInt         @id @default(autoincrement())
-  name      String
+  name      String         @unique
   slug      String         @unique
   status    CategoryStatus @default(ACTIVE)
   createdAt DateTime       @default(now()) @map("created_at")
@@ -71,6 +72,7 @@ model Product {
   stockQuantity Int            @default(0) @map("stock_quantity")
   thumbnailUrl  String?        @map("thumbnail_url")
   status        ProductStatus  @default(ACTIVE)
+  deletedAt     DateTime?      @map("deleted_at")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   shop          Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
@@ -80,6 +82,7 @@ model Product {
   @@schema("catalog_service")
   @@index([shopId])
   @@index([categoryId])
+  @@index([deletedAt])
   @@map("products")
 }
 
