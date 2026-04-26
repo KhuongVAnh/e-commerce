@@ -6,6 +6,11 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import SellerDashboard from './pages/seller/SellerDashboard';
 import ShopForm from './pages/seller/ShopForm';
+
+// Import giao diện Seller Products
+import SellerProductList from './pages/seller/ProductList';
+import SellerProductForm from './pages/seller/ProductForm';
+
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Home from './pages/customer/Home';
@@ -15,6 +20,9 @@ import ProductDetail from './pages/customer/ProductDetail';
 const Cart = () => <div className="p-8 bg-white rounded-lg shadow min-h-[400px]">Đây là Trang Giỏ Hàng</div>;
 const Unauthorized = () => <div className="p-10 text-center text-red-500 font-bold text-2xl">403 - Bạn không có quyền truy cập!</div>;
 const NotFound = () => <div className="p-10 text-center text-gray-700 font-bold text-2xl">404 - Trang không tồn tại</div>;
+
+// Component tạm cho trang Orders của Seller
+const PlaceholderOrders = () => <div className="p-10 text-center text-slate-400 font-bold">Giao diện Quản lý Đơn hàng (Đang phát triển)</div>;
 
 function App() {
   return (
@@ -46,8 +54,16 @@ function App() {
           <Route path="/seller" element={<DashboardLayout roleTitle="Seller" />}>
             <Route index element={<SellerDashboard />} />
             
-            {/* /shop/settings sẽ mở Form  */}
+            {/* Cài đặt Shop */}
             <Route path="shop/settings" element={<ShopForm />} />
+            
+            {/* Quản lý Sản Phẩm*/}
+            <Route path="products" element={<SellerProductList />} />
+            <Route path="products/new" element={<SellerProductForm />} />
+            <Route path="products/:id/edit" element={<SellerProductForm />} />
+            
+            {/* Quản lý Đơn hàng */}
+            <Route path="orders" element={<PlaceholderOrders />} />
           </Route>
         </Route>
 
