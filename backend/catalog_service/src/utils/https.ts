@@ -53,20 +53,34 @@ export function sendSuccess(
         statusCode?: number;
         pagination?: any;
         warnings?: string[];
+        filters?: any;
     }) {
     const statusCode = options.statusCode ?? 200;
+
+    const meta: {
+        requestId: string;
+        timestamp: string;
+        pagination: any;
+        version: string;
+        warnings: string[];
+        filters?: any;
+    } = {
+        requestId: options.requestId,
+        timestamp: new Date().toISOString(),
+        pagination: options.pagination ?? null,
+        version: API_VERSION,
+        warnings: options.warnings ?? [],
+    };
+
+    if (options.filters !== undefined) {
+        meta.filters = options.filters;
+    }
 
     return res.status(statusCode).json({
         success: true,
         message: options.message,
         data: options.data,
-        meta: {
-            requestId: options.requestId,
-            timestamp: new Date().toISOString(),
-            pagination: options.pagination ?? null,
-            version: API_VERSION,
-            warnings: options.warnings ?? [],
-        },
+        meta,
     });
 }
 
