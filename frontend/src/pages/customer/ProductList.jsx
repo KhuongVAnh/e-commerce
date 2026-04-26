@@ -168,7 +168,7 @@ const ProductList = () => {
           {/* Lưới sản phẩm */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
             {products.map((product) => (
-              <div key={product.id} className="group flex flex-col h-full cursor-pointer">
+              <Link to={`/product/${product.id}`} key={product.id} className="group flex flex-col h-full cursor-pointer">
                 {/* Ảnh sản phẩm */}
                 <div className="aspect-[4/5] bg-gray-100 overflow-hidden rounded-2xl relative mb-4">
                   <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
@@ -189,7 +189,7 @@ const ProductList = () => {
                 {/* Thông tin sản phẩm */}
                 <div className="space-y-1 flex flex-col flex-1">
                   <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">{product.brand}</span>
-                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-[#2b3896] transition-colors leading-tight">{product.name}</h3>
+                  
                   
                   <div className="flex items-center gap-2 my-1">
                     <div className="flex text-yellow-500">
@@ -214,7 +214,7 @@ const ProductList = () => {
                   </div>
 
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
 
