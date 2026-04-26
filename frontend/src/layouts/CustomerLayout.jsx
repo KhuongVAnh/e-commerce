@@ -1,9 +1,13 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import useAuthStore from '../store/useAuthStore';
 
 const CustomerLayout = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, user, clearAuthData } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -12,12 +16,29 @@ const CustomerLayout = () => {
     }
   };
 
+  const handleLogout = () => {
+    clearAuthData();
+    setIsDropdownOpen(false);
+    navigate('/login');
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <div className="bg-surface text-on-surface min-h-screen font-body">
       
       {/* 1. TOP NAVIGATION BAR */}
       <header className="sticky top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-sm">
         <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
+          {/* Brand Logo */}
           <Link to="/" className="text-2xl font-bold tracking-tighter text-[#2b3896] font-headline">
             E-commerce
           </Link>
@@ -28,11 +49,11 @@ const CustomerLayout = () => {
               <input 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-surface-container-highest border-none rounded-full px-6 py-2 text-sm focus:ring-2 focus:ring-[#2b3896]/20 transition-all outline-none" 
+                className="w-full bg-gray-100 border-none rounded-full px-6 py-2 text-sm focus:ring-2 focus:ring-[#2b3896]/20 transition-all outline-none" 
                 placeholder="Tìm kiếm sản phẩm..." 
                 type="text" 
               />
-              <button type="submit" className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-[#2b3896] cursor-pointer bg-transparent border-none">
+              <button type="submit" className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#2b3896] bg-transparent border-none cursor-pointer">
                 search
               </button>
             </form>
@@ -42,21 +63,73 @@ const CustomerLayout = () => {
           <div className="flex items-center gap-6">
             <nav className="hidden md:flex items-center gap-8">
               <Link to="/" className="text-[#2b3896] font-semibold border-b-2 border-[#2b3896] transition-colors duration-200">Home</Link>
-              <Link to="/products" className="text-slate-600 font-medium hover:text-[#2b3896] transition-colors duration-200">Shop</Link>
-              <Link to="/categories" className="text-slate-600 font-medium hover:text-[#2b3896] transition-colors duration-200">Categories</Link>
+              <Link to="/shop" className="text-gray-600 font-medium hover:text-[#2b3896] transition-colors duration-200">Shop</Link>
+              <Link to="/categories" className="text-gray-600 font-medium hover:text-[#2b3896] transition-colors duration-200">Categories</Link>
             </nav>
+            
             <div className="flex items-center gap-4">
+              {/* Nút Giỏ hàng */}
               <Link to="/cart" className="relative cursor-pointer hover:opacity-70 active:scale-95 transition-all">
                 <span className="material-symbols-outlined text-[#2b3896]">shopping_bag</span>
                 <span className="absolute -top-2 -right-2 bg-[#2b3896] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
               </Link>
-              <Link to="/profile" className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container cursor-pointer hover:opacity-70 active:scale-95 transition-all bg-gray-200 flex items-center justify-center">
-                <span className="material-symbols-outlined text-gray-500">person</span>
-              </Link>
+
+              {/* KHU VỰC AUTH */}
+              {isAuthenticated ? (
+                <div className="relative" ref={dropdownRef}>
+                  <button 
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#2b3896]/20 cursor-pointer hover:border-[#2b3896] active:scale-95 transition-all bg-gray-100 flex items-center justify-center"
+                  >
+                    <span className="font-bold text-[#2b3896]">
+                      {user?.fullName ? user.fullName.charAt(0).toUpperCase() : <span className="material-symbols-outlined text-gray-500 text-xl mt-1">person</span>}
+                    </span>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden">
+                      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                        <p className="text-sm font-bold text-gray-900 truncate">{user?.fullName || 'Người dùng'}</p>
+                        <p className="text-xs text-gray-500 truncate mt-0.5">{user?.email || ''}</p>
+                      </div>
+                      
+                      <div className="py-1">
+                        <Link to="/profile" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-[#2b3896] transition-colors">
+                          <span className="material-symbols-outlined text-[20px]">account_circle</span>
+                          Thông tin cá nhân
+                        </Link>
+                        <Link to="/orders" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-[#2b3896] transition-colors">
+                          <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+                          Đơn mua của tôi
+                        </Link>
+
+                        {(user?.role === 'ADMIN' || user?.role === 'SELLER') && (
+                          <Link to={user.role === 'ADMIN' ? '/admin' : '/seller'} className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-orange-600 hover:bg-orange-50 transition-colors border-t border-gray-50 mt-1 pt-2">
+                            <span className="material-symbols-outlined text-[20px]">dashboard</span>
+                            Quản lý hệ thống
+                          </Link>
+                        )}
+                      </div>
+
+                      <div className="border-t border-gray-100 pt-1 pb-1">
+                        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors text-left">
+                          <span className="material-symbols-outlined text-[20px]">logout</span>
+                          Đăng xuất
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link to="/login" className="ml-2 px-6 py-2.5 bg-[#2b3896] text-white text-sm font-bold rounded-full hover:bg-[#1f2970] transition-colors shadow-md hover:shadow-lg active:scale-95">
+                  Đăng nhập
+                </Link>
+              )}
             </div>
           </div>
         </div>
-        <div className="bg-slate-200 h-[1px] w-full"></div>
+        <div className="bg-gray-200 h-[1px] w-full"></div>
       </header>
 
       {/* 2. MAIN CONTENT */}
