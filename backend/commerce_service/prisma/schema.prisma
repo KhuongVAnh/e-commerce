@@ -60,7 +60,6 @@ model CartItem {
   productId BigInt   @map("product_id")
   shopId    BigInt   @map("shop_id")
   quantity  Int      @default(1)
-  selected  Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
@@ -69,6 +68,7 @@ model CartItem {
   @@index([cartId])
   @@index([productId])
   @@index([shopId])
+  @@unique([cartId, productId], name: "unique_cart_product")
   @@map("cart_items")
 }
 

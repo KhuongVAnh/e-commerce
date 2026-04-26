@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./config/env";
 import cookieParser from "cookie-parser";
 import express from "express";
 import swaggerUi from "swagger-ui-express";

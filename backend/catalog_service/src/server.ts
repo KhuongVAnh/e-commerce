@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./config/env";
 import express from "express";
 import shopRoutes from "./routes/shopRoutes";
 import { requestContextMiddleware } from "./middlewares/requestContext";
