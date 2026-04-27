@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import {
+    findPublicProductsByIds,
     findPublicProductDetailById,
     listPublicProductRecords,
     PublicProductSortBy,
@@ -660,6 +661,47 @@ function toPublicProductListItemResponse(product: PublicProductListRecord): publ
     };
 }
 
+function parseProductIdList(input: unknown): bigint[] {
+    if (!Array.isArray(input)) {
+        throw new HttpError(400, "Dữ liệu không hợp lệ", {
+            code: "VALIDATION_ERROR",
+            fieldErrors: [
+                {
+                    field: "productIds",
+                    message: "productIds phải là một mảng",
+                },
+            ],
+        });
+    }
+
+    if (input.length === 0) {
+        return [];
+    }
+
+    const fieldErrors: Array<{ field: string; message: string }> = [];
+    const parsedIds: bigint[] = [];
+
+    for (let index = 0; index < input.length; index += 1) {
+        try {
+            parsedIds.push(parsePositiveBigInt(input[index] as string | number, `productIds[${index}]`));
+        } catch {
+            fieldErrors.push({
+                field: `productIds[${index}]`,
+                message: "productId phải là số nguyên dương",
+            });
+        }
+    }
+
+    if (fieldErrors.length > 0) {
+        throw new HttpError(400, "Dữ liệu không hợp lệ", {
+            code: "VALIDATION_ERROR",
+            fieldErrors,
+        });
+    }
+
+    return parsedIds;
+}
+
 function toPublicProductDetailResponse(product: PublicProductDetailRecord): publicProductDetailResponse {
     return {
         product: {
@@ -722,6 +764,33 @@ export async function getPublicProductDetail(productId: string) {
     }
 
     return toPublicProductDetailResponse(product);
+}
+
+export async function listPublicProductsByIds(productIdsInput: unknown) {
+    const parsedIds = parseProductIdList(productIdsInput);
+
+    if (parsedIds.length === 0) {
+        return { products: [] as publicProductListItemResponse[] };
+    }
+
+    const uniqueIds = Array.from(new Set(parsedIds.map((id) => id.toString()))).map((id) => BigInt(id));
+    const products = await findPublicProductsByIds(uniqueIds);
+    const productMap = new Map(products.map((product) => [product.id.toString(), toPublicProductListItemResponse(product)]));
+
+    const missingIds = uniqueIds.filter((id) => !productMap.has(id.toString()));
+    if (missingIds.length > 0) {
+        throw new HttpError(404, "Sản phẩm không tồn tại", {
+            code: "PRODUCT_NOT_FOUND",
+            details: missingIds.map((id) => `productId=${id.toString()}`),
+            hint: "Kiểm tra lại danh sách productIds",
+        });
+    }
+
+    const orderedProducts = parsedIds.map((id) => productMap.get(id.toString())!);
+
+    return {
+        products: orderedProducts,
+    };
 }
 
 export async function createProduct(sellerId: string, input: createProductInput) {

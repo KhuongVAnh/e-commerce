@@ -123,3 +123,26 @@ export async function findPublicProductDetailById(productId: bigint) {
         },
     });
 }
+
+export async function findPublicProductsByIds(productIds: bigint[]) {
+    return prisma.product.findMany({
+        where: {
+            id: {
+                in: productIds,
+            },
+            status: "ACTIVE",
+            deletedAt: null,
+        },
+        select: {
+            id: true,
+            shopId: true,
+            categoryId: true,
+            name: true,
+            slug: true,
+            price: true,
+            stockQuantity: true,
+            thumbnailUrl: true,
+            status: true,
+        },
+    });
+}

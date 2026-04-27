@@ -2,6 +2,7 @@ import { NextFunction, Request, Response, Router } from "express";
 import {
     createProductController,
     deleteProductController,
+    listPublicProductsByIdsController,
     getPublicProductDetailController,
     listPublicProductsController,
     updateProductController,
@@ -28,6 +29,11 @@ router.get(
 router.get(
     "/products/:productId",
     asyncHandler(getPublicProductDetailController),
+);
+
+router.post(
+    "/products/by-ids",
+    asyncHandler(listPublicProductsByIdsController),
 );
 
 router.post(
