@@ -3,6 +3,7 @@ import cors from "cors";
 import express from "express";
 import { requestContextMiddleware } from "./middlewares/requestContext";
 import { gatewayAuth } from "./middlewares/gatewayAuth";
+import uploadRoutes from "./routes/uploadRoutes";
 import { createServiceProxy } from "./utils/proxy";
 import { shouldUseGatewayAuth } from "./utils/routeMatcher";
 
@@ -38,6 +39,7 @@ app.use(cors({
 app.use(express.json());
 // gắn id cho mỗi req đi vào, để dễ dàng trace log sau này
 app.use(requestContextMiddleware);
+app.use("/api/uploads", uploadRoutes);
 
 app.get("/", (_req, res) => {
   res.json({
