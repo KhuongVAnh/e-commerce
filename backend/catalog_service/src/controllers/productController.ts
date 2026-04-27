@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import {
     createProduct,
     getPublicProductDetail,
+    listPublicProductsByIds,
     listPublicProducts,
     softDeleteProduct,
     updateProduct,
@@ -52,6 +53,16 @@ export async function getPublicProductDetailController(req: Request, res: Respon
     sendSuccess(res, {
         requestId: res.locals.requestId,
         message: "Lấy chi tiết sản phẩm thành công",
+        data,
+    });
+}
+
+export async function listPublicProductsByIdsController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const data = await listPublicProductsByIds(req.body?.productIds);
+
+    sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Lấy danh sách sản phẩm theo id thành công",
         data,
     });
 }
