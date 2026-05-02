@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import useAuthStore from '../../store/useAuthStore';
+import useCartStore from '../../store/useCartStore';
 
 const ProductList = () => {
   const [searchParams] = useSearchParams();
@@ -13,6 +15,40 @@ const ProductList = () => {
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const { isAuthenticated } = useAuthStore();
+  const token = localStorage.getItem('accessToken') || '';
+  const { fetchCartTotal } = useCartStore();
+
+  const handleAddToCart = async (e, productId) => {
+    e.preventDefault();
+    
+    if (!isAuthenticated) {
+      alert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:3000/api/commerce/cart/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ productId: productId, quantity: 1 })
+      });
+      
+      const result = await res.json();
+      if (res.ok && result.success) {
+        alert("Đã thêm sản phẩm vào giỏ hàng thành công!");
+      } else {
+        alert(result.message || "Không thể thêm vào giỏ hàng");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Có lỗi xảy ra khi kết nối đến server.");
+    }
+  };
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -191,10 +227,7 @@ const ProductList = () => {
                         {Number(product.price).toLocaleString('vi-VN')}<span className="text-xs align-top ml-0.5 opacity-80">₫</span>
                       </div>
                       <button 
-                        onClick={(e) => {
-                           e.preventDefault(); 
-                           console.log("Thêm vào giỏ:", product.id);
-                        }}
+                        onClick={(e) => handleAddToCart(e, product.id)} // GẮN HÀM VÀO ĐÂY
                         disabled={product.stockQuantity === 0}
                         className="w-10 h-10 rounded-xl bg-[#2b3896] text-white flex items-center justify-center hover:bg-[#1f2970] active:scale-90 transition-transform shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                       >
