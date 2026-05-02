@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import useAuthStore from '../../store/useAuthStore';
+import useCartStore from '../../store/useCartStore';
 
 const ProductDetail = () => {
   const { id } = useParams(); 
@@ -11,6 +13,38 @@ const ProductDetail = () => {
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const { isAuthenticated } = useAuthStore();
+  const token = localStorage.getItem('accessToken') || '';
+  const { fetchCartTotal } = useCartStore();
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      alert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:3000/api/commerce/cart/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ productId: product.id, quantity: quantity }) // Gửi kèm số lượng khách chọn
+      });
+      
+      const result = await res.json();
+      if (res.ok && result.success) {
+        alert(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
+      } else {
+        alert(result.message || "Không thể thêm vào giỏ hàng");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Có lỗi xảy ra khi kết nối đến server.");
+    }
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -163,6 +197,7 @@ const ProductDetail = () => {
           {/* Nút hành động */}
           <div className="flex flex-col sm:flex-row gap-4 mb-10">
             <button 
+              onClick={handleAddToCart} // GẮN HÀM VÀO ĐÂY
               disabled={product.stockQuantity === 0}
               className="flex-1 py-4 px-8 border-2 border-[#2b3896] text-[#2b3896] font-bold tracking-wide rounded-full hover:bg-[#2b3896]/5 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
