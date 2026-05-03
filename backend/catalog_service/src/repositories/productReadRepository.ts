@@ -28,6 +28,12 @@ function buildPublicProductWhere(params: listPublicProductsParams): Prisma.Produ
                         },
                     },
                     {
+                        description: {
+                            contains: params.keyword,
+                            mode: "insensitive",
+                        },
+                    },
+                    {
                         slug: {
                             contains: params.keyword,
                             mode: "insensitive",
