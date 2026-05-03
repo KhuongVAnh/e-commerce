@@ -16,6 +16,6 @@ router.get("/cart", getCartController);
 router.post("/cart/items", addToCartController);
 router.patch("/cart/items/:id", updateCartItemQuantityController);
 router.delete("/cart/items/:id", removeCartItemController);
-router.post("/checkout-preview", checkoutPreviewController);
+router.post("/cart/checkout-preview", checkoutPreviewController);
 
 export default router;
