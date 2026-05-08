@@ -7,6 +7,8 @@ import {
     listPublicProductsController,
     updateProductController,
     updateProductStockController,
+    decrementStockInternalController,
+    incrementStockInternalController,
 } from "../controllers/productController";
 import { authMiddleware } from "../middlewares/auth";
 import { roleMiddleware } from "../middlewares/role";
@@ -62,6 +64,17 @@ router.patch(
     authMiddleware,
     roleMiddleware(["SELLER"]),
     asyncHandler(updateProductStockController),
+);
+
+/** POST /internal/products/decrement-stock - Internal API cho commerce_service */
+router.post(
+    "/internal/products/decrement-stock",
+    asyncHandler(decrementStockInternalController),
+);
+
+router.post(
+    "/internal/products/increment-stock",
+    asyncHandler(incrementStockInternalController),
 );
 
 export default router;
