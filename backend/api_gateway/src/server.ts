@@ -19,9 +19,9 @@ const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || "http://localhost:51
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-if (corsEnabled) {
-  app.use(cors({
-    origin(origin, callback) {
+const corsOptions = corsEnabled
+  ? {
+    origin(origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) {
       // Cho phép Postman/curl hoặc server-side request không có Origin.
       if (!origin) {
         callback(null, true);
@@ -37,8 +37,14 @@ if (corsEnabled) {
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-request-id"],
-  }));
-}
+  }
+  : {
+    origin: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-request-id"],
+  };
+
+app.use(cors(corsOptions));
 app.use(express.json());
 // gắn id cho mỗi req đi vào, để dễ dàng trace log sau này
 app.use(requestContextMiddleware);
