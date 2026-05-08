@@ -1,116 +1,76 @@
-import { useState, useEffect } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import useAuthStore from '../../store/useAuthStore';
-import useCartStore from '../../store/useCartStore';
+import { Link, useSearchParams } from 'react-router-dom';
 
 const ProductList = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-
-  const categoryIdFromUrl = searchParams.get('categoryId');
-  const searchFromUrl = searchParams.get('search') || searchParams.get('q'); 
-
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const { isAuthenticated } = useAuthStore();
-  const token = localStorage.getItem('accessToken') || '';
-  const { fetchCartTotal } = useCartStore();
-
-  const handleAddToCart = async (e, productId) => {
-    e.preventDefault();
-    
-    if (!isAuthenticated) {
-      alert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
-      return;
+  const categoryFromUrl = searchParams.get('category');
+  const searchFromUrl = searchParams.get('search');
+  // Mảng dữ liệu sản phẩm mẫu
+  const products = [
+    {
+      id: 1,
+      brand: "Hue Ceramics",
+      name: "Hand-Turned Indigo Vase",
+      price: "2.500.000",
+      rating: 5,
+      reviews: 48,
+      image: "https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=500&q=80",
+      isLimited: false
+    },
+    {
+      id: 2,
+      brand: "Lotus Textiles",
+      name: "Hand-Embroidered Silk Set",
+      price: "1.850.000",
+      rating: 5,
+      reviews: 12,
+      image: "https://images.unsplash.com/photo-1584100936595-c0654b55a2e6?w=500&q=80",
+      isLimited: true
+    },
+    {
+      id: 3,
+      brand: "Bamboo Collective",
+      name: "Architectural Bamboo Lamp",
+      price: "4.200.000",
+      rating: 5,
+      reviews: 94,
+      image: "https://images.unsplash.com/photo-1513506003901-1e6a229e9d15?w=500&q=80",
+      isLimited: false
+    },
+    {
+      id: 4,
+      brand: "Da Nang Workshop",
+      name: "Solid Oak Coffee Table",
+      price: "12.000.000",
+      rating: 4.5,
+      reviews: 215,
+      image: "https://images.unsplash.com/photo-1533090481720-856c6e3c1fdc?w=500&q=80",
+      isLimited: false
+    },
+    {
+      id: 5,
+      brand: "Craft Heritage",
+      name: "Lacquerware Serving Tray",
+      price: "950.000",
+      rating: 5,
+      reviews: 37,
+      image: "https://images.unsplash.com/photo-1606041011872-59659ceb7eb8?w=500&q=80",
+      isLimited: false
+    },
+    {
+      id: 6,
+      brand: "Studio Saigon",
+      name: "'Horizon' Abstract Canvas",
+      price: "6.800.000",
+      rating: 5,
+      reviews: 5,
+      image: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=500&q=80",
+      isLimited: false
     }
-
-    try {
-      const res = await fetch('http://localhost:3000/api/commerce/cart/items', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ productId: productId, quantity: 1 })
-      });
-      
-      const result = await res.json();
-      if (res.ok && result.success) {
-        alert("Đã thêm sản phẩm vào giỏ hàng thành công!");
-      } else {
-        alert(result.message || "Không thể thêm vào giỏ hàng");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Có lỗi xảy ra khi kết nối đến server.");
-    }
-  };
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch('http://localhost:3000/api/catalog/categories');
-        const result = await res.json();
-        if (result.success) {
-          setCategories(result.data);
-        }
-      } catch (err) {
-        console.error("Lỗi khi tải danh mục:", err);
-      }
-    };
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const queryParams = new URLSearchParams();
-        
-        if (searchFromUrl) queryParams.append('q', searchFromUrl);
-        if (categoryIdFromUrl) queryParams.append('categoryId', categoryIdFromUrl);
-
-        const response = await fetch(`http://localhost:3000/api/catalog/products?${queryParams.toString()}`);
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(result.message || "Lỗi khi tải danh sách sản phẩm");
-        }
-
-        const fetchedProducts = Array.isArray(result.data) ? result.data : (result.data?.items || []);
-        setProducts(fetchedProducts);
-
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, [searchFromUrl, categoryIdFromUrl]);
-
-  const handleCategoryChange = (categoryId) => {
-    const currentParams = new URLSearchParams(searchParams);
-    
-    if (categoryIdFromUrl === String(categoryId)) {
-      currentParams.delete('categoryId');
-    } else {
-      currentParams.set('categoryId', categoryId);
-    }
-
-    navigate(`/products?${currentParams.toString()}`);
-  };
-
-  const activeCategoryName = categories.find(c => String(c.id) === categoryIdFromUrl)?.name;
+  ];
 
   return (
     <>
+      {/* 1. ĐIỀU HƯỚNG */}
       <nav className="flex mb-8 text-xs font-bold uppercase tracking-widest text-gray-400">
         <Link to="/" className="hover:text-[#2b3896] transition-colors">Trang chủ</Link>
         <span className="mx-3 text-gray-300">/</span>
@@ -120,36 +80,33 @@ const ProductList = () => {
       </nav>
 
       <div className="flex gap-12">
-        {/* BỘ LỌC */}
+        
+        {/* 2. SIDEBAR FILTERS */}
         <aside className="hidden lg:flex flex-col gap-8 w-64 flex-shrink-0 sticky top-24 h-fit">
           <div>
             <h2 className="text-lg font-extrabold text-[#2b3896] mb-1 font-headline">Bộ Lọc</h2>
             <p className="text-xs text-gray-500 mb-6 uppercase tracking-wider font-semibold">Tinh chỉnh lựa chọn</p>
           </div>
 
-          {/* DANH MỤC CON */}
+          {/* Danh mục */}
           <div className="space-y-4">
-            <h3 className="font-bold text-[#2b3896]">Danh mục</h3>
-            {categories.length === 0 ? (
-              <p className="text-xs text-gray-400">Đang tải danh mục...</p>
-            ) : (
-              <div className="space-y-3">
-                {categories.map((item) => (
-                  <label key={item.id} className="flex items-center gap-3 cursor-pointer group">
-                    <input 
-                      type="checkbox" 
-                      checked={categoryIdFromUrl === String(item.id)} 
-                      onChange={() => handleCategoryChange(item.id)}
-                      className="w-4 h-4 rounded text-[#2b3896] focus:ring-[#2b3896] border-gray-300 cursor-pointer" 
-                    />
-                    <span className="text-gray-600 text-sm group-hover:translate-x-1 transition-transform">{item.name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
+            <h3 className="font-bold text-[#2b3896]">Danh mục con</h3>
+            <div className="space-y-3">
+              {['Điện tử', 'Thời trang', 'Làm đẹp', 'Nội thất', 'Tạp hóa', 'Thể thao', 'Đồ chơi'].map((item, idx) => (
+                <label key={idx} className="flex items-center gap-3 cursor-pointer group">
+                  <input 
+                    type="checkbox" 
+                    // 3. SỬA CHỖ NÀY: Nếu item đang render trùng với tham số URL thì tự động check
+                    defaultChecked={item === categoryFromUrl} 
+                    className="w-4 h-4 rounded text-[#2b3896] focus:ring-[#2b3896] border-gray-300 cursor-pointer" 
+                  />
+                  <span className="text-gray-600 text-sm group-hover:translate-x-1 transition-transform">{item}</span>
+                </label>
+              ))}
+            </div>
           </div>
 
-          {/* Khoảng giá (Giữ tĩnh tạm thời) */}
+          {/* Khoảng giá */}
           <div className="space-y-4">
             <h3 className="font-bold text-[#2b3896]">Khoảng giá</h3>
             <div className="px-2">
@@ -160,85 +117,120 @@ const ProductList = () => {
               </div>
             </div>
           </div>
+
+          {/* Đánh giá */}
+          <div className="space-y-4">
+            <h3 className="font-bold text-[#2b3896]">Đánh giá</h3>
+            <button className="flex items-center gap-2 text-gray-600 hover:translate-x-1 transition-transform">
+              <div className="flex text-yellow-500">
+                {[1, 2, 3, 4].map((star) => (
+                  <span key={star} className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                ))}
+                <span className="material-symbols-outlined text-sm">star</span>
+              </div>
+              <span className="text-xs font-semibold">& Trở lên</span>
+            </button>
+          </div>
+
+          <button className="mt-4 bg-[#2b3896] text-white py-3 rounded-xl font-bold hover:bg-[#1f2970] transition-colors shadow-lg shadow-[#2b3896]/20">
+            Áp dụng bộ lọc
+          </button>
         </aside>
 
-        {/* DANH SÁCH SẢN PHẨM */}
+        {/* 3. MAIN CONTENT */}
         <section className="flex-1">
+          
+          {/* Header & Sắp xếp */}
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
             <div>
               <h1 className="text-3xl md:text-4xl font-black text-[#2b3896] tracking-tight mb-2 font-headline">
-                {searchFromUrl 
-                  ? `Kết quả cho "${searchFromUrl}"` 
-                  : (activeCategoryName ? `Danh mục: ${activeCategoryName}` : 'Tất cả sản phẩm')
-                }
+                {searchFromUrl ? `Kết quả cho "${searchFromUrl}"` : (categoryFromUrl ? `Danh mục: ${categoryFromUrl}` : 'Tất cả sản phẩm')}
               </h1>
-              {!loading && !error && (
-                <p className="text-gray-500 font-medium text-sm">Tìm thấy {products.length} kết quả phù hợp.</p>
-              )}
+              <p className="text-gray-500 font-medium text-sm">Tìm thấy {products.length} kết quả phù hợp.</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <button className="lg:hidden flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 text-[#2b3896]">
+                <span className="material-symbols-outlined">tune</span>
+                <span className="text-sm font-bold">Lọc</span>
+              </button>
+              <div className="relative group">
+                <select className="appearance-none bg-white px-6 py-2.5 pr-10 rounded-xl shadow-sm border border-gray-100 focus:ring-2 focus:ring-[#2b3896]/20 text-sm font-bold text-[#2b3896] cursor-pointer outline-none">
+                  <option>Mới nhất</option>
+                  <option>Giá: Thấp đến Cao</option>
+                  <option>Giá: Cao đến Thấp</option>
+                  <option>Bán chạy nhất</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#2b3896] pointer-events-none">expand_more</span>
+              </div>
             </div>
           </div>
 
-          {loading && (
-            <div className="py-20 text-center">
-               <span className="material-symbols-outlined animate-spin text-4xl text-[#2b3896]">progress_activity</span>
-               <p className="mt-4 text-gray-500 font-medium">Đang tải sản phẩm...</p>
-            </div>
-          )}
-
-          {error && (
-            <div className="py-20 text-center text-red-500 font-bold">{error}</div>
-          )}
-
-          {!loading && !error && products.length === 0 && (
-            <div className="py-20 text-center">
-              <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">search_off</span>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Không tìm thấy sản phẩm</h2>
-              <p className="text-gray-500">Vui lòng thử lại với danh mục hoặc từ khóa khác.</p>
-            </div>
-          )}
-
-          {!loading && !error && products.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-              {products.map((product) => (
-                <Link 
-                  to={`/product/${product.id}`} 
-                  key={product.id} 
-                  className="group flex flex-col h-full cursor-pointer"
-                >
-                  <div className="aspect-[4/5] bg-gray-100 overflow-hidden rounded-2xl relative mb-4">
-                    <img src={product.thumbnailUrl || 'https://via.placeholder.com/500'} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                    {product.stockQuantity === 0 && (
-                      <div className="absolute top-4 left-4 bg-gray-800 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter shadow-md">
-                        Hết hàng
-                      </div>
-                    )}
+          {/* Lưới sản phẩm */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+            {products.map((product) => (
+              <Link to={`/product/${product.id}`} key={product.id} className="group flex flex-col h-full cursor-pointer">
+                {/* Ảnh sản phẩm */}
+                <div className="aspect-[4/5] bg-gray-100 overflow-hidden rounded-2xl relative mb-4">
+                  <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  
+                  {/* Nút tim */}
+                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-gray-400 hover:text-red-500">
+                    <span className="material-symbols-outlined flex items-center justify-center">favorite</span>
                   </div>
 
-                  <div className="space-y-1 flex flex-col flex-1">
-                    <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">
-                       Shop ID: {product.shopId}
-                    </span>
-                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-[#2b3896] transition-colors leading-tight line-clamp-2">
-                      {product.name}
-                    </h3>
-                    
-                    <div className="mt-auto flex items-center justify-between pt-4">
-                      <div className="text-xl font-extrabold text-[#2b3896]">
-                        {Number(product.price).toLocaleString('vi-VN')}<span className="text-xs align-top ml-0.5 opacity-80">₫</span>
-                      </div>
-                      <button 
-                        onClick={(e) => handleAddToCart(e, product.id)} // GẮN HÀM VÀO ĐÂY
-                        disabled={product.stockQuantity === 0}
-                        className="w-10 h-10 rounded-xl bg-[#2b3896] text-white flex items-center justify-center hover:bg-[#1f2970] active:scale-90 transition-transform shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <span className="material-symbols-outlined">add_shopping_cart</span>
-                      </button>
+                  {/* Badge Limited */}
+                  {product.isLimited && (
+                    <div className="absolute top-4 left-4 bg-[#8f4700] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter shadow-md">
+                      Limited
                     </div>
+                  )}
+                </div>
+
+                {/* Thông tin sản phẩm */}
+                <div className="space-y-1 flex flex-col flex-1">
+                  <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">{product.brand}</span>
+                  
+                  
+                  <div className="flex items-center gap-2 my-1">
+                    <div className="flex text-yellow-500">
+                      {[1, 2, 3, 4].map((star) => (
+                        <span key={star} className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                      ))}
+                      <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: product.rating === 5 ? "'FILL' 1" : "'FILL' 0.5" }}>
+                        {product.rating === 5 ? 'star' : 'star_half'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-gray-500 font-bold">({product.reviews})</span>
                   </div>
-                </Link>
-              ))}
-            </div>
-          )}
+                  
+                  {/* Nút mua hàng */}
+                  <div className="mt-auto flex items-center justify-between pt-4">
+                    <div className="text-xl font-extrabold text-[#2b3896]">
+                      {product.price}<span className="text-xs align-top ml-0.5 opacity-80">₫</span>
+                    </div>
+                    <button className="w-10 h-10 rounded-xl bg-[#2b3896] text-white flex items-center justify-center hover:bg-[#1f2970] active:scale-90 transition-transform shadow-md">
+                      <span className="material-symbols-outlined">add_shopping_cart</span>
+                    </button>
+                  </div>
+
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Phân trang */}
+          <div className="mt-20 flex justify-center gap-2">
+            <button className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:bg-[#2b3896] hover:text-white hover:border-[#2b3896] transition-colors">
+              <span className="material-symbols-outlined">chevron_left</span>
+            </button>
+            <button className="w-10 h-10 flex items-center justify-center rounded-full bg-[#2b3896] text-white font-bold shadow-md">1</button>
+            <button className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:bg-[#2b3896] hover:text-white hover:border-[#2b3896] transition-colors font-bold">2</button>
+            <button className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:bg-[#2b3896] hover:text-white hover:border-[#2b3896] transition-colors font-bold">3</button>
+            <button className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:bg-[#2b3896] hover:text-white hover:border-[#2b3896] transition-colors">
+              <span className="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+
         </section>
       </div>
     </>

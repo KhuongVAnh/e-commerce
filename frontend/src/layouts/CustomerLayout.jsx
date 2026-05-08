@@ -1,7 +1,6 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import useAuthStore from '../store/useAuthStore';
-import useCartStore from '../store/useCartStore';
 
 const CustomerLayout = () => {
   const navigate = useNavigate();
@@ -9,7 +8,6 @@ const CustomerLayout = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const { totalQuantity, fetchCartTotal } = useCartStore();
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -23,14 +21,6 @@ const CustomerLayout = () => {
     setIsDropdownOpen(false);
     navigate('/login');
   };
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchCartTotal();
-    }
-  }, [isAuthenticated]);
-
-  const displayQuantity = totalQuantity > 99 ? '99+' : totalQuantity;
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -79,13 +69,9 @@ const CustomerLayout = () => {
             
             <div className="flex items-center gap-4">
               {/* Nút Giỏ hàng */}
-              <Link to="/cart" className="relative cursor-pointer hover:opacity-70 active:scale-95 transition-all mr-2">
-                <span className="material-symbols-outlined text-[#2b3896] text-3xl">shopping_bag</span>
-                {totalQuantity > 0 && (
-                  <span className="absolute -top-1 -right-2 bg-[#2b3896] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white shadow-sm">
-                    {displayQuantity}
-                  </span>
-                )}
+              <Link to="/cart" className="relative cursor-pointer hover:opacity-70 active:scale-95 transition-all">
+                <span className="material-symbols-outlined text-[#2b3896]">shopping_bag</span>
+                <span className="absolute -top-2 -right-2 bg-[#2b3896] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
               </Link>
 
               {/* KHU VỰC AUTH */}
@@ -235,13 +221,9 @@ const CustomerLayout = () => {
           <span className="material-symbols-outlined">favorite</span>
           <span className="text-[11px] font-medium font-body mt-1">Đã lưu</span>
         </Link>
-        <Link to="/cart" className="relative text-indigo-900 hover:bg-slate-50 p-2 rounded-full transition-all">
-          <span className="material-symbols-outlined">shopping_bag</span>
-          {totalQuantity > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
-              {displayQuantity}
-            </span>
-          )}
+        <Link to="/cart" className="flex flex-col items-center justify-center text-slate-500 hover:bg-slate-50 rounded-xl px-4 py-1.5">
+          <span className="material-symbols-outlined">shopping_cart</span>
+          <span className="text-[11px] font-medium font-body mt-1">Giỏ hàng</span>
         </Link>
       </nav>
 
