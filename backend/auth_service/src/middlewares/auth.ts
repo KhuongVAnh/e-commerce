@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { prisma } from "../config/prisma";
 import { sendError } from "../utils/http";
-import { verifyAccessToken } from "../utils/token";
+import { JwtUserPayload, verifyAccessToken } from "../utils/token";
 
 export async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authorization = req.header("authorization");
@@ -20,7 +20,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   }
 
   const token = authorization.slice("Bearer ".length).trim();
-  let payload: { userId: string };
+  let payload: JwtUserPayload;
 
   try {
     payload = verifyAccessToken(token);
@@ -87,6 +87,10 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       fullName: user.fullName,
       role: user.role.name,
     };
+
+    if (payload.shopId) {
+      req.authUser.shopId = payload.shopId;
+    }
 
     next();
   } catch (error) {

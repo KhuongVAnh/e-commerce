@@ -17,6 +17,7 @@ declare global {
                 email: string;
                 fullName: string;
                 role: string;
+                shopId?: string;
             };
         }
     }
