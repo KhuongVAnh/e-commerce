@@ -3,6 +3,7 @@ import {
     createShopController,
     getMyShopController,
     updateMyShopController,
+    getShopBySellerIdController,
 } from "../controllers/shopController";
 import { authMiddleware } from "../middlewares/auth";
 import { roleMiddleware } from "../middlewares/role";
@@ -37,6 +38,12 @@ router.put(
     authMiddleware,
     roleMiddleware(["SELLER"]),
     asyncHandler(updateMyShopController),
+);
+
+// internal endpoint for other services to lookup shop by sellerId
+router.get(
+    "/shops/internal/by-seller/:sellerId",
+    asyncHandler(getShopBySellerIdController),
 );
 
 export default router;
