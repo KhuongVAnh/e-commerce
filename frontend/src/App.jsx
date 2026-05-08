@@ -16,8 +16,8 @@ import Register from './pages/auth/Register';
 import Home from './pages/customer/Home';
 import ProductList from './pages/customer/ProductList';
 import ProductDetail from './pages/customer/ProductDetail';
-import Cart from './pages/customer/Cart';
 
+const Cart = () => <div className="p-8 bg-white rounded-lg shadow min-h-[400px]">Đây là Trang Giỏ Hàng</div>;
 const Unauthorized = () => <div className="p-10 text-center text-red-500 font-bold text-2xl">403 - Bạn không có quyền truy cập!</div>;
 const NotFound = () => <div className="p-10 text-center text-gray-700 font-bold text-2xl">404 - Trang không tồn tại</div>;
 
@@ -33,15 +33,13 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* --- DÀNH CHO KHÁCH --- */}
+        {/* --- DÀNH CHO KHÁCH (AI CŨNG VÀO ĐƯỢC) --- */}
         <Route path="/" element={<CustomerLayout />}>
           <Route index element={<Home />} />
+          <Route path="cart" element={<Cart />} />
           <Route path="unauthorized" element={<Unauthorized />} />
           <Route path="products" element={<ProductList />} />
           <Route path="product/:id" element={<ProductDetail />} />
-          <Route element={<ProtectedRoute />}>
-            <Route path="cart" element={<Cart />} />
-          </Route>
         </Route>
 
         {/* --- DÀNH CHO ADMIN --- */}
