@@ -15,9 +15,17 @@ enum UserStatus {
   @@schema("auth_service")
 }
 
+enum UserRole {
+  CUSTOMER
+  SELLER
+  ADMIN
+
+  @@schema("auth_service")
+}
+
 model Role {
   id          BigInt   @id @default(autoincrement())
-  name        String   @unique
+  name        UserRole @unique
   description String?
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
