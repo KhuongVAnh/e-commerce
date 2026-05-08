@@ -15,8 +15,13 @@
 ## Cấu hình database
 
 - Prisma đã được setup theo PostgreSQL.
-- Chưa có model/migration thật được apply lên DB.
-- Seed hiện là placeholder để test cơ chế Prisma.
+- Service sử dụng Prisma migrations trong `prisma/migrations`.
+- Khi pull code mới có thay đổi schema, cần chạy migration để đồng bộ DB.
+
+```bash
+npx prisma generate
+npx prisma migrate deploy
+```
 
 ## Cách chạy
 
@@ -34,6 +39,74 @@ npm start
 
 - `GET /`: kiểm tra service đang chạy
 - `GET /health`: health check cơ bản
+
+## Test nhanh Product listing (public)
+
+Endpoint: `GET /api/catalog/products`
+
+Query optional:
+- `page`: số trang (>= 1)
+- `limit`: số record/trang (1-100), mặc định 12
+- `shopId`: lọc theo shop
+- `categoryId`: lọc theo category
+- `keyword`: từ khóa chính
+- `q`: alias (chỉ dùng nếu không có `keyword`)
+- `sortBy`: `latest` | `oldest` | `price_asc` | `price_desc` (mặc định `latest`)
+
+Ghi chú:
+- Public listing chỉ trả product `ACTIVE` và `deletedAt = null`.
+- Search chạy case-insensitive theo `name` (và nếu có thì `description`, `slug`).
+
+Ví dụ test (PowerShell):
+
+1) Default (latest + page=1 + limit=12)
+```powershell
+Invoke-WebRequest -Uri "http://localhost:3002/api/catalog/products" -UseBasicParsing
+```
+
+2) keyword
+```powershell
+Invoke-WebRequest -Uri "http://localhost:3002/api/catalog/products?keyword=ao%20thun" -UseBasicParsing
+```
+
+3) q (chỉ dùng khi không có keyword)
+```powershell
+Invoke-WebRequest -Uri "http://localhost:3002/api/catalog/products?q=ao%20thun" -UseBasicParsing
+```
+
+4) shopId
+```powershell
+Invoke-WebRequest -Uri "http://localhost:3002/api/catalog/products?shopId=1" -UseBasicParsing
+```
+
+5) categoryId
+```powershell
+Invoke-WebRequest -Uri "http://localhost:3002/api/catalog/products?categoryId=2" -UseBasicParsing
+```
+
+6) keyword + categoryId
+```powershell
+Invoke-WebRequest -Uri "http://localhost:3002/api/catalog/products?keyword=ao&categoryId=2" -UseBasicParsing
+```
+
+7) sortBy
+```powershell
+Invoke-WebRequest -Uri "http://localhost:3002/api/catalog/products?sortBy=latest" -UseBasicParsing
+Invoke-WebRequest -Uri "http://localhost:3002/api/catalog/products?sortBy=oldest" -UseBasicParsing
+Invoke-WebRequest -Uri "http://localhost:3002/api/catalog/products?sortBy=price_asc" -UseBasicParsing
+Invoke-WebRequest -Uri "http://localhost:3002/api/catalog/products?sortBy=price_desc" -UseBasicParsing
+```
+
+8) pagination
+```powershell
+Invoke-WebRequest -Uri "http://localhost:3002/api/catalog/products?page=1&limit=5" -UseBasicParsing
+Invoke-WebRequest -Uri "http://localhost:3002/api/catalog/products?page=2&limit=5" -UseBasicParsing
+```
+
+Response format:
+- `data`: danh sách product
+- `meta.pagination`: `{ page, limit, total, totalPages }`
+- `meta.filters`: `{ keyword, shopId, categoryId, sortBy }`
 
 ## Cấu trúc thư mục
 
