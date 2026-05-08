@@ -6,6 +6,7 @@ export type JwtUserPayload = {
   email: string;
   fullName: string;
   role: string;
+  shopId?: string;
 };
 
 function getRequiredEnv(name: "JWT_ACCESS_SECRET" | "JWT_REFRESH_SECRET"): string {

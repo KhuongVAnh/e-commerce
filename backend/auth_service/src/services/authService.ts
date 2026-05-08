@@ -1,3 +1,4 @@
+import { UserRole } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { HttpError } from "../utils/http";
 import { hashPassword, verifyPassword } from "../utils/password";
@@ -8,17 +9,19 @@ import {
   signRefreshToken,
   verifyRefreshToken,
 } from "../utils/token";
+import { getShopIdBySellerId } from "./catalogClient";
 
 type RegisterInput = {
   email?: string;
   password?: string;
   fullName?: string;
-  role?: "CUSTOMER" | "SELLER";
+  role?: UserRole;
 };
 
 type LoginInput = {
   email?: string;
   password?: string;
+  role?: UserRole;
 };
 
 type RefreshInput = {
@@ -29,7 +32,7 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-function assertRegisterInput(input: RegisterInput): Required<Pick<RegisterInput, "email" | "password" | "fullName">> & { role: "CUSTOMER" | "SELLER" } {
+function assertRegisterInput(input: RegisterInput): Required<Pick<RegisterInput, "email" | "password" | "fullName">> & { role: UserRole } {
   const fieldErrors: Array<{ field: string; message: string }> = [];
 
   if (!input.email || !input.email.trim()) {
@@ -44,6 +47,17 @@ function assertRegisterInput(input: RegisterInput): Required<Pick<RegisterInput,
     fieldErrors.push({ field: "fullName", message: "Họ tên là bắt buộc" });
   }
 
+  // Chuẩn hóa role: viết hoa và trim
+  const normalizedRole = input.role?.toString().trim().toUpperCase();
+  
+  // Kiểm tra role hợp lệ (chỉ cho phép CUSTOMER hoặc SELLER khi đăng ký)
+  if (normalizedRole && normalizedRole !== UserRole.CUSTOMER && normalizedRole !== UserRole.SELLER) {
+    fieldErrors.push({ 
+      field: "role", 
+      message: `Role không hợp lệ. Chỉ chấp nhận: ${UserRole.CUSTOMER}, ${UserRole.SELLER}` 
+    });
+  }
+
   if (fieldErrors.length > 0) {
     throw new HttpError(400, "Dữ liệu không hợp lệ", {
       code: "VALIDATION_ERROR",
@@ -56,25 +70,41 @@ function assertRegisterInput(input: RegisterInput): Required<Pick<RegisterInput,
     email: normalizeEmail(input.email as string),
     password: input.password as string,
     fullName: (input.fullName as string).trim(),
-    role: input.role === "SELLER" ? "SELLER" : "CUSTOMER",
+    role: (normalizedRole as UserRole) || UserRole.CUSTOMER,
   };
 }
 
 function assertLoginInput(input: LoginInput): Required<LoginInput> {
-  if (!input.email || !input.password) {
+  const fieldErrors: Array<{ field: string; message: string }> = [];
+
+  if (!input.email) {
+    fieldErrors.push({ field: "email", message: "Email là bắt buộc" });
+  }
+  if (!input.password) {
+    fieldErrors.push({ field: "password", message: "Mật khẩu là bắt buộc" });
+  }
+
+  // Chuẩn hóa và verify role nếu có gửi lên
+  const normalizedRole = input.role?.toString().trim().toUpperCase();
+  if (normalizedRole && !Object.values(UserRole).includes(normalizedRole as UserRole)) {
+    fieldErrors.push({
+      field: "role",
+      message: `Role không hợp lệ. Phải là một trong: ${Object.values(UserRole).join(", ")}`
+    });
+  }
+
+  if (fieldErrors.length > 0) {
     throw new HttpError(400, "Dữ liệu không hợp lệ", {
       code: "VALIDATION_ERROR",
-      fieldErrors: [
-        ...(!input.email ? [{ field: "email", message: "Email là bắt buộc" }] : []),
-        ...(!input.password ? [{ field: "password", message: "Mật khẩu là bắt buộc" }] : []),
-      ],
+      fieldErrors,
       hint: "Kiểm tra lại dữ liệu nhập",
     });
   }
 
   return {
-    email: normalizeEmail(input.email),
-    password: input.password,
+    email: normalizeEmail(input.email as string),
+    password: input.password as string,
+    role: (normalizedRole as UserRole) || UserRole.CUSTOMER,
   };
 }
 
@@ -183,6 +213,12 @@ export async function login(input: LoginInput) {
     });
   }
 
+  if (user.role.name !== payload.role) {
+    throw new HttpError(401, "Vai trò không hợp lệ", {
+      code: "INVALID_CREDENTIALS",
+    });
+  }
+
   const isPasswordValid = await verifyPassword(payload.password, user.passwordHash);
   if (!isPasswordValid) {
     throw new HttpError(401, "Sai email hoặc mật khẩu", {
@@ -196,11 +232,20 @@ export async function login(input: LoginInput) {
     });
   }
 
+  let shopId: string | null = null;
+  if (payload.role === UserRole.SELLER) {
+    // Chỉ fetch shopId nếu user thực sự có role SELLER trong DB
+    if (user.role.name === UserRole.SELLER) {
+      shopId = await getShopIdBySellerId(user.id.toString());
+    }
+  }
+
   const jwtPayload = {
     userId: user.id.toString(),
     email: user.email,
     fullName: user.fullName,
     role: user.role.name,
+    ...(shopId ? { shopId } : {}),
   };
 
   const accessToken = signAccessToken(jwtPayload);
@@ -234,7 +279,7 @@ export async function login(input: LoginInput) {
 export async function refresh(input: RefreshInput) {
   const refreshToken = assertRefreshTokenInput(input);
 
-  let payload: { userId: string; email: string; fullName: string; role: string };
+  let payload: { userId: string; email: string; fullName: string; role: string; shopId?: string };
   try {
     payload = verifyRefreshToken(refreshToken);
   } catch {
@@ -277,11 +322,17 @@ export async function refresh(input: RefreshInput) {
     });
   }
 
+  let shopId: string | null = null;
+  if (user.role.name === UserRole.SELLER) {
+    shopId = await getShopIdBySellerId(user.id.toString());
+  }
+
   const jwtPayload = {
     userId: user.id.toString(),
     email: user.email,
     fullName: user.fullName,
     role: user.role.name,
+    ...(shopId ? { shopId } : {}),
   };
 
   const newRefreshToken = signRefreshToken(jwtPayload);

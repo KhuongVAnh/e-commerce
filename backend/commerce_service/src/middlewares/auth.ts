@@ -29,6 +29,11 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
             fullName: payload.fullName,
             role: payload.role,
         };
+
+        if (payload.shopId) {
+            req.authUser.shopId = payload.shopId;
+        }
+
         next();
     } catch {
         sendError(res, {
