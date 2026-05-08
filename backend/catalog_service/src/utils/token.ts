@@ -5,6 +5,7 @@ export type JwtUserPayload = {
     email: string;
     fullName: string;
     role: string;
+    shopId?: string;
 };
 
 const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_SECRET || "access-secret-dev";
@@ -22,5 +23,6 @@ export function verifyAccessToken(token: string): JwtUserPayload {
         email: decoded.email,
         fullName: decoded.fullName,
         role: decoded.role,
+        shopId: decoded.shopId ? String(decoded.shopId) : undefined,
     };
 }
