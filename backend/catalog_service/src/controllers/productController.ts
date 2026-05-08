@@ -7,9 +7,12 @@ import {
     softDeleteProduct,
     updateProduct,
     updateProductStock,
+    decrementProductsStock,
+    incrementProductsStock,
 } from "../services/productService";
 import { sendSuccess } from "../utils/https";
 import { listProductQuery } from "../utils/inOutProductAPI";
+import { HttpError } from "../utils/https";
 
 function readProductId(req: Request): string {
     const raw = req.params.productId;
@@ -104,6 +107,49 @@ export async function updateProductStockController(req: Request, res: Response, 
     sendSuccess(res, {
         requestId: res.locals.requestId,
         message: "Cập nhật tồn kho thành công",
+        data,
+    });
+}
+
+// Các controller internal để gọi từ order service khi cần tăng giảm tồn kho, không cần authUser vì đã có service order đảm bảo quyền truy cập rồi
+export async function decrementStockInternalController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const items = req.body.items; // Expect [{ productId: string, quantity: number }]
+
+    if (!Array.isArray(items)) {
+        throw new HttpError(400, "Dữ liệu không hợp lệ, items phải là mảng", { code: "VALIDATION_ERROR" });
+    }
+
+    const parsedItems = items.map(i => ({
+        productId: BigInt(i.productId),
+        quantity: Number(i.quantity)
+    }));
+
+    const data = await decrementProductsStock(parsedItems);
+
+    sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Giảm tồn kho thành công",
+        data,
+    });
+}
+
+export async function incrementStockInternalController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const items = req.body.items;
+
+    if (!Array.isArray(items)) {
+        throw new HttpError(400, "Dữ liệu không hợp lệ", { code: "VALIDATION_ERROR" });
+    }
+
+    const parsedItems = items.map(i => ({
+        productId: BigInt(i.productId),
+        quantity: Number(i.quantity)
+    }));
+
+    const data = await incrementProductsStock(parsedItems);
+
+    sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Hoàn tồn kho thành công",
         data,
     });
 }

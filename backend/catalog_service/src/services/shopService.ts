@@ -153,22 +153,22 @@ function toShopResponse(shop: {
 }
 
 // create shop
-export async function createShop(sellerId: string, input: createShopInput){
+export async function createShop(sellerId: string, input: createShopInput) {
     const sellerIdAsBigInt = BigInt(sellerId);
-    
+
     // kiểm tra người dùng đã có shop chưa
     const existingShop = await prisma.shop.findFirst({
         where: { sellerId: sellerIdAsBigInt },
         select: { id: true },
     });
-    
+
     if (existingShop) {
         throw new HttpError(409, "Người dùng đã có shop", {
             code: "SHOP_ALREADY_EXISTS",
             hint: "Mỗi seller chỉ được sở hữu một shop",
         });
     }
-    
+
     const payload = assertCreateInput(input);
     const slug = await generateUniqueSlug(payload.name);
 
@@ -230,6 +230,21 @@ export async function updateMyShop(sellerId: string, input: updateShopInput) {
     return {
         shop: toShopResponse(shop),
     };
+}
+
+// Lấy shop theo sellerId cho các service nội bộ (không ném lỗi nếu không tìm thấy)
+export async function getShopBySellerId(sellerId: string) {
+    const sellerIdAsBigInt = BigInt(sellerId);
+
+    const shop = await prisma.shop.findUnique({
+        where: { sellerId: sellerIdAsBigInt },
+    });
+
+    if (!shop) {
+        return { shop: null };
+    }
+
+    return { shop: toShopResponse(shop) };
 }
 
 

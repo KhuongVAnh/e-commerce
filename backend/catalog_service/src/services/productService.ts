@@ -949,3 +949,80 @@ export async function updateProductStock(sellerId: string, productId: string, in
         updatedAt: updatedProduct.updatedAt.toISOString(),
     };
 }
+
+/**
+ * Giảm tồn kho nhiều sản phẩm cùng lúc (Internal API dùng cho Commerce Service)
+ */
+export async function decrementProductsStock(items: Array<{ productId: bigint; quantity: number }>) {
+    return await prisma.$transaction(async (tx) => {
+        const results = [];
+
+        for (const item of items) {
+            // Kiểm tra sản phẩm có tồn tại và đủ hàng không
+            const product = await tx.product.findUnique({
+                where: { id: item.productId },
+                select: { id: true, stockQuantity: true, status: true },
+            });
+
+            if (!product) {
+                throw new HttpError(404, `Sản phẩm id=${item.productId} không tồn tại`, {
+                    code: "PRODUCT_NOT_FOUND",
+                });
+            }
+
+            if (product.stockQuantity < item.quantity) {
+                throw new HttpError(400, `Sản phẩm id=${item.productId} không đủ tồn kho`, {
+                    code: "INSUFFICIENT_STOCK",
+                });
+            }
+
+            const newStock = product.stockQuantity - item.quantity;
+            const newStatus = deriveStatusByStock(product.status as SellerEditableStatus, newStock);
+
+            const updated = await tx.product.update({
+                where: { id: item.productId },
+                data: {
+                    stockQuantity: newStock,
+                    status: newStatus,
+                },
+            });
+
+            results.push(updated);
+        }
+
+        return results;
+    });
+}
+
+/**
+ * Hoàn lại tồn kho nhiều sản phẩm (Internal API)
+ */
+export async function incrementProductsStock(items: Array<{ productId: bigint; quantity: number }>) {
+    return await prisma.$transaction(async (tx) => {
+        const results = [];
+
+        for (const item of items) {
+            const product = await tx.product.findUnique({
+                where: { id: item.productId },
+                select: { id: true, stockQuantity: true, status: true },
+            });
+
+            if (!product) continue; // Hoặc throw lỗi tùy logic
+
+            const newStock = product.stockQuantity + item.quantity;
+            const newStatus = deriveStatusByStock(product.status as SellerEditableStatus, newStock);
+
+            const updated = await tx.product.update({
+                where: { id: item.productId },
+                data: {
+                    stockQuantity: newStock,
+                    status: newStatus,
+                },
+            });
+
+            results.push(updated);
+        }
+
+        return results;
+    });
+}
