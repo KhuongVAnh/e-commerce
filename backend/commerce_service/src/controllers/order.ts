@@ -1,13 +1,19 @@
 import { NextFunction, Request, Response } from "express";
-import { PaymentMethod } from "@prisma/client";
+import { OrderStatus, PaymentMethod } from "@prisma/client";
 import {
     createOrder,
     refreshOrderPaymentUrlIfNeeded,
     cancelOrder,
+    getCustomerOrderDetail,
+    listCustomerOrders,
+    listSellerOrders,
+    resolveShopIdForSeller,
+    sellerUpdateOrderStatus,
 } from "../services/orderService";
 import { HttpError, sendSuccess } from "../utils/http";
 import { parseRequiredBigInt, serializeBigInt } from "../utils/validation";
 import { checkPaymentFromOrderCode } from "../services/paymentService";
+import { buildPaginationMeta, parsePaginationQuery } from "../utils/pagination";
 
 // ─────────────────────────────────────────────────────────────
 // Helpers validation
@@ -30,6 +36,38 @@ function parsePaymentMethod(value: unknown): PaymentMethod {
         });
     }
     return value;
+}
+
+function parseOrderStatus(value: unknown, field: string): OrderStatus {
+    if (typeof value !== "string" || value.trim() === "") {
+        throw new HttpError(400, `${field} không hợp lệ`, {
+            code: "VALIDATION_ERROR",
+            fieldErrors: [{ field, message: `${field} không hợp lệ` }],
+        });
+    }
+
+    const normalized = value.trim() as OrderStatus;
+    const values = Object.values(OrderStatus);
+    if (!values.includes(normalized)) {
+        throw new HttpError(400, `${field} không hợp lệ`, {
+            code: "VALIDATION_ERROR",
+            fieldErrors: [
+                {
+                    field,
+                    message: `${field} phải là một trong: ${values.join(", ")}`,
+                },
+            ],
+        });
+    }
+
+    return normalized;
+}
+
+function parseOptionalOrderStatus(value: unknown): OrderStatus | undefined {
+    if (value === undefined || value === null || value === "") {
+        return undefined;
+    }
+    return parseOrderStatus(value, "status");
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -206,6 +244,111 @@ export async function checkResultPaymentController(req: Request, res: Response) 
                 isFailed,
                 isPending,
             },
+        },
+    });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Customer: history / detail
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * GET /orders/my – Lịch sử đơn hàng của customer
+ * Query: page?, limit?, status?
+ */
+export async function getMyOrdersController(req: Request, res: Response) {
+    const customerId = parseRequiredBigInt(req.authUser!.userId, "userId");
+    const { page, limit } = parsePaginationQuery({
+        page: req.query.page,
+        limit: req.query.limit,
+    });
+
+    const status = parseOptionalOrderStatus(req.query.status);
+
+    const result = await listCustomerOrders(customerId, { page, limit, status });
+    const pagination = buildPaginationMeta({ page, limit, total: result.total });
+
+    return sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Lấy lịch sử đơn hàng thành công",
+        data: {
+            orders: serializeBigInt(result.orders),
+        },
+        pagination,
+    });
+}
+
+/**
+ * GET /orders/:id – Chi tiết đơn hàng của customer
+ */
+export async function getMyOrderDetailController(req: Request, res: Response) {
+    const customerId = parseRequiredBigInt(req.authUser!.userId, "userId");
+    const orderId = parseRequiredBigInt(req.params.id, "id");
+
+    const order = await getCustomerOrderDetail(customerId, orderId);
+
+    return sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Lấy chi tiết đơn hàng thành công",
+        data: {
+            order: serializeBigInt(order),
+        },
+    });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Seller: list / update status
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * GET /seller/orders – Seller xem đơn hàng của shop mình
+ * Query: page?, limit?, status?
+ */
+export async function sellerGetOrdersController(req: Request, res: Response) {
+    const { page, limit } = parsePaginationQuery({
+        page: req.query.page,
+        limit: req.query.limit,
+    });
+    const status = parseOptionalOrderStatus(req.query.status);
+
+    const shopId = await resolveShopIdForSeller({
+        userId: req.authUser!.userId,
+        shopId: req.authUser?.shopId,
+    });
+
+    const result = await listSellerOrders(shopId, { page, limit, status });
+    const pagination = buildPaginationMeta({ page, limit, total: result.total });
+
+    return sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Lấy danh sách đơn hàng của shop thành công",
+        data: {
+            orders: serializeBigInt(result.orders),
+        },
+        pagination,
+    });
+}
+
+/**
+ * PATCH /seller/orders/:id/status – Cập nhật trạng thái đơn hàng
+ * Body: { status: OrderStatus }
+ */
+export async function sellerUpdateOrderStatusController(req: Request, res: Response) {
+    const orderId = parseRequiredBigInt(req.params.id, "id");
+    const nextStatus = parseOrderStatus(req.body.status, "status");
+
+    const shopId = await resolveShopIdForSeller({
+        userId: req.authUser!.userId,
+        shopId: req.authUser?.shopId,
+    });
+
+    const updated = await sellerUpdateOrderStatus(shopId, orderId, nextStatus);
+
+    return sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Cập nhật trạng thái đơn hàng thành công",
+        data: {
+            order: serializeBigInt(updated),
         },
     });
 }
