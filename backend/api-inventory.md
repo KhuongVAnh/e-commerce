@@ -110,10 +110,10 @@
 | Đã có | GET | `/api/commerce/orders/:orderCode/payment-url` | CUSTOMER | Path param:<br>`orderCode: string` | `orderId: string`<br>`orderCode: string`<br>`paymentUrl: string`<br>`expiresAt: ISO-8601` |
 | Đã có | GET | `/api/commerce/orders/:orderCode/check-result` | CUSTOMER | Path param:<br>`orderCode: string` | Kết quả thanh toán theo đơn hàng (cần auth):<br>`order: { id, orderCode, orderStatus, paymentStatus }`<br>`payment: { id, status, amount, transactionRef, paidAt }`<br>`result: { isPaid, isFailed, isPending }` |
 | Đã có | POST | `/api/commerce/orders/:orderCode/cancel` | CUSTOMER | Path param:<br>`orderCode: string`<br><br>Không có body | `orderId: string`<br>`orderCode: string`<br>`orderStatus: OrderStatus` (CANCELLED) |
-| Chưa có | GET | `/api/commerce/orders/my` | CUSTOMER | Query optional:<br>`status?: OrderStatus`<br>`page?: number`<br>`limit?: number` | Danh sách đơn hàng của khách hàng |
-| Chưa có | GET | `/api/commerce/orders/:id` | CUSTOMER | Path param:<br>`id: string` | Chi tiết đơn hàng và các mục hàng |
-| Chưa có | GET | `/api/commerce/seller/orders` | SELLER | Query optional:<br>`status?: OrderStatus` | Danh sách đơn hàng của shop |
-| Chưa có | PATCH | `/api/commerce/seller/orders/:id/status` | SELLER | Path param:<br>`id: string`<br>`status: OrderStatus` | Cập nhật trạng thái đơn |
+| Đã có | GET | `/api/commerce/orders/my` | CUSTOMER | Query optional:<br>`status?: OrderStatus`<br>`page?: number`<br>`limit?: number` | Danh sách đơn hàng của khách hàng |
+| Đã có | GET | `/api/commerce/orders/:id` | CUSTOMER | Path param:<br>`id: string` | Chi tiết đơn hàng và các mục hàng |
+| Đã có | GET | `/api/commerce/seller/orders` | SELLER | Query optional:<br>`status?: OrderStatus` | Danh sách đơn hàng của shop |
+| Đã có | PATCH | `/api/commerce/seller/orders/:id/status` | SELLER | Path param:<br>`id: string`<br>`status: OrderStatus` | Cập nhật trạng thái đơn |
 
 ### 9.1 Ghi chú riêng cho Order API
 
