@@ -3,6 +3,8 @@ import express from "express";
 import { HttpError, sendError } from "./utils/http";
 import { requestContextMiddleware } from "./middlewares/requestContext";
 import cartRoutes from "./routes/cart";
+import orderRoutes from "./routes/order";
+import paymentRoutes from "./routes/payment";
 
 const app = express();
 const port = Number(process.env.PORT) || 3003;
@@ -25,6 +27,8 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/commerce", cartRoutes);
+app.use("/api/commerce", orderRoutes);
+app.use("/api/commerce", paymentRoutes);
 
 // Middleware xử lý lỗi chung, bắt tất cả lỗi được ném ra từ các controller hoặc middleware phía trên
 app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
