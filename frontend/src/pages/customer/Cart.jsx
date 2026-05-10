@@ -102,10 +102,21 @@ const Cart = () => {
     }
   };
 
-  // 4. XỬ LÝ THANH TOÁN TỪNG SHOP
+// 4. XỬ LÝ THANH TOÁN TỪNG SHOP
   const handleCheckoutShop = (shopId) => {
     console.log("Tiến hành thanh toán cho Shop ID:", shopId);
-    navigate(`/checkout?shopId=${shopId}`);
+    const targetShop = cartData.shops.find(shop => shop.shopId === shopId);
+    const selectedCartItemIds = targetShop ? targetShop.items.map(item => item.id) : [];
+    if (!selectedCartItemIds || selectedCartItemIds.length === 0) {
+      alert("Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!");
+      return;
+    }
+    navigate(`/checkout?shopId=${shopId}`, {
+      state: { 
+        shopId: Number(shopId), 
+        cartItemIds: selectedCartItemIds
+      }
+    });
   };
 
   // UI LOADING & ERROR
