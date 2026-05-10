@@ -50,8 +50,8 @@ model Cart {
   updatedAt  DateTime   @updatedAt @map("updated_at")
   items      CartItem[]
 
-  @@schema("commerce_service")
   @@map("carts")
+  @@schema("commerce_service")
 }
 
 model CartItem {
@@ -64,12 +64,12 @@ model CartItem {
   updatedAt DateTime @updatedAt @map("updated_at")
   cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
 
-  @@schema("commerce_service")
+  @@unique([cartId, productId], name: "unique_cart_product")
   @@index([cartId])
   @@index([productId])
   @@index([shopId])
-  @@unique([cartId, productId], name: "unique_cart_product")
   @@map("cart_items")
+  @@schema("commerce_service")
 }
 
 model Order {
@@ -91,10 +91,10 @@ model Order {
   items           OrderItem[]
   payments        Payment[]
 
-  @@schema("commerce_service")
   @@index([customerId])
   @@index([shopId])
   @@map("orders")
+  @@schema("commerce_service")
 }
 
 model OrderItem {
@@ -107,25 +107,28 @@ model OrderItem {
   subtotal            Decimal @db.Decimal(10, 2)
   order               Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  @@schema("commerce_service")
   @@index([orderId])
   @@index([productId])
   @@map("order_items")
+  @@schema("commerce_service")
 }
 
 model Payment {
-  id               BigInt            @id @default(autoincrement())
-  orderId          BigInt            @map("order_id")
-  method           PaymentMethod
-  amount           Decimal           @db.Decimal(10, 2)
-  status           TransactionStatus
-  transactionRef   String?           @map("transaction_ref")
-  providerResponse String?           @map("provider_response") @db.Text
-  createdAt        DateTime          @default(now()) @map("created_at")
-  updatedAt        DateTime          @updatedAt @map("updated_at")
-  order            Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id                   BigInt            @id @default(autoincrement())
+  orderId              BigInt            @map("order_id")
+  method               PaymentMethod
+  amount               Decimal           @db.Decimal(10, 2)
+  status               TransactionStatus
+  transactionRef       String?           @map("transaction_ref") // mã giao dịch do VNPay trả về, dùng để tra cứu, đối chiếu khi xử lý IPN
+  providerResponse     String?           @map("provider_response") @db.Text // lưu trữ toàn bộ dữ liệu trả về từ VNPay để phục vụ việc tra cứu, xử lý sau này
+  checkoutUrl          String?           @map("checkout_url") @db.Text
+  checkoutUrlCreatedAt DateTime?         @map("checkout_url_created_at")
+  checkoutUrlExpiresAt DateTime?         @map("checkout_url_expires_at")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+  order                Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  @@schema("commerce_service")
   @@index([orderId])
   @@map("payments")
+  @@schema("commerce_service")
 }

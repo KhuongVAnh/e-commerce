@@ -7,6 +7,7 @@ import {
 } from "../services/orderService";
 import { HttpError, sendSuccess } from "../utils/http";
 import { parseRequiredBigInt, serializeBigInt } from "../utils/validation";
+import { checkPaymentFromOrderCode } from "../services/paymentService";
 
 // ─────────────────────────────────────────────────────────────
 // Helpers validation
@@ -162,5 +163,49 @@ export async function cancelOrderController(
         requestId: res.locals.requestId,
         message: "Hủy đơn hàng thành công",
         data: serializeBigInt(result),
+    });
+}
+
+/**
+ * Endpoint FE gọi để lấy kết quả thanh toán VNPay theo mã đơn hàng.
+ * - DB là source of truth
+ */
+export async function checkResultPaymentController(req: Request, res: Response) {
+    const orderCode = String(req.params.orderCode ?? "").trim();
+
+    const { order, payment, isPaid, isFailed, isPending } = await checkPaymentFromOrderCode(orderCode);
+
+    return sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: isPaid
+            ? "Thanh toán thành công"
+            : isFailed
+                ? "Thanh toán thất bại"
+                : "Thanh toán đang được xử lý",
+
+        data: {
+            order: {
+                id: order.id,
+                orderCode: order.orderCode,
+                orderStatus: order.orderStatus,
+                paymentStatus: order.paymentStatus,
+            },
+
+            payment: payment
+                ? {
+                    id: payment.id,
+                    amount: payment.amount,
+                    status: payment.status,
+                    transactionRef: payment.transactionRef,
+                    paidAt: payment.updatedAt,
+                }
+                : null,
+
+            result: {
+                isPaid,
+                isFailed,
+                isPending,
+            },
+        },
     });
 }
