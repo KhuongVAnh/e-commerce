@@ -7,7 +7,6 @@ import {
 } from "../services/cartService";
 import { sendSuccess } from "../utils/http";
 import { parsePositiveInteger, parseRequiredBigInt, serializeBigInt } from "../utils/validation";
-import { getShopIdByProductId } from "../services/catalogClient";
 
 // lấy giỏ hàng
 export async function getCartController(

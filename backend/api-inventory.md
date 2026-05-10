@@ -106,23 +106,21 @@
 
 | Trạng thái hiện tại | Method | Endpoint | Auth / Role | Request payload | Response payload |
 |---|---|---|---|---|---|
-| Đã có | POST | `/api/commerce/orders/checkout` | CUSTOMER | `shopId: string`<br>`cartItemIds: string[]`<br>`paymentMethod: COD, VNPAY`<br>`receiverName: string`<br>`receiverPhone: string`<br>`receiverAddress: string`<br>`note?: string` | `orderId: string`<br>`orderCode: string`<br>`orderStatus: OrderStatus`<br>`paymentStatus: PaymentStatus`<br><br>Nếu VNPAY: `meta.warnings` có hướng dẫn gọi `/payments/create-vnpay-url` |
-| Đã có | GET | `/api/commerce/orders/my` | CUSTOMER | Query optional:<br>`status?: OrderStatus`<br>`page?: number`<br>`limit?: number` (tối đa 50) | `[ { id, orderCode, customerId, shopId, totalAmount, shippingFee, paymentMethod, paymentStatus, orderStatus, receiverName, receiverPhone, receiverAddress, note, createdAt, updatedAt, items[] } ]`<br>`meta.pagination: { page, limit, total, totalPages }` |
-| Đã có | GET | `/api/commerce/orders/:id` | CUSTOMER | Path param:<br>`id: string` | `{ id, orderCode, customerId, shopId, totalAmount, shippingFee, paymentMethod, paymentStatus, orderStatus, receiverName, receiverPhone, receiverAddress, note, createdAt, updatedAt }`<br>`items: [ { id, orderId, productId, productNameSnapshot, priceSnapshot, quantity, subtotal } ]`<br>`payments: [ { id, method, amount, status, transactionRef, createdAt } ]` (payment mới nhất) |
-| Đã có | PATCH | `/api/commerce/orders/:id/cancel` | CUSTOMER | Path param:<br>`id: string`<br><br>Không có body | `{ id: string, orderStatus: CANCELLED, updatedAt }` |
-| Đã có | GET | `/api/commerce/seller/orders` | SELLER | Query optional:<br>`status?: OrderStatus`<br>`page?: number`<br>`limit?: number` (tối đa 50) | `[ { id, orderCode, customerId, shopId, totalAmount, paymentMethod, paymentStatus, orderStatus, createdAt, items[] } ]`<br>`meta.pagination: { page, limit, total, totalPages }` |
-| Đã có | PATCH | `/api/commerce/seller/orders/:id/status` | SELLER | Path param:<br>`id: string`<br><br>Body:<br>`status: OrderStatus` | `{ id, orderCode, customerId, shopId, orderStatus, updatedAt, items[] }` |
+| Đã có | POST | `/api/commerce/orders/checkout` | CUSTOMER | `shopId: string`<br>`cartItemIds: string[]`<br>`paymentMethod: COD, VNPAY`<br>`receiverName: string`<br>`receiverPhone: string`<br>`receiverAddress: string`<br>`note?: string` | `orderId: string`<br>`orderCode: string`<br>`orderStatus: OrderStatus`<br>`paymentStatus: PaymentStatus`<br>`totalAmount: number`<br>`paymentUrl?: string`<br>`paymentUrlExpiresAt?: ISO-8601` (nếu là VNPAY) |
+| Đã có | GET | `/api/commerce/orders/:orderCode/payment-url` | CUSTOMER | Path param:<br>`orderCode: string` | `orderId: string`<br>`orderCode: string`<br>`paymentUrl: string`<br>`expiresAt: ISO-8601` |
+| Đã có | GET | `/api/commerce/orders/:orderCode/check-result` | CUSTOMER | Path param:<br>`orderCode: string` | Kết quả thanh toán theo đơn hàng (cần auth):<br>`order: { id, orderCode, orderStatus, paymentStatus }`<br>`payment: { id, status, amount, transactionRef, paidAt }`<br>`result: { isPaid, isFailed, isPending }` |
+| Đã có | POST | `/api/commerce/orders/:orderCode/cancel` | CUSTOMER | Path param:<br>`orderCode: string`<br><br>Không có body | `orderId: string`<br>`orderCode: string`<br>`orderStatus: OrderStatus` (CANCELLED) |
+| Chưa có | GET | `/api/commerce/orders/my` | CUSTOMER | Query optional:<br>`status?: OrderStatus`<br>`page?: number`<br>`limit?: number` | Danh sách đơn hàng của khách hàng |
+| Chưa có | GET | `/api/commerce/orders/:id` | CUSTOMER | Path param:<br>`id: string` | Chi tiết đơn hàng và các mục hàng |
+| Chưa có | GET | `/api/commerce/seller/orders` | SELLER | Query optional:<br>`status?: OrderStatus` | Danh sách đơn hàng của shop |
+| Chưa có | PATCH | `/api/commerce/seller/orders/:id/status` | SELLER | Path param:<br>`id: string`<br>`status: OrderStatus` | Cập nhật trạng thái đơn |
 
 ### 9.1 Ghi chú riêng cho Order API
 
 | Nội dung | Ghi chú |
 |---|---|
-| shopId lấy từ JWT | `PATCH /seller/orders/:id/status` và `GET /seller/orders` đọc `shopId` từ JWT payload. Auth Service cần gắn `shopId` vào token khi seller login |
-| State machine hợp lệ (Seller) | `CONFIRMED → PROCESSING → SHIPPING → DELIVERED` |
-| Customer cancel được khi | `orderStatus` là `PENDING` hoặc `CONFIRMED` |
-| COD khởi tạo với | `orderStatus = CONFIRMED`, `paymentStatus = COD_PENDING` |
-| VNPAY khởi tạo với | `orderStatus = AWAITING_PAYMENT`, `paymentStatus = PENDING` |
-| Snapshot giá | `priceSnapshot` và `productNameSnapshot` trong `order_items` là bản sao tại lúc đặt hàng, không đổi kể cả khi Catalog thay đổi |
+| Checkout integration | Link thanh toán VNPay được sinh trực tiếp và trả về ngay trong response của API checkout nếu chọn method VNPAY. Link này được lưu kèm payment record để có thể lấy lại bằng `/api/commerce/orders/:orderCode/payment-url` khi còn hiệu lực |
+| Snapshot giá | `priceSnapshot` và `productNameSnapshot` trong `order_items` là bản sao tại lúc đặt hàng |
 
 ---
 
@@ -130,9 +128,18 @@
 
 | Trạng thái hiện tại | Method | Endpoint | Auth / Role | Request payload | Response payload |
 |---|---|---|---|---|---|
-| Chưa có | POST | `/api/commerce/payments/create-vnpay-url` | User đã đăng nhập | `orderId: number`<br>`returnUrl?: string` | `payment: { orderId, method: VNPAY, status, amount, transactionRef }`<br>`paymentUrl: string` |
-| Chưa có | GET | `/api/commerce/payments/vnpay-return` | Public / VNPay callback | Query params từ VNPay:<br>`vnp_Amount`<br>`vnp_BankCode`<br>`vnp_ResponseCode`<br>`vnp_TxnRef`<br>`vnp_SecureHash`<br>`...` | Thành công:<br>`payment: { orderId, transactionRef, status: PAID, paidAt }`<br>`order: { id, orderStatus, paymentStatus }`<br><br>Thất bại dùng error wrapper với `error.code = PAYMENT_FAILED` |
+| Đã có | GET | `/api/commerce/payments/vnpay-return` | Public | Các tham số từ VNPay Server gửi về | `{"RspCode": "00", "Message": "Confirm Success"}` |
+| Đã có | GET | `/api/commerce/payments/check-result` | Public | FE forward toàn bộ query params VNPay từ Return URL (đặc biệt: `vnp_TxnRef`, `vnp_SecureHash`, ... ) | Kết quả thanh toán authoritative từ DB sau khi verify chữ ký VNPay:<br>`order: { id, orderCode, orderStatus, paymentStatus }`<br>`payment: { id, status, amount, transactionRef, paidAt }`<br>`result: { isPaid, isFailed, isPending }` |
 | Chưa có | GET | `/api/commerce/payments/order/:orderId` | User đã đăng nhập | Path param:<br>`orderId: number` | `payment: { orderId, method, status, amount, transactionRef, providerResponse }` |
+
+### 10.1 Ghi chú riêng cho VNPay payment flow
+
+| Nội dung | Ghi chú |
+|---|---|
+| Luồng | Backend tạo payment URL với `vnp_ReturnUrl` trỏ về `/api/commerce/payments/vnpay-return` để VNPay callback xử lý giao dịch tại server |
+| FE check kết quả (public) | FE nhận query params từ VNPay Return URL rồi forward sang `GET /api/commerce/payments/check-result` để backend verify chữ ký và trả kết quả |
+| FE check kết quả (user-auth) | FE có thể gọi `GET /api/commerce/orders/:orderCode/check-result` (CUSTOMER) để tra cứu theo orderCode sau đăng nhập |
+| Nguồn sự thật | Trạng thái trong DB do IPN cập nhật |
 
 ---
 
@@ -223,10 +230,10 @@
 | Category | 2 | 2 | 0 |
 | Product | 6 | 0 | 0 |
 | Cart | 5 | 0 | 0 |
-| Order | 6 | 0 | 0 |
-| Payment | 0 | 3 | 0 |
+| Order | 4 | 3 | 0 |
+| Payment | 2 | 1 | 0 |
 | Notification | 0 | 2 | 0 |
-| **Tổng** | **27** | **10** | **0** |
+| **Tổng** | **27** | **11** | **0** |
 
 ---
 
