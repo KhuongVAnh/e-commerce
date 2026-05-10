@@ -10,7 +10,7 @@ import { authMiddleware } from "../middlewares/auth";
 
 const router = Router();
 
-router.use(authMiddleware);
+router.use("/cart", authMiddleware);
 
 router.get("/cart", getCartController);
 router.post("/cart/items", addToCartController);
