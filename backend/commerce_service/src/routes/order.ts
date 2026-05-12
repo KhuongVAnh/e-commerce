@@ -3,7 +3,11 @@ import {
     createOrderController,
     getOrderPaymentUrlController,
     cancelOrderController,
-    checkResultPaymentController
+    checkResultPaymentController,
+    getMyOrderDetailController,
+    getMyOrdersController,
+    sellerGetOrdersController,
+    sellerUpdateOrderStatusController,
 } from "../controllers/order";
 import { authMiddleware } from "../middlewares/auth";
 import { roleMiddleware } from "../middlewares/role";
@@ -18,6 +22,12 @@ router.use("/seller/orders", authMiddleware);
 // Customer routes
 // ─────────────────────────────────────────────────────────────
 
+/** GET /orders/my – Lịch sử đơn hàng của customer */
+router.get("/orders/my", roleMiddleware(["CUSTOMER"]), getMyOrdersController);
+
+/** GET /orders/:id – Chi tiết đơn hàng */
+router.get("/orders/:id", roleMiddleware(["CUSTOMER"]), getMyOrderDetailController);
+
 /** POST /orders/checkout – Tạo đơn hàng từ giỏ hàng theo 1 shop */
 router.post("/orders/checkout", roleMiddleware(["CUSTOMER"]), createOrderController);
 
@@ -31,5 +41,15 @@ router.post("/orders/:orderCode/cancel", roleMiddleware(["CUSTOMER"]), cancelOrd
  * GET /orders/:orderCode/check-result – Kiểm tra kết quả thanh toán VNPay theo orderCode.
  */
 router.get("/orders/:orderCode/check-result", roleMiddleware(["CUSTOMER"]), checkResultPaymentController);
+
+// ─────────────────────────────────────────────────────────────
+// Seller routes
+// ─────────────────────────────────────────────────────────────
+
+/** GET /seller/orders – Danh sách đơn hàng của shop */
+router.get("/seller/orders", roleMiddleware(["SELLER"]), sellerGetOrdersController);
+
+/** PATCH /seller/orders/:id/status – Cập nhật trạng thái đơn hàng */
+router.patch("/seller/orders/:id/status", roleMiddleware(["SELLER"]), sellerUpdateOrderStatusController);
 
 export default router;

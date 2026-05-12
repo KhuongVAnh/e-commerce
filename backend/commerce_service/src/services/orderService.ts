@@ -4,7 +4,7 @@ import { prisma } from "../config/prisma";
 import { HttpError } from "../utils/http";
 import { buildCheckoutPreview } from "./checkoutPreview";
 import { createVNPayCheckoutSession } from "./paymentService";
-import { decrementProductsStock, incrementProductsStock } from "./catalogClient";
+import { decrementProductsStock, getShopIdBySellerId, incrementProductsStock } from "./catalogClient";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -26,6 +26,12 @@ export type RefreshPaymentUrlResult = {
     orderCode: string;
     paymentUrl: string;
     expiresAt: Date;
+};
+
+export type ListOrdersInput = {
+    status?: OrderStatus;
+    page: number;
+    limit: number;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -293,4 +299,178 @@ export async function cancelOrder(customerId: bigint, orderCode: string) {
     });
 
     return updatedOrder;
+}
+
+// ─────────────────────────────────────────────────────────────
+// New APIs: customer history/detail + seller view/update
+// (Bổ sung để phục vụ các endpoint mới, không thay đổi logic gốc)
+// ─────────────────────────────────────────────────────────────
+
+export async function listCustomerOrders(customerId: bigint, input: ListOrdersInput) {
+    const { status, page, limit } = input;
+
+    const where = {
+        customerId,
+        ...(status ? { orderStatus: status } : {}),
+    };
+
+    const [total, orders] = await Promise.all([
+        prisma.order.count({ where }),
+        prisma.order.findMany({
+            where,
+            orderBy: { createdAt: "desc" },
+            skip: (page - 1) * limit,
+            take: limit,
+            select: {
+                id: true,
+                orderCode: true,
+                shopId: true,
+                totalAmount: true,
+                shippingFee: true,
+                paymentMethod: true,
+                paymentStatus: true,
+                orderStatus: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        }),
+    ]);
+
+    return { total, orders };
+}
+
+export async function getCustomerOrderDetail(customerId: bigint, orderId: bigint) {
+    const order = await prisma.order.findFirst({
+        where: {
+            id: orderId,
+            customerId,
+        },
+        include: {
+            items: {
+                orderBy: { id: "asc" },
+            },
+        },
+    });
+
+    if (!order) {
+        throw new HttpError(404, "Không tìm thấy đơn hàng", {
+            code: "ORDER_NOT_FOUND",
+        });
+    }
+
+    return order;
+}
+
+export async function resolveShopIdForSeller(input: { shopId?: string; userId: string }): Promise<bigint> {
+    if (input.shopId && input.shopId.trim()) {
+        try {
+            return BigInt(input.shopId);
+        } catch {
+            // fallthrough
+        }
+    }
+
+    const shopId = await getShopIdBySellerId(input.userId);
+    if (!shopId) {
+        throw new HttpError(404, "Không tìm thấy shop của seller", {
+            code: "SHOP_NOT_FOUND",
+            hint: "Seller cần tạo shop trước khi thao tác đơn hàng",
+        });
+    }
+
+    return BigInt(shopId);
+}
+
+export async function listSellerOrders(shopId: bigint, input: ListOrdersInput) {
+    const { status, page, limit } = input;
+
+    const where = {
+        shopId,
+        ...(status ? { orderStatus: status } : {}),
+    };
+
+    const [total, orders] = await Promise.all([
+        prisma.order.count({ where }),
+        prisma.order.findMany({
+            where,
+            orderBy: { createdAt: "desc" },
+            skip: (page - 1) * limit,
+            take: limit,
+            select: {
+                id: true,
+                orderCode: true,
+                customerId: true,
+                totalAmount: true,
+                shippingFee: true,
+                paymentMethod: true,
+                paymentStatus: true,
+                orderStatus: true,
+                receiverName: true,
+                receiverPhone: true,
+                receiverAddress: true,
+                note: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        }),
+    ]);
+
+    return { total, orders };
+}
+
+const SELLER_ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+    [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+    [OrderStatus.AWAITING_PAYMENT]: [OrderStatus.CANCELLED],
+    [OrderStatus.CONFIRMED]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
+    [OrderStatus.PROCESSING]: [OrderStatus.SHIPPING, OrderStatus.CANCELLED],
+    [OrderStatus.SHIPPING]: [OrderStatus.DELIVERED],
+    [OrderStatus.DELIVERED]: [],
+    [OrderStatus.CANCELLED]: [],
+};
+
+function assertValidSellerStatusTransition(current: OrderStatus, next: OrderStatus): void {
+    if (current === next) {
+        return;
+    }
+
+    const allowed = SELLER_ALLOWED_TRANSITIONS[current] ?? [];
+    if (!allowed.includes(next)) {
+        throw new HttpError(400, "Chuyển trạng thái đơn hàng không hợp lệ", {
+            code: "INVALID_STATUS_TRANSITION",
+            details: [`from=${current}`, `to=${next}`],
+        });
+    }
+}
+
+export async function sellerUpdateOrderStatus(shopId: bigint, orderId: bigint, nextStatus: OrderStatus) {
+    const order = await prisma.order.findFirst({
+        where: {
+            id: orderId,
+            shopId,
+        },
+        select: {
+            id: true,
+            orderCode: true,
+            orderStatus: true,
+        },
+    });
+
+    if (!order) {
+        throw new HttpError(404, "Không tìm thấy đơn hàng", {
+            code: "ORDER_NOT_FOUND",
+        });
+    }
+
+    assertValidSellerStatusTransition(order.orderStatus, nextStatus);
+
+    return prisma.order.update({
+        where: { id: order.id },
+        data: { orderStatus: nextStatus },
+        select: {
+            id: true,
+            orderCode: true,
+            orderStatus: true,
+            updatedAt: true,
+        },
+    });
 }
