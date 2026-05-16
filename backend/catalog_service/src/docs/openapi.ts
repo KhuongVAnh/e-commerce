@@ -32,6 +32,13 @@ const openApiDocument = {
           status: { type: "string", enum: ["ACTIVE", "INACTIVE"], example: "ACTIVE" },
         },
       },
+      CategoryUpdateRequest: {
+        type: "object",
+        properties: {
+          name: { type: "string", example: "Thoi trang nam" },
+          status: { type: "string", enum: ["ACTIVE", "INACTIVE"], example: "ACTIVE" },
+        },
+      },
       CategoryData: {
         type: "object",
         properties: {
@@ -81,6 +88,20 @@ const openApiDocument = {
               pagination: { nullable: true, example: null },
               version: { type: "string", example: "v1" },
               warnings: { type: "array", items: { type: "string" }, example: [] },
+            },
+          },
+        },
+      },
+      CategoryDeleteSuccessResponse: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          message: { type: "string", example: "Xoa danh muc thanh cong" },
+          data: {
+            type: "object",
+            properties: {
+              deleted: { type: "boolean", example: true },
+              category: { $ref: "#/components/schemas/CategoryData" },
             },
           },
         },
@@ -465,6 +486,104 @@ const openApiDocument = {
           },
           "409": {
             description: "Trung name hoac slug",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/catalog/categories/{categoryId}": {
+      put: {
+        tags: ["Categories"],
+        summary: "Admin cap nhat category",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "categoryId",
+            in: "path",
+            required: true,
+            schema: { type: "integer", minimum: 1 },
+            example: 2,
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CategoryUpdateRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Cap nhat danh muc thanh cong",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CategoryCreateSuccessResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Du lieu khong hop le",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Category khong ton tai",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "409": {
+            description: "Trung name hoac slug",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ["Categories"],
+        summary: "Admin xoa category neu chua co product",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "categoryId",
+            in: "path",
+            required: true,
+            schema: { type: "integer", minimum: 1 },
+            example: 2,
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Xoa danh muc thanh cong",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CategoryDeleteSuccessResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Category khong ton tai",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "409": {
+            description: "Category dang co product",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },
