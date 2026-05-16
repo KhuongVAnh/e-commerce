@@ -1,7 +1,13 @@
 import { NextFunction, Request, Response } from "express";
-import { createCategory, listCategories } from "../services/categoryService";
+import { createCategory, deleteCategory, listCategories, updateCategory } from "../services/categoryService";
 import { sendSuccess } from "../utils/https";
 import { listCategoryQuery } from "../utils/inOutCategoryAPI";
+
+// Hàm này đọc categoryId từ params và chuẩn hóa về string để service tự validate kiểu bigint.
+function readCategoryId(req: Request): string {
+    const raw = req.params.categoryId;
+    return Array.isArray(raw) ? raw[0] : String(raw);
+}
 
 function readQueryValue(value: unknown): string | undefined {
     if (Array.isArray(value)) {
@@ -19,11 +25,12 @@ export async function listCategoriesController(req: Request, res: Response, _nex
     };
 
     const data = await listCategories(query);
+    res.setHeader("X-Cache", data.cacheStatus);
 
     sendSuccess(res, {
         requestId: res.locals.requestId,
         message: "Lấy danh sách danh mục thành công",
-        data,
+        data: data.categories,
     });
 }
 
@@ -35,5 +42,27 @@ export async function createCategoryController(req: Request, res: Response, _nex
         message: "Tạo danh mục thành công",
         data,
         statusCode: 201,
+    });
+}
+
+// Controller này nhận request ADMIN cập nhật category và chuyển validation nghiệp vụ xuống service.
+export async function updateCategoryController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const data = await updateCategory(readCategoryId(req), req.body);
+
+    sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Cập nhật danh mục thành công",
+        data,
+    });
+}
+
+// Controller này nhận request ADMIN xóa category và để service kiểm tra category còn product hay không.
+export async function deleteCategoryController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const data = await deleteCategory(readCategoryId(req));
+
+    sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Xóa danh mục thành công",
+        data,
     });
 }

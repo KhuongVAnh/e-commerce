@@ -113,60 +113,71 @@ export async function createOrder(
         : undefined;
 
     // Bước 3: Trừ tồn kho bên Catalog Service (Giữ chỗ)
-    await decrementProductsStock(
-        preview.items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-        })),
-    );
+    const stockItems = preview.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+    }));
 
-    const result = await prisma.$transaction(async (tx) => {
-        const order = await tx.order.create({
-            data: {
-                orderCode,
-                customerId,
-                shopId,
-                totalAmount,
-                shippingFee,
-                paymentMethod,
-                paymentStatus,
-                orderStatus,
-                receiverName,
-                receiverPhone,
-                receiverAddress,
-                note: note ?? null,
-            },
-        });
+    await decrementProductsStock(stockItems);
 
-        const orderItemsData = preview.items.map((item) => ({
-            orderId: order.id,
-            productId: item.productId,
-            productNameSnapshot: item.productName!,
-            priceSnapshot: item.unitPrice!,
-            quantity: item.quantity,
-            subtotal: item.subtotal!,
-        }));
+    let result: { order: { id: bigint; orderCode: string; orderStatus: OrderStatus; paymentStatus: PaymentStatus; totalAmount: unknown } };
+    try {
+        result = await prisma.$transaction(async (tx) => {
+            const order = await tx.order.create({
+                data: {
+                    orderCode,
+                    customerId,
+                    shopId,
+                    totalAmount,
+                    shippingFee,
+                    paymentMethod,
+                    paymentStatus,
+                    orderStatus,
+                    receiverName,
+                    receiverPhone,
+                    receiverAddress,
+                    note: note ?? null,
+                },
+            });
 
-        await tx.orderItem.createMany({ data: orderItemsData });
-
-        await tx.cartItem.deleteMany({
-            where: { id: { in: cartItemIds } },
-        });
-
-        await tx.payment.create({
-            data: {
+            const orderItemsData = preview.items.map((item) => ({
                 orderId: order.id,
-                method: paymentMethod,
-                amount: totalAmount,
-                status: TransactionStatus.PENDING,
-                checkoutUrl: paymentSession?.paymentUrl,
-                checkoutUrlCreatedAt: paymentSession?.createdAt,
-                checkoutUrlExpiresAt: paymentSession?.expiresAt,
-            },
-        });
+                productId: item.productId,
+                productNameSnapshot: item.productName!,
+                priceSnapshot: item.unitPrice!,
+                quantity: item.quantity,
+                subtotal: item.subtotal!,
+            }));
 
-        return { order };
-    });
+            await tx.orderItem.createMany({ data: orderItemsData });
+
+            await tx.cartItem.deleteMany({
+                where: { id: { in: cartItemIds } },
+            });
+
+            await tx.payment.create({
+                data: {
+                    orderId: order.id,
+                    method: paymentMethod,
+                    amount: totalAmount,
+                    status: TransactionStatus.PENDING,
+                    checkoutUrl: paymentSession?.paymentUrl,
+                    checkoutUrlCreatedAt: paymentSession?.createdAt,
+                    checkoutUrlExpiresAt: paymentSession?.expiresAt,
+                },
+            });
+
+            return { order };
+        });
+    } catch (error) {
+        try {
+            await incrementProductsStock(stockItems);
+        } catch (rollbackError) {
+            console.error("[commerce_service] Failed to rollback stock after order creation error:", rollbackError);
+        }
+
+        throw error;
+    }
 
     return {
         orderId: result.order.id,
