@@ -52,6 +52,11 @@ type ProductWithRelations = Prisma.ProductGetPayload<{
 
 type PublicProductListRecord = Awaited<ReturnType<typeof listPublicProductRecords>>["products"][number];
 type PublicProductDetailRecord = NonNullable<Awaited<ReturnType<typeof findPublicProductDetailById>>>;
+type StockMutationResult = {
+    id: number;
+    stockQuantity: number;
+    status: string;
+};
 
 const PRODUCT_INCLUDE = {
     shop: {
@@ -955,18 +960,24 @@ export async function updateProductStock(sellerId: string, productId: string, in
  */
 export async function decrementProductsStock(items: Array<{ productId: bigint; quantity: number }>) {
     return await prisma.$transaction(async (tx) => {
-        const results = [];
+        const results: StockMutationResult[] = [];
 
         for (const item of items) {
             // Kiểm tra sản phẩm có tồn tại và đủ hàng không
             const product = await tx.product.findUnique({
                 where: { id: item.productId },
-                select: { id: true, stockQuantity: true, status: true },
+                select: { id: true, stockQuantity: true, status: true, deletedAt: true },
             });
 
             if (!product) {
                 throw new HttpError(404, `Sản phẩm id=${item.productId} không tồn tại`, {
                     code: "PRODUCT_NOT_FOUND",
+                });
+            }
+
+            if (product.status !== "ACTIVE" || product.deletedAt) {
+                throw new HttpError(400, `Sản phẩm id=${item.productId} không khả dụng`, {
+                    code: "PRODUCT_NOT_AVAILABLE",
                 });
             }
 
@@ -985,9 +996,18 @@ export async function decrementProductsStock(items: Array<{ productId: bigint; q
                     stockQuantity: newStock,
                     status: newStatus,
                 },
+                select: {
+                    id: true,
+                    stockQuantity: true,
+                    status: true,
+                },
             });
 
-            results.push(updated);
+            results.push({
+                id: Number(updated.id),
+                stockQuantity: updated.stockQuantity,
+                status: updated.status,
+            });
         }
 
         return results;
@@ -999,15 +1019,16 @@ export async function decrementProductsStock(items: Array<{ productId: bigint; q
  */
 export async function incrementProductsStock(items: Array<{ productId: bigint; quantity: number }>) {
     return await prisma.$transaction(async (tx) => {
-        const results = [];
+        const results: StockMutationResult[] = [];
 
         for (const item of items) {
             const product = await tx.product.findUnique({
                 where: { id: item.productId },
-                select: { id: true, stockQuantity: true, status: true },
+                select: { id: true, stockQuantity: true, status: true, deletedAt: true },
             });
 
             if (!product) continue; // Hoặc throw lỗi tùy logic
+            if (product.status === "DELETED" || product.deletedAt) continue;
 
             const newStock = product.stockQuantity + item.quantity;
             const newStatus = deriveStatusByStock(product.status as SellerEditableStatus, newStock);
@@ -1018,9 +1039,18 @@ export async function incrementProductsStock(items: Array<{ productId: bigint; q
                     stockQuantity: newStock,
                     status: newStatus,
                 },
+                select: {
+                    id: true,
+                    stockQuantity: true,
+                    status: true,
+                },
             });
 
-            results.push(updated);
+            results.push({
+                id: Number(updated.id),
+                stockQuantity: updated.stockQuantity,
+                status: updated.status,
+            });
         }
 
         return results;
