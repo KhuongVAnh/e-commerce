@@ -17,6 +17,17 @@ import {
     updateProductInput,
     updateProductStockInput,
 } from "../utils/inOutProductAPI";
+import {
+    buildProductDetailCacheKey,
+    buildProductListCacheKey,
+    CacheStatus,
+    deleteCacheKey,
+    deleteCacheRegistry,
+    getJsonCache,
+    PRODUCT_LIST_CACHE_REGISTRY_KEY,
+    readCacheTtl,
+    setJsonCache,
+} from "./cacheService";
 
 const SELLER_EDITABLE_STATUSES = ["ACTIVE", "INACTIVE", "OUT_OF_STOCK"] as const;
 type SellerEditableStatus = (typeof SELLER_EDITABLE_STATUSES)[number];
@@ -81,6 +92,8 @@ const PRODUCT_INCLUDE = {
 } satisfies Prisma.ProductInclude;
 
 const PUBLIC_PRODUCT_SORT_OPTIONS: PublicProductSortBy[] = ["latest", "oldest", "price_asc", "price_desc"];
+const PRODUCT_LIST_TTL_SECONDS = readCacheTtl("CACHE_PRODUCT_LIST_TTL_SECONDS", 60);
+const PRODUCT_DETAIL_TTL_SECONDS = readCacheTtl("CACHE_PRODUCT_DETAIL_TTL_SECONDS", 60);
 
 function normalizeOptionalText(value?: string): string | null {
     if (typeof value !== "string") {
@@ -614,6 +627,25 @@ function assertPublicListProductQuery(query: listProductQuery): {
     };
 }
 
+// Hàm này chuyển query đã validate thành object thuần để hash cache không gặp lỗi BigInt.
+function normalizePublicProductListCacheQuery(payload: {
+    page: number;
+    limit: number;
+    shopId?: bigint;
+    categoryId?: bigint;
+    keyword?: string;
+    sortBy: PublicProductSortBy;
+}) {
+    return {
+        page: payload.page,
+        limit: payload.limit,
+        shopId: payload.shopId !== undefined ? payload.shopId.toString() : null,
+        categoryId: payload.categoryId !== undefined ? payload.categoryId.toString() : null,
+        keyword: payload.keyword ?? null,
+        sortBy: payload.sortBy,
+    };
+}
+
 function toProductResponse(product: ProductWithRelations): productResponse {
     return {
         id: Number(product.id),
@@ -730,12 +762,53 @@ function toPublicProductDetailResponse(product: PublicProductDetailRecord): publ
     };
 }
 
-export async function listPublicProducts(query: listProductQuery) {
+// Hàm này xóa product list cache vì mọi thay đổi product/stock đều có thể làm list bị cũ.
+async function invalidateProductListCache(): Promise<void> {
+    await deleteCacheRegistry(PRODUCT_LIST_CACHE_REGISTRY_KEY);
+}
+
+// Hàm này xóa cache detail của một product cụ thể khi product đó thay đổi.
+async function invalidateProductDetailCache(productId: string | number | bigint): Promise<void> {
+    await deleteCacheKey(buildProductDetailCacheKey(productId));
+}
+
+type PublicProductListResponse = {
+    products: publicProductListItemResponse[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    };
+    filters: {
+        keyword: string | null;
+        shopId: number | null;
+        categoryId: number | null;
+        sortBy: PublicProductSortBy;
+    };
+};
+
+// Hàm này trả danh sách product public và cache theo query đã normalize.
+export async function listPublicProducts(query: listProductQuery): Promise<PublicProductListResponse & {
+    cacheStatus: CacheStatus;
+}> {
     const payload = assertPublicListProductQuery(query);
+    const normalizedQuery = normalizePublicProductListCacheQuery(payload);
+    const cacheKey = buildProductListCacheKey(normalizedQuery);
+    const cached = await getJsonCache<PublicProductListResponse>(cacheKey);
+
+    // Cache hit thì trả dữ liệu đã tính sẵn gồm products, pagination và filters.
+    if (cached.status === "HIT" && cached.value) {
+        return {
+            ...cached.value,
+            cacheStatus: "HIT",
+        };
+    }
+
     const { total, products } = await listPublicProductRecords(payload);
     const totalPages = total === 0 ? 0 : Math.ceil(total / payload.limit);
 
-    return {
+    const response = {
         products: products.map(toPublicProductListItemResponse),
         pagination: {
             page: payload.page,
@@ -750,10 +823,30 @@ export async function listPublicProducts(query: listProductQuery) {
             sortBy: payload.sortBy,
         },
     };
+
+    // Chỉ cache sau khi DB query thành công để không cache lỗi hoặc dữ liệu chưa hợp lệ.
+    await setJsonCache(cacheKey, response, PRODUCT_LIST_TTL_SECONDS, PRODUCT_LIST_CACHE_REGISTRY_KEY);
+
+    return {
+        ...response,
+        cacheStatus: cached.status,
+    };
 }
 
-export async function getPublicProductDetail(productId: string) {
+// Hàm này trả chi tiết product public và cache theo product id.
+export async function getPublicProductDetail(productId: string): Promise<publicProductDetailResponse & { cacheStatus: CacheStatus }> {
     const productIdAsBigInt = parsePositiveBigInt(productId, "id");
+    const cacheKey = buildProductDetailCacheKey(productIdAsBigInt);
+    const cached = await getJsonCache<publicProductDetailResponse>(cacheKey);
+
+    // Cache hit giúp bỏ qua truy vấn detail gồm product, images và shop.
+    if (cached.status === "HIT" && cached.value) {
+        return {
+            ...cached.value,
+            cacheStatus: "HIT",
+        };
+    }
+
     const product = await findPublicProductDetailById(productIdAsBigInt);
 
     if (!product) {
@@ -763,7 +856,15 @@ export async function getPublicProductDetail(productId: string) {
         });
     }
 
-    return toPublicProductDetailResponse(product);
+    const response = toPublicProductDetailResponse(product);
+
+    // Không cache lỗi 404; chỉ cache detail khi product tồn tại và đang public.
+    await setJsonCache(cacheKey, response, PRODUCT_DETAIL_TTL_SECONDS);
+
+    return {
+        ...response,
+        cacheStatus: cached.status,
+    };
 }
 
 export async function listPublicProductsByIds(productIdsInput: unknown) {
@@ -826,6 +927,9 @@ export async function createProduct(sellerId: string, input: createProductInput)
         },
         include: PRODUCT_INCLUDE,
     });
+
+    // Product mới làm thay đổi mọi danh sách product public nên cần xóa list cache.
+    await invalidateProductListCache();
 
     return {
         product: toProductResponse(createdProduct),
@@ -893,6 +997,10 @@ export async function updateProduct(sellerId: string, productId: string, input: 
         });
     });
 
+    // Product update làm detail và list cache cũ không còn chính xác.
+    await invalidateProductDetailCache(existingProduct.id);
+    await invalidateProductListCache();
+
     return {
         product: toProductResponse(updatedProduct),
     };
@@ -915,6 +1023,10 @@ export async function softDeleteProduct(sellerId: string, productId: string) {
         },
         include: PRODUCT_INCLUDE,
     });
+
+    // Soft delete làm product biến mất khỏi public list và detail public.
+    await invalidateProductDetailCache(existingProduct.id);
+    await invalidateProductListCache();
 
     return {
         product: toProductResponse(deletedProduct),
@@ -942,6 +1054,10 @@ export async function updateProductStock(sellerId: string, productId: string, in
         include: PRODUCT_INCLUDE,
     });
 
+    // Stock nằm trong cả list và detail nên phải xóa cả hai cache sau khi cập nhật.
+    await invalidateProductDetailCache(existingProduct.id);
+    await invalidateProductListCache();
+
     return {
         product: toProductResponse(updatedProduct),
         previousStock: existingProduct.stockQuantity,
@@ -954,7 +1070,7 @@ export async function updateProductStock(sellerId: string, productId: string, in
  * Giảm tồn kho nhiều sản phẩm cùng lúc (Internal API dùng cho Commerce Service)
  */
 export async function decrementProductsStock(items: Array<{ productId: bigint; quantity: number }>) {
-    return await prisma.$transaction(async (tx) => {
+    const results = await prisma.$transaction(async (tx) => {
         const results = [];
 
         for (const item of items) {
@@ -992,13 +1108,19 @@ export async function decrementProductsStock(items: Array<{ productId: bigint; q
 
         return results;
     });
+
+    // Internal stock decrement đến từ Commerce cũng làm cache product bị cũ.
+    await Promise.all(results.map((product) => invalidateProductDetailCache(product.id)));
+    await invalidateProductListCache();
+
+    return results;
 }
 
 /**
  * Hoàn lại tồn kho nhiều sản phẩm (Internal API)
  */
 export async function incrementProductsStock(items: Array<{ productId: bigint; quantity: number }>) {
-    return await prisma.$transaction(async (tx) => {
+    const results = await prisma.$transaction(async (tx) => {
         const results = [];
 
         for (const item of items) {
@@ -1025,4 +1147,10 @@ export async function incrementProductsStock(items: Array<{ productId: bigint; q
 
         return results;
     });
+
+    // Internal stock increment khi hủy đơn cần xóa cache để stock hiển thị lại đúng.
+    await Promise.all(results.map((product) => invalidateProductDetailCache(product.id)));
+    await invalidateProductListCache();
+
+    return results;
 }
