@@ -5,21 +5,32 @@ import { HttpError } from "./http";
 // parsePositiveInteger: dùng cho quantity.
 // Nếu dữ liệu sai, throw HttpError.
 export function parseRequiredBigInt(value: unknown, field: string): bigint {
-    if (value === undefined || value === null || value === "") {
+    const asText = String(value ?? "").trim();
+
+    if (!asText) {
         throw new HttpError(400, `${field} is required`, {
             code: "VALIDATION_ERROR",
             fieldErrors: [{ field, message: `${field} is required` }],
         });
     }
 
-    try {
-        return BigInt(String(value));
-    } catch {
+    if (!/^\d+$/.test(asText)) {
         throw new HttpError(400, `${field} must be a valid id`, {
             code: "VALIDATION_ERROR",
             fieldErrors: [{ field, message: `${field} must be a valid id` }],
         });
     }
+
+    const parsed = BigInt(asText);
+
+    if (parsed <= 0n) {
+        throw new HttpError(400, `${field} must be a positive id`, {
+            code: "VALIDATION_ERROR",
+            fieldErrors: [{ field, message: `${field} must be a positive id` }],
+        });
+    }
+
+    return parsed;
 }
 
 export function parsePositiveInteger(value: unknown, field: string): number {
