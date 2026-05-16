@@ -2,22 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { orderService } from '../../services/orderService';
 
-// Hàm format tiền tệ VNĐ
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
-// Component hiển thị từng Card đơn hàng
 const OrderCard = ({ order }) => {
-  // Map màu badge theo trạng thái (Dựa theo Enum OrderStatus của DB)
   const statusConfig = {
     PENDING: { color: 'bg-orange-100 text-orange-700', label: 'Pending' },
     AWAITING_PAYMENT: { color: 'bg-yellow-100 text-yellow-700', label: 'Awaiting Payment' },
+    CONFIRMED: { color: 'bg-cyan-100 text-cyan-700', label: 'Confirmed' },
     PROCESSING: { color: 'bg-blue-100 text-blue-700', label: 'Processing' },
     SHIPPING: { color: 'bg-indigo-100 text-indigo-700', label: 'Shipping' },
     DELIVERED: { color: 'bg-green-100 text-green-700', label: 'Completed' },
     CANCELLED: { color: 'bg-red-100 text-red-700', label: 'Cancelled' },
   };
 
-  const config = statusConfig[order.orderStatus] || statusConfig.PENDING;
+  const config = statusConfig[order.orderStatus] || { 
+      color: 'bg-gray-100 text-gray-700', 
+      label: order.orderStatus || 'Unknown' 
+  };
 
   return (
     <div className={`bg-white rounded-xl p-6 shadow-[0px_12px_32px_rgba(43,56,150,0.06)] group transition-all hover:-translate-y-1 ${order.orderStatus === 'CANCELLED' ? 'opacity-75' : ''}`}>
@@ -82,7 +83,6 @@ export default function OrderHistory() {
         
         console.log("=== CHECK DATA ORDER LIST ===", res);
 
-        // Lưới quét mọi trường hợp:
         if (res.data?.success && res.data?.data?.orders) {
             setOrders(res.data.data.orders);
         } 
@@ -96,7 +96,7 @@ export default function OrderHistory() {
             setOrders(res);
         }
         else {
-            setOrders([]); // Rỗng nếu không khớp
+            setOrders([]);
         }
     } catch (error) {
         console.error("Lỗi khi tải lịch sử đơn hàng:", error);
@@ -112,6 +112,7 @@ export default function OrderHistory() {
   const tabs = [
     { key: 'ALL', label: 'All' },
     { key: 'PENDING', label: 'Pending' },
+    { key: 'CONFIRMED', label: 'Confirmed' },
     { key: 'SHIPPING', label: 'Shipping' },
     { key: 'DELIVERED', label: 'Completed' },
     { key: 'CANCELLED', label: 'Cancelled' },
