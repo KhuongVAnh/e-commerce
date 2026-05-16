@@ -100,6 +100,7 @@ export async function listPublicProductsController(req: Request, res: Response, 
     };
 
     const data = await listPublicProducts(query);
+    res.setHeader("X-Cache", data.cacheStatus);
 
     sendSuccess(res, {
         requestId: res.locals.requestId,
@@ -112,11 +113,13 @@ export async function listPublicProductsController(req: Request, res: Response, 
 
 export async function getPublicProductDetailController(req: Request, res: Response, _next: NextFunction): Promise<void> {
     const data = await getPublicProductDetail(readProductId(req));
+    const { cacheStatus, ...responseData } = data;
+    res.setHeader("X-Cache", cacheStatus);
 
     sendSuccess(res, {
         requestId: res.locals.requestId,
         message: "Lấy chi tiết sản phẩm thành công",
-        data,
+        data: responseData,
     });
 }
 
