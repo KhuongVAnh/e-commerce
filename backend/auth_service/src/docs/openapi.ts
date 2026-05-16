@@ -46,6 +46,7 @@ const openApiDocument = {
         properties: {
           email: { type: "string", example: "user@gmail.com" },
           password: { type: "string", example: "123456" },
+          role: { type: "string", enum: ["CUSTOMER", "SELLER", "ADMIN"], example: "CUSTOMER" },
         },
       },
       SuccessResponse: {
