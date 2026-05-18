@@ -3,6 +3,7 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import swaggerUi from "swagger-ui-express";
 import authRoutes from "./routes/authRoutes";
+import adminRoutes from "./routes/adminRoutes";
 import openApiDocument from "./docs/openapi";
 import { requestContextMiddleware } from "./middlewares/requestContext";
 import { HttpError, sendError } from "./utils/http";
@@ -31,6 +32,7 @@ app.get("/health", (_req, res) => {
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/auth/admin", adminRoutes);
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("[auth_service] unhandled error:", error);

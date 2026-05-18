@@ -5,6 +5,11 @@ import {
     updateMyShopController,
     getShopBySellerIdController,
 } from "../controllers/shopController";
+import {
+    adminGetShopController,
+    adminListShopsController,
+    adminUpdateShopStatusController,
+} from "../controllers/adminShopController";
 import { authMiddleware } from "../middlewares/auth";
 import { roleMiddleware } from "../middlewares/role";
 
@@ -44,6 +49,31 @@ router.put(
 router.get(
     "/shops/internal/by-seller/:sellerId",
     asyncHandler(getShopBySellerIdController),
+);
+
+// ─────────────────────────────────────────────────────────────
+// Admin routes
+// ─────────────────────────────────────────────────────────────
+
+router.get(
+    "/admin/shops",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(adminListShopsController),
+);
+
+router.get(
+    "/admin/shops/:shopId",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(adminGetShopController),
+);
+
+router.patch(
+    "/admin/shops/:shopId/status",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(adminUpdateShopStatusController),
 );
 
 export default router;
