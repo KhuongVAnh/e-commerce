@@ -1,112 +1,159 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import axiosClient from '../../utils/axiosClient';
+import { Link } from 'react-router-dom';
+import { orderService } from '../../services/orderService';
 
-const OrderList = () => {
-  const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('All');
+const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
-  const tabs = ['All', 'Pending', 'Shipping', 'Completed', 'Cancelled'];
-
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const res = await axiosClient.get('/commerce/orders/my');
-        setOrders(res.data || []);
-      } catch (error) {
-        setOrders([
-          { id: 101, orderCode: 'ORD-4921', shopName: 'Hanoi Heritage Silks', grandTotal: 2450000, orderStatus: 'COMPLETED', createdAt: '2024-10-12T10:00:00Z', itemsCount: 3 },
-          { id: 102, orderCode: 'ORD-5012', shopName: 'Bat Trang Artisans', grandTotal: 850000, orderStatus: 'SHIPPING', createdAt: '2024-10-14T14:30:00Z', itemsCount: 1 },
-          { id: 103, orderCode: 'ORD-5104', shopName: 'Dalat Specialty Coffee', grandTotal: 1200000, orderStatus: 'PENDING', createdAt: '2024-10-15T09:15:00Z', itemsCount: 2 },
-          { id: 104, orderCode: 'ORD-4880', shopName: 'Imperial Crafts', grandTotal: 3100000, orderStatus: 'CANCELLED', createdAt: '2024-10-05T16:45:00Z', itemsCount: 1 },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrders();
-  }, []);
-
-  const filteredOrders = orders.filter(order => {
-    if (activeTab === 'All') return true;
-    if (activeTab === 'Pending') return ['PENDING', 'AWAITING_PAYMENT', 'CONFIRMED', 'PROCESSING'].includes(order.orderStatus);
-    if (activeTab === 'Shipping') return order.orderStatus === 'SHIPPING';
-    if (activeTab === 'Completed') return order.orderStatus === 'DELIVERED' || order.orderStatus === 'COMPLETED';
-    if (activeTab === 'Cancelled') return order.orderStatus === 'CANCELLED';
-    return true;
-  });
-
-  const getStatusConfig = (status) => {
-    if (['DELIVERED', 'COMPLETED'].includes(status)) return { text: 'COMPLETED', bg: 'bg-emerald-100', color: 'text-emerald-700' };
-    if (status === 'SHIPPING') return { text: 'SHIPPING', bg: 'bg-blue-100', color: 'text-blue-700' };
-    if (status === 'CANCELLED') return { text: 'CANCELLED', bg: 'bg-rose-100', color: 'text-rose-700' };
-    return { text: 'PENDING', bg: 'bg-orange-100', color: 'text-orange-700' };
+const OrderCard = ({ order }) => {
+  const statusConfig = {
+    PENDING: { color: 'bg-orange-100 text-orange-700', label: 'Pending' },
+    AWAITING_PAYMENT: { color: 'bg-yellow-100 text-yellow-700', label: 'Awaiting Payment' },
+    CONFIRMED: { color: 'bg-cyan-100 text-cyan-700', label: 'Confirmed' },
+    PROCESSING: { color: 'bg-blue-100 text-blue-700', label: 'Processing' },
+    SHIPPING: { color: 'bg-indigo-100 text-indigo-700', label: 'Shipping' },
+    DELIVERED: { color: 'bg-green-100 text-green-700', label: 'Completed' },
+    CANCELLED: { color: 'bg-red-100 text-red-700', label: 'Cancelled' },
   };
 
-  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  const config = statusConfig[order.orderStatus] || { 
+      color: 'bg-gray-100 text-gray-700', 
+      label: order.orderStatus || 'Unknown' 
+  };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-sans pb-24">
-      <div className="max-w-5xl mx-auto px-4 md:px-8 pt-10">
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-[#2e3785] mb-2">My Orders</h1>
-          <p className="text-slate-500 text-sm font-medium">Track, manage, and review your curated acquisitions from across Vietnam's finest artisans.</p>
+    <div className={`bg-white rounded-xl p-6 shadow-[0px_12px_32px_rgba(43,56,150,0.06)] group transition-all hover:-translate-y-1 ${order.orderStatus === 'CANCELLED' ? 'opacity-75' : ''}`}>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        
+        {/* Left Info */}
+        <div className="flex items-center gap-6">
+          <div className={`w-24 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 ${order.orderStatus === 'CANCELLED' ? 'grayscale' : ''}`}>
+            {/* Lấy ảnh của sản phẩm đầu tiên làm ảnh đại diện đơn */}
+            <img 
+              src={order.items?.[0]?.thumbnailUrl || 'https://via.placeholder.com/150'} 
+              alt="Order thumbnail" 
+              className="w-full h-full object-cover" 
+            />
+          </div>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="material-symbols-outlined text-[#2b3896] text-sm">storefront</span>
+              <span className="text-sm font-semibold text-gray-600">{order.shopName || 'Shop Name'}</span>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">#{order.orderCode}</h3>
+            <p className="text-sm text-gray-500">
+              {order.items?.length || 0} items ordered on {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+            </p>
+          </div>
         </div>
 
-        <div className="flex overflow-x-auto border-b border-slate-200 mb-6 scrollbar-hide">
-          {tabs.map(tab => (
-            <button
-              key={tab} onClick={() => setActiveTab(tab)}
-              className={`pb-4 px-4 text-sm font-bold whitespace-nowrap transition-colors relative ${activeTab === tab ? 'text-[#2e3785]' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              {tab}
-              {activeTab === tab && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#2e3785] rounded-t-full"></div>}
-            </button>
-          ))}
-        </div>
-
-        <div className="space-y-4">
-          {loading ? (
-            <div className="text-center py-10 text-slate-400">Loading your orders...</div>
-          ) : filteredOrders.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-sm text-slate-500">No orders found in this category.</div>
-          ) : (
-            filteredOrders.map(order => {
-              const statusCfg = getStatusConfig(order.orderStatus);
-              return (
-                <div key={order.id} className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 hover:shadow-md transition">
-                  <div className="w-20 h-20 bg-slate-100 rounded-xl overflow-hidden shrink-0 border border-slate-200">
-                    <img src={`https://picsum.photos/seed/${order.id}/200`} alt="Thumbnail" className="w-full h-full object-cover" />
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1.5 mb-1 text-slate-500">
-                      <span className="material-symbols-outlined text-[14px]">storefront</span>
-                      <span className="text-xs font-bold">{order.shopName}</span>
-                    </div>
-                    <h3 className="text-lg font-black text-slate-900 mb-1">#{order.orderCode}</h3>
-                    <p className="text-[12px] font-medium text-slate-500">{order.itemsCount || 1} item(s) ordered on {formatDate(order.createdAt)}</p>
-                  </div>
-
-                  <div className="w-full md:w-auto flex flex-row md:flex-col items-center md:items-end justify-between mt-4 md:mt-0 pt-4 md:pt-0 border-t border-slate-100 md:border-none">
-                    <div className="text-left md:text-right mb-0 md:mb-3 flex flex-col items-start md:items-end">
-                      <span className="text-lg font-black text-[#2e3785]">{order.grandTotal?.toLocaleString()} ₫</span>
-                      <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-md mt-1 ${statusCfg.bg} ${statusCfg.color}`}>{statusCfg.text}</span>
-                    </div>
-                    <button onClick={() => navigate(`/orders/${order.id}`)} className={`w-full md:w-auto px-6 py-2.5 rounded-xl text-sm font-bold transition ${statusCfg.text === 'SHIPPING' ? 'bg-[#2e3785] text-white hover:bg-[#252d70] shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
-                      {statusCfg.text === 'SHIPPING' ? 'Track Package' : 'View Details'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          )}
+        {/* Right Info & Actions */}
+        <div className="flex flex-col md:items-end justify-between gap-4">
+          <div className="flex flex-col md:items-end">
+            <div className="flex items-baseline gap-1 text-[#2b3896]">
+              <span className="text-2xl font-bold tracking-tight">{formatPrice(order.totalAmount)}</span>
+              <span className="text-sm font-medium opacity-80">₫</span>
+            </div>
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mt-2 ${config.color}`}>
+              {config.label}
+            </span>
+          </div>
+          
+          <Link 
+            to={`/orders/${order.id}`} // Link sang trang chi tiết
+            className="flex items-center justify-center gap-2 bg-gray-100 text-[#2f3f92] px-6 py-2.5 rounded-full font-semibold text-sm hover:bg-[#2b3896] hover:text-white transition-all"
+          >
+            View Details
+          </Link>
         </div>
       </div>
     </div>
   );
 };
 
-export default OrderList;
+export default function OrderHistory() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('ALL');
+
+  const fetchOrders = async (status) => {
+    setLoading(true);
+    try {
+        const params = status !== 'ALL' ? { status } : {};
+        const res = await orderService.getMyOrders(params); 
+        
+        console.log("=== CHECK DATA ORDER LIST ===", res);
+
+        if (res.data?.success && res.data?.data?.orders) {
+            setOrders(res.data.data.orders);
+        } 
+        else if (res.success && res.data?.orders) {
+            setOrders(res.data.orders);
+        }
+        else if (res.orders) {
+            setOrders(res.orders);
+        }
+        else if (Array.isArray(res)) {
+            setOrders(res);
+        }
+        else {
+            setOrders([]);
+        }
+    } catch (error) {
+        console.error("Lỗi khi tải lịch sử đơn hàng:", error);
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders(activeTab);
+  }, [activeTab]);
+
+  const tabs = [
+    { key: 'ALL', label: 'All' },
+    { key: 'PENDING', label: 'Pending' },
+    { key: 'CONFIRMED', label: 'Confirmed' },
+    { key: 'SHIPPING', label: 'Shipping' },
+    { key: 'DELIVERED', label: 'Completed' },
+    { key: 'CANCELLED', label: 'Cancelled' },
+  ];
+
+  return (
+    <main className="pt-28 pb-12 px-6 md:px-12 max-w-7xl mx-auto font-['Inter']">
+      <div className="mb-12">
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-[#2b3896] mb-2 font-['Be_Vietnam_Pro']">My Orders</h1>
+        <p className="text-gray-600 max-w-md">Track, manage, and review your curated acquisitions from across Vietnam's finest artisans.</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center space-x-8 mb-10 overflow-x-auto whitespace-nowrap pb-2 scrollbar-hide border-b border-gray-200">
+        {tabs.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`font-medium pb-2 px-1 transition-all ${
+              activeTab === tab.key 
+                ? 'text-[#2b3896] font-bold border-b-2 border-[#2b3896]' 
+                : 'text-gray-500 hover:text-[#2b3896]'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Order List */}
+      <div className="grid grid-cols-1 gap-6">
+        {loading ? (
+          <p className="text-center text-gray-500 py-10">Đang tải dữ liệu...</p>
+        ) : orders.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-xl shadow-sm">
+            <p className="text-gray-500">Chưa có đơn hàng nào ở trạng thái này.</p>
+          </div>
+        ) : (
+          orders.map(order => <OrderCard key={order.id} order={order} />)
+        )}
+      </div>
+    </main>
+  );
+}

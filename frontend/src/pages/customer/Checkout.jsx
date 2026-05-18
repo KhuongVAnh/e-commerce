@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import axiosClient from '../../utils/axiosClient';
 import useCartStore from '../../store/useCartStore';
 
 const Checkout = () => {
   const [searchParams] = useSearchParams();
-  const shopId = searchParams.get('shopId');
+  const shopIdParam = searchParams.get('shopId');
   const navigate = useNavigate();
   const { fetchCartTotal } = useCartStore();
-
-  const token = localStorage.getItem('accessToken') || '';
 
   // State quản lý dữ liệu UI
   const [previewData, setPreviewData] = useState(null);
@@ -18,33 +17,32 @@ const Checkout = () => {
 
   // State cho Form
   const [formData, setFormData] = useState({
-    fullName: '',
-    phone: '',
-    street: '',
-    district: '',
-    city: ''
+    fullName: '', phone: '', street: '', district: '', city: ''
   });
-  const [paymentMethod, setPaymentMethod] = useState('COD'); // Mặc định là COD
+  const [paymentMethod, setPaymentMethod] = useState('COD'); 
 
-  // GỌI API LẤY THÔNG TIN ĐƠN HÀNG
+  // GỌI API LẤY THÔNG TIN ĐƠN HÀNG (Sử dụng axiosClient để chuẩn hóa)
   useEffect(() => {
-    if (!shopId) {
+    if (!shopIdParam) {
       alert("Không tìm thấy thông tin Shop cần thanh toán!");
       navigate('/cart');
       return;
     }
 
+    const shopId = Number(shopIdParam);
+
     const loadCheckoutData = async () => {
       try {
         setLoading(true);
-        const cartRes = await fetch('http://localhost:3000/api/commerce/cart', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const cartResult = await cartRes.json();
         
-        if (!cartResult.success) throw new Error("Không thể tải giỏ hàng");
+        // 1. Tự động lấy lại giỏ hàng để chống lỗi F5 mất state
+        const cartRes = await axiosClient.get('/commerce/cart');
+        const cartData = cartRes.data || cartRes; 
+        
+        if (!cartData || !cartData.shops) throw new Error("Giỏ hàng trống");
 
-        const shopData = cartResult.data.shops.find(s => String(s.shopId) === String(shopId));
+        // Tìm shop người dùng muốn thanh toán
+        const shopData = cartData.shops.find(s => Number(s.shopId) === shopId);
         if (!shopData || shopData.items.length === 0) {
           throw new Error("Không có sản phẩm nào của Shop này trong giỏ hàng");
         }
@@ -52,22 +50,24 @@ const Checkout = () => {
         const itemIds = shopData.items.map(item => item.id);
         setCartItemIds(itemIds);
 
-        const previewRes = await fetch('http://localhost:3000/api/commerce/cart/checkout-preview', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ shopId: shopId, cartItemIds: itemIds })
+        // 2. Gọi API Preview tính tiền (Ép kiểu Number chuẩn xác)
+        const previewRes = await axiosClient.post('/commerce/cart/checkout-preview', {
+          shopId: shopId,
+          cartItemIds: itemIds
         });
         
-        const previewResult = await previewRes.json();
-        if (!previewResult.success) throw new Error(previewResult.message);
-
-        setPreviewData(previewResult.data);
+        // Bóc tách lớp vỏ data (tuỳ thuộc cấu hình axiosClient)
+        if (previewRes.data && previewRes.data.data) {
+            setPreviewData(previewRes.data.data);
+        } else if (previewRes.data) {
+            setPreviewData(previewRes.data);
+        } else {
+            setPreviewData(previewRes);
+        }
 
       } catch (error) {
-        alert(error.message);
+        console.error("Lỗi lấy dữ liệu checkout:", error);
+        alert(error.response?.data?.message || error.message || "Không thể tải thông tin đơn hàng. Vui lòng thử lại!");
         navigate('/cart');
       } finally {
         setLoading(false);
@@ -75,7 +75,7 @@ const Checkout = () => {
     };
 
     loadCheckoutData();
-  }, [shopId, navigate, token]);
+  }, [shopIdParam, navigate]);
 
   // HÀM XỬ LÝ ĐẶT HÀNG
   const handlePlaceOrder = async () => {
@@ -88,40 +88,34 @@ const Checkout = () => {
 
     try {
       setSubmitting(true);
-      const orderRes = await fetch('http://localhost:3000/api/commerce/orders/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          shopId: shopId,
-          cartItemIds: cartItemIds,
-          paymentMethod: paymentMethod,
-          receiverName: formData.fullName,
-          receiverPhone: formData.phone,
-          receiverAddress: receiverAddress,
-          note: ""
-        })
-      });
       
-      const orderResult = await orderRes.json();
-      if (!orderResult.success) throw new Error(orderResult.message || "Lỗi khi đặt hàng");
+      const payload = {
+        shopId: Number(shopIdParam),
+        cartItemIds: cartItemIds,
+        paymentMethod: paymentMethod,
+        receiverName: formData.fullName,
+        receiverPhone: formData.phone,
+        receiverAddress: receiverAddress,
+        note: ""
+      };
+
+      const orderRes = await axiosClient.post('/commerce/orders/checkout', payload);
+      
+      const responseData = orderRes.data || orderRes;
+      const orderData = responseData.data || responseData;
 
       fetchCartTotal();
 
       if (paymentMethod === 'VNPAY') {
-        const vnpayRes = await fetch('http://localhost:3000/api/commerce/payments/create-vnpay-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ orderId: orderResult.data.orderId, returnUrl: "http://localhost:5173/payment-return" })
-        });
-        const vnpayResult = await vnpayRes.json();
-        
-        if (vnpayResult.success && vnpayResult.data.paymentUrl) {
-          window.location.href = vnpayResult.data.paymentUrl;
+        const vnpayUrl = orderData.paymentUrl;
+        const orderCode = orderData.orderCode;
+
+        sessionStorage.setItem('currentOrderCode', orderCode);
+
+        if (vnpayUrl) {
+          window.location.href = vnpayUrl;
         } else {
-          alert("Lỗi tạo link thanh toán VNPay, đơn hàng đã được lưu dưới dạng Chờ thanh toán.");
+          alert("Lỗi: Backend không trả về link VNPay. Đơn hàng đã được lưu dưới dạng Chờ thanh toán.");
           navigate('/orders');
         }
       } else {
@@ -130,7 +124,9 @@ const Checkout = () => {
       }
 
     } catch (error) {
-      alert(error.message);
+      console.error("Chi tiết lỗi đặt hàng:", error);
+      alert(error.response?.data?.message || "Có lỗi xảy ra khi tạo đơn!");
+    } finally {
       setSubmitting(false);
     }
   };
@@ -214,7 +210,7 @@ const Checkout = () => {
           <div className="bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgba(43,56,150,0.04)] border border-gray-100">
             <div className="mb-6 pb-4 border-b border-gray-100">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Giao hàng từ Shop</p>
-              <h3 className="font-black text-lg text-[#2b3896]">{previewData.shopId || `Shop #${shopId}`}</h3> 
+              <h3 className="font-black text-lg text-[#2b3896]">{previewData.shopName || `Shop #${shopIdParam}`}</h3> 
             </div>
             
             <div className="space-y-6">
