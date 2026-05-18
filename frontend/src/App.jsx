@@ -18,6 +18,9 @@ import ProductList from './pages/customer/ProductList';
 import ProductDetail from './pages/customer/ProductDetail';
 import Cart from './pages/customer/Cart';
 import Checkout from './pages/customer/Checkout';
+import OrderList from './pages/customer/OrderList';
+import OrderDetail from './pages/customer/OrderDetail';
+import PaymentResult from './pages/customer/PaymentResult';
 
 const Unauthorized = () => <div className="p-10 text-center text-red-500 font-bold text-2xl">403 - Bạn không có quyền truy cập!</div>;
 const NotFound = () => <div className="p-10 text-center text-gray-700 font-bold text-2xl">404 - Trang không tồn tại</div>;
@@ -43,6 +46,9 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="cart" element={<Cart />} />
             <Route path="checkout" element={<Checkout />} />
+            <Route path="orders" element={<OrderList />} />
+            <Route path="orders/:id" element={<OrderDetail />} />
+            <Route path="payment-return" element={<PaymentResult />} />
           </Route>
         </Route>
 
