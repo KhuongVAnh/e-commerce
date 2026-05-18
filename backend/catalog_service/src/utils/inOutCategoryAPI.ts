@@ -23,3 +23,8 @@ export type categoryResponse = {
     slug: string;
     status: string;
 };
+
+export type deleteCategoryResponse = {
+    deleted: true;
+    category: categoryResponse;
+};

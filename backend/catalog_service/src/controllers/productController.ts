@@ -28,6 +28,66 @@ function readQueryValue(value: unknown): string | undefined {
     return typeof value === "string" ? value : undefined;
 }
 
+function readInternalStockItems(input: unknown): Array<{ productId: bigint; quantity: number }> {
+    if (!Array.isArray(input)) {
+        throw new HttpError(400, "Dữ liệu không hợp lệ", {
+            code: "VALIDATION_ERROR",
+            fieldErrors: [
+                {
+                    field: "items",
+                    message: "items phải là một mảng",
+                },
+            ],
+        });
+    }
+
+    const fieldErrors: Array<{ field: string; message: string }> = [];
+    const parsedItems: Array<{ productId: bigint; quantity: number }> = [];
+
+    input.forEach((item, index) => {
+        const rawProductId = item?.productId;
+        const rawQuantity = item?.quantity;
+        const productIdText = String(rawProductId ?? "").trim();
+        const quantity = Number(rawQuantity);
+
+        let productId: bigint | null = null;
+        if (!/^\d+$/.test(productIdText)) {
+            fieldErrors.push({
+                field: `items[${index}].productId`,
+                message: "productId phải là số nguyên dương",
+            });
+        } else {
+            productId = BigInt(productIdText);
+            if (productId <= 0n) {
+                fieldErrors.push({
+                    field: `items[${index}].productId`,
+                    message: "productId phải là số nguyên dương",
+                });
+            }
+        }
+
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+            fieldErrors.push({
+                field: `items[${index}].quantity`,
+                message: "quantity phải là số nguyên dương",
+            });
+        }
+
+        if (productId && Number.isInteger(quantity) && quantity > 0) {
+            parsedItems.push({ productId, quantity });
+        }
+    });
+
+    if (fieldErrors.length > 0) {
+        throw new HttpError(400, "Dữ liệu không hợp lệ", {
+            code: "VALIDATION_ERROR",
+            fieldErrors,
+        });
+    }
+
+    return parsedItems;
+}
+
 export async function listPublicProductsController(req: Request, res: Response, _next: NextFunction): Promise<void> {
     const query: listProductQuery = {
         page: readQueryValue(req.query.page),
@@ -40,6 +100,7 @@ export async function listPublicProductsController(req: Request, res: Response, 
     };
 
     const data = await listPublicProducts(query);
+    res.setHeader("X-Cache", data.cacheStatus);
 
     sendSuccess(res, {
         requestId: res.locals.requestId,
@@ -52,11 +113,13 @@ export async function listPublicProductsController(req: Request, res: Response, 
 
 export async function getPublicProductDetailController(req: Request, res: Response, _next: NextFunction): Promise<void> {
     const data = await getPublicProductDetail(readProductId(req));
+    const { cacheStatus, ...responseData } = data;
+    res.setHeader("X-Cache", cacheStatus);
 
     sendSuccess(res, {
         requestId: res.locals.requestId,
         message: "Lấy chi tiết sản phẩm thành công",
-        data,
+        data: responseData,
     });
 }
 
@@ -113,16 +176,7 @@ export async function updateProductStockController(req: Request, res: Response, 
 
 // Các controller internal để gọi từ order service khi cần tăng giảm tồn kho, không cần authUser vì đã có service order đảm bảo quyền truy cập rồi
 export async function decrementStockInternalController(req: Request, res: Response, _next: NextFunction): Promise<void> {
-    const items = req.body.items; // Expect [{ productId: string, quantity: number }]
-
-    if (!Array.isArray(items)) {
-        throw new HttpError(400, "Dữ liệu không hợp lệ, items phải là mảng", { code: "VALIDATION_ERROR" });
-    }
-
-    const parsedItems = items.map(i => ({
-        productId: BigInt(i.productId),
-        quantity: Number(i.quantity)
-    }));
+    const parsedItems = readInternalStockItems(req.body?.items);
 
     const data = await decrementProductsStock(parsedItems);
 
@@ -134,16 +188,7 @@ export async function decrementStockInternalController(req: Request, res: Respon
 }
 
 export async function incrementStockInternalController(req: Request, res: Response, _next: NextFunction): Promise<void> {
-    const items = req.body.items;
-
-    if (!Array.isArray(items)) {
-        throw new HttpError(400, "Dữ liệu không hợp lệ", { code: "VALIDATION_ERROR" });
-    }
-
-    const parsedItems = items.map(i => ({
-        productId: BigInt(i.productId),
-        quantity: Number(i.quantity)
-    }));
+    const parsedItems = readInternalStockItems(req.body?.items);
 
     const data = await incrementProductsStock(parsedItems);
 

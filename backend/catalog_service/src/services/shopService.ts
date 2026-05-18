@@ -26,6 +26,38 @@ function nameToSlug(value: string): string {
         .replace(/-+/g, "-");
 }
 
+function parsePositiveBigInt(value: string, field: string): bigint {
+    const asText = String(value ?? "").trim();
+
+    if (!asText || !/^\d+$/.test(asText)) {
+        throw new HttpError(400, "Dữ liệu không hợp lệ", {
+            code: "VALIDATION_ERROR",
+            fieldErrors: [
+                {
+                    field,
+                    message: `${field} phải là số nguyên dương`,
+                },
+            ],
+        });
+    }
+
+    const parsed = BigInt(asText);
+
+    if (parsed <= 0n) {
+        throw new HttpError(400, "Dữ liệu không hợp lệ", {
+            code: "VALIDATION_ERROR",
+            fieldErrors: [
+                {
+                    field,
+                    message: `${field} phải là số nguyên dương`,
+                },
+            ],
+        });
+    }
+
+    return parsed;
+}
+
 // đảm bảo cấu trúc input khi tạo shop mới
 function assertCreateInput(input: createShopInput) {
     const fieldErrors: Array<{ field: string; message: string }> = [];
@@ -154,7 +186,7 @@ function toShopResponse(shop: {
 
 // create shop
 export async function createShop(sellerId: string, input: createShopInput) {
-    const sellerIdAsBigInt = BigInt(sellerId);
+    const sellerIdAsBigInt = parsePositiveBigInt(sellerId, "sellerId");
 
     // kiểm tra người dùng đã có shop chưa
     const existingShop = await prisma.shop.findFirst({
@@ -189,7 +221,7 @@ export async function createShop(sellerId: string, input: createShopInput) {
 }
 
 export async function getMyShop(sellerId: string) {
-    const sellerIdAsBigInt = BigInt(sellerId);
+    const sellerIdAsBigInt = parsePositiveBigInt(sellerId, "sellerId");
 
     const shop = await prisma.shop.findUnique({
         where: { sellerId: sellerIdAsBigInt },
@@ -208,7 +240,7 @@ export async function getMyShop(sellerId: string) {
 }
 
 export async function updateMyShop(sellerId: string, input: updateShopInput) {
-    const sellerIdAsBigInt = BigInt(sellerId);
+    const sellerIdAsBigInt = parsePositiveBigInt(sellerId, "sellerId");
     const payload = assertUpdateInput(input);
 
     const existingShop = await prisma.shop.findUnique({
@@ -234,7 +266,7 @@ export async function updateMyShop(sellerId: string, input: updateShopInput) {
 
 // Lấy shop theo sellerId cho các service nội bộ (không ném lỗi nếu không tìm thấy)
 export async function getShopBySellerId(sellerId: string) {
-    const sellerIdAsBigInt = BigInt(sellerId);
+    const sellerIdAsBigInt = parsePositiveBigInt(sellerId, "sellerId");
 
     const shop = await prisma.shop.findUnique({
         where: { sellerId: sellerIdAsBigInt },
