@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response, Router } from "express";
 import {
     createShopController,
+    getPublicShopDetailController,
+    listPublicShopsController,
     getMyShopController,
     updateMyShopController,
     getShopBySellerIdController,
@@ -23,6 +25,11 @@ function asyncHandler(
         handler(req, res, next).catch(next); // cú pháp luôn gọi handler, nếu lỗi thì chạy catch, catch gọi next
     };
 }
+
+router.get(
+    "/shops",
+    asyncHandler(listPublicShopsController),
+);
 
 router.post(
     "/shops",
@@ -49,6 +56,11 @@ router.put(
 router.get(
     "/shops/internal/by-seller/:sellerId",
     asyncHandler(getShopBySellerIdController),
+);
+
+router.get(
+    "/shops/:shopId",
+    asyncHandler(getPublicShopDetailController),
 );
 
 // ─────────────────────────────────────────────────────────────
