@@ -5,6 +5,7 @@ import {
     refreshOrderPaymentUrlIfNeeded,
     cancelOrder,
     getCustomerOrderDetail,
+    getSellerOrderDetail,
     listCustomerOrders,
     listSellerOrders,
     resolveShopIdForSeller,
@@ -326,6 +327,28 @@ export async function sellerGetOrdersController(req: Request, res: Response) {
             orders: serializeBigInt(result.orders),
         },
         pagination,
+    });
+}
+
+/**
+ * GET /seller/orders/:id – Seller xem chi tiết đơn hàng của shop mình
+ */
+export async function sellerGetOrderDetailController(req: Request, res: Response) {
+    const orderId = parseRequiredBigInt(req.params.id, "id");
+
+    const shopId = await resolveShopIdForSeller({
+        userId: req.authUser!.userId,
+        shopId: req.authUser?.shopId,
+    });
+
+    const order = await getSellerOrderDetail(shopId, orderId);
+
+    return sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Lấy chi tiết đơn hàng của shop thành công",
+        data: {
+            order: serializeBigInt(order),
+        },
     });
 }
 
