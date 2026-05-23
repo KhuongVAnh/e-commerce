@@ -1,9 +1,13 @@
-require("dotenv/config");
-
+const path = require("path");
 const { PrismaPg } = require("@prisma/adapter-pg");
 const { PrismaClient } = require("@prisma/client");
+const { buildDatabaseUrl, loadServiceEnv } = require("../../shared/db-url.cjs");
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL || "" });
+loadServiceEnv(path.resolve(__dirname, ".."), "api_gateway");
+
+const adapter = new PrismaPg({
+  connectionString: buildDatabaseUrl({ defaultSchema: "api_gateway", includeSearchPath: true }),
+});
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
