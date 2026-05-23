@@ -29,6 +29,10 @@
 | Đã có | POST | `/api/auth/refresh` | Cookie `refreshToken` | Không có body | `tokens: { accessToken, accessExpiresAt, refreshExpiresAt }` |
 | Đã có | POST | `/api/auth/logout` | Bearer token + Cookie `refreshToken` | Không có body | `revoked: true` |
 | Đã có | GET | `/api/auth/me` | Bearer token | Không có body | `user: { id, email, fullName, role, status }` |
+| Đã có | GET | `/api/auth/admin/users` | ADMIN | Query optional:<br>`q?: string`<br>`role?: CUSTOMER, SELLER, ADMIN`<br>`status?: ACTIVE, INACTIVE, BLOCKED`<br>`page?: number`<br>`limit?: number` | `users: [ { id, email, fullName, role, status, createdAt, updatedAt } ]`<br>`pagination: { page, limit, total, totalPages }` |
+| Đã có | GET | `/api/auth/admin/users/:userId` | ADMIN | Path param:<br>`userId: number` | `user: { id, email, fullName, role, status, createdAt, updatedAt }` |
+| Đã có | PATCH | `/api/auth/admin/users/:userId` | ADMIN | Path param:<br>`userId: number`<br><br>Body ít nhất 1 field:<br>`fullName?: string`<br>`role?: CUSTOMER, SELLER, ADMIN`<br>`status?: ACTIVE, INACTIVE, BLOCKED` | `user: { id, email, fullName, role, status, createdAt, updatedAt }` |
+| Đã có | DELETE | `/api/auth/admin/users/:userId` | ADMIN | Path param:<br>`userId: number`<br><br>Không có body | `user: { id, email, fullName, role, status: BLOCKED, createdAt, updatedAt }` |
 
 ---
 
@@ -57,12 +61,14 @@
 | Trạng thái hiện tại | Method | Endpoint | Auth / Role | Request payload | Response payload |
 |---|---|---|---|---|---|
 | Đã có | POST | `/api/catalog/shops` | SELLER | `name: string`<br>`address: string`<br>`logoUrl?: string`<br>`description?: string` | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt }` |
-| Chưa có | GET | `/api/catalog/shops` | Public | Query optional:<br>`page?: number`<br>`limit?: number`<br>`q?: string`<br>`status?: ACTIVE, INACTIVE` | `[ { id, name, slug, logoUrl, status } ]`<br>`meta.pagination: { page, limit, total, totalPages }` |
-| Chưa có | GET | `/api/catalog/shops/:id` | Public | Path param:<br>`id: number` | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt }`<br>`stats: { productCount, followerCount }` |
+| Đã có | GET | `/api/catalog/shops` | Public | Query optional:<br>`page?: number`<br>`limit?: number`<br>`q?: string`<br>`status?: ACTIVE, INACTIVE`<br><br>Mặc định chỉ lấy `ACTIVE` | `shops: [ { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt } ]`<br>`pagination: { page, limit, total, totalPages }` |
+| Đã có | GET | `/api/catalog/shops/:id` | Public | Path param:<br>`id: number` | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt }`<br>`stats: { productCount }` |
 | Đã có | GET | `/api/catalog/shops/my-shop` | SELLER | Không có body | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt }` |
 | Đã có | PUT | `/api/catalog/shops/my-shop` | SELLER | Ít nhất 1 field:<br>`name?: string`<br>`address?: string`<br>`logoUrl?: string`<br>`description?: string` | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt }` |
 | Đã có | GET | `/api/catalog/shops/internal/by-seller/:sellerId` | Internal | Path param:<br>`sellerId: string` | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt }` |
-| Chưa có | GET | `/api/catalog/admin/shops` | ADMIN | Query optional:<br>`page?: number`<br>`limit?: number`<br>`status?: ACTIVE, INACTIVE` | `[ { id, sellerId, name, status } ]`<br>`meta.pagination: { page, limit, total, totalPages }` |
+| Đã có | GET | `/api/catalog/admin/shops` | ADMIN | Query optional:<br>`q?: string`<br>`status?: ACTIVE, INACTIVE, PENDING`<br>`page?: number`<br>`limit?: number` | `shops: [ { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt } ]`<br>`pagination: { page, limit, total, totalPages }` |
+| Đã có | GET | `/api/catalog/admin/shops/:shopId` | ADMIN | Path param:<br>`shopId: number` | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt }` |
+| Đã có | PATCH | `/api/catalog/admin/shops/:shopId/status` | ADMIN | Path param:<br>`shopId: number`<br><br>Body:<br>`status: ACTIVE, INACTIVE, PENDING` | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt }` |
 
 ---
 
@@ -90,6 +96,10 @@
 | Đã có | PATCH | `/api/catalog/products/:productId/stock` | SELLER | Path param:<br>`productId: number`<br><br>Body:<br>`stockQuantity: number` | `product: { id, shopId, categoryId, name, slug, description, price, stockQuantity, thumbnailUrl, status, deletedAt, createdAt, updatedAt, shop, category, images }`<br>`previousStock: number`<br>`currentStock: number`<br>`updatedAt: ISO-8601` |
 | Đã có | POST | `/api/catalog/internal/products/decrement-stock` | Internal | `items: [ { productId: string, quantity: number } ]` | Kết quả trừ tồn kho cho các product được truyền vào |
 | Đã có | POST | `/api/catalog/internal/products/increment-stock` | Internal | `items: [ { productId: string, quantity: number } ]` | Kết quả hoàn tồn kho cho các product được truyền vào |
+| Đã có | GET | `/api/catalog/admin/products` | ADMIN | Query optional:<br>`q?: string`<br>`status?: ACTIVE, INACTIVE, OUT_OF_STOCK, DELETED`<br>`shopId?: number`<br>`categoryId?: number`<br>`page?: number`<br>`limit?: number` | `products: [ { id, shopId, categoryId, name, slug, description, price, stockQuantity, thumbnailUrl, status, deletedAt, createdAt, updatedAt, shop, category, images } ]`<br>`pagination: { page, limit, total, totalPages }` |
+| Đã có | GET | `/api/catalog/admin/products/:productId` | ADMIN | Path param:<br>`productId: number` | `product: { id, shopId, categoryId, name, slug, description, price, stockQuantity, thumbnailUrl, status, deletedAt, createdAt, updatedAt, shop, category, images }` |
+| Đã có | PUT | `/api/catalog/admin/products/:productId` | ADMIN | Path param:<br>`productId: number`<br><br>Body ít nhất 1 field:<br>`categoryId?: number`<br>`name?: string`<br>`description?: string`<br>`price?: number`<br>`stockQuantity?: number`<br>`thumbnailUrl?: string`<br>`status?: ACTIVE, INACTIVE, OUT_OF_STOCK`<br>`images?: [ { imageUrl, sortOrder } ]` | `product: { id, shopId, categoryId, name, slug, description, price, stockQuantity, thumbnailUrl, status, deletedAt, createdAt, updatedAt, shop, category, images }` |
+| Đã có | DELETE | `/api/catalog/admin/products/:productId` | ADMIN | Path param:<br>`productId: number`<br><br>Không có body | `product: { id, status: DELETED, deletedAt }` |
 
 ---
 
@@ -125,7 +135,11 @@
 | Đã có | GET | `/api/commerce/orders/my` | CUSTOMER | Query optional:<br>`status?: OrderStatus`<br>`page?: number`<br>`limit?: number` | Danh sách đơn hàng của khách hàng |
 | Đã có | GET | `/api/commerce/orders/:id` | CUSTOMER | Path param:<br>`id: string` | Chi tiết đơn hàng và các mục hàng |
 | Đã có | GET | `/api/commerce/seller/orders` | SELLER | Query optional:<br>`status?: OrderStatus` | Danh sách đơn hàng của shop |
+| Đã có | GET | `/api/commerce/seller/orders/:id` | SELLER | Path param:<br>`id: string` | Chi tiết đơn hàng của shop, gồm `order`, `items`, `payments` |
 | Đã có | PATCH | `/api/commerce/seller/orders/:id/status` | SELLER | Path param:<br>`id: string`<br>`status: OrderStatus` | Cập nhật trạng thái đơn |
+| Đã có | GET | `/api/commerce/admin/orders` | ADMIN | Query optional:<br>`q?: string` (orderCode)<br>`status?: OrderStatus`<br>`paymentStatus?: PaymentStatus`<br>`paymentMethod?: COD, VNPAY`<br>`shopId?: number`<br>`customerId?: number`<br>`from?: ISO-8601`<br>`to?: ISO-8601`<br>`page?: number`<br>`limit?: number` | `orders: [ { id, orderCode, customerId, shopId, totalAmount, shippingFee, paymentMethod, paymentStatus, orderStatus, receiverName, receiverPhone, receiverAddress, createdAt, updatedAt } ]`<br>`pagination: { page, limit, total, totalPages }` |
+| Đã có | GET | `/api/commerce/admin/orders/:orderId` | ADMIN | Path param:<br>`orderId: number` | `order: { id, orderCode, customerId, shopId, totalAmount, shippingFee, paymentMethod, paymentStatus, orderStatus, receiverName, receiverPhone, receiverAddress, note, createdAt, updatedAt, items, payments }` |
+| Đã có | PATCH | `/api/commerce/admin/orders/:orderId/status` | ADMIN | Path param:<br>`orderId: number`<br><br>Body:<br>`status: OrderStatus` | `order: { id, orderCode, orderStatus, updatedAt }` |
 
 ### 10.1 Ghi chú riêng cho Order API
 
@@ -142,29 +156,45 @@
 |---|---|---|---|---|---|
 | Đã có | GET | `/api/commerce/payments/vnpay-return` | Public | Các tham số từ VNPay Server gửi về | `{"RspCode": "00", "Message": "Confirm Success"}` |
 | Đã có | GET | `/api/commerce/payments/check-result` | Public | FE forward toàn bộ query params VNPay từ Return URL (đặc biệt: `vnp_TxnRef`, `vnp_SecureHash`, ... ) | Kết quả thanh toán authoritative từ DB sau khi verify chữ ký VNPay:<br>`order: { id, orderCode, orderStatus, paymentStatus }`<br>`payment: { id, status, amount, transactionRef, paidAt }`<br>`result: { isPaid, isFailed, isPending }` |
-| Chưa có | GET | `/api/commerce/payments/order/:orderId` | User đã đăng nhập | Path param:<br>`orderId: number` | `payment: { orderId, method, status, amount, transactionRef, providerResponse }` |
+| Đã có | GET | `/api/commerce/payments/order/:orderId` | User đã đăng nhập | Path param:<br>`orderId: number`<br><br>Cho phép CUSTOMER sở hữu order, SELLER sở hữu shop của order, hoặc ADMIN | `payment: { orderId, method, status, amount, transactionRef, providerResponse, checkoutUrlExpiresAt, createdAt, updatedAt }` |
 
 ### 11.1 Ghi chú riêng cho VNPay payment flow
 
 | Nội dung | Ghi chú |
 |---|---|
-| Luồng | Backend tạo payment URL với `vnp_ReturnUrl` trỏ về `/api/commerce/payments/vnpay-return` để VNPay callback xử lý giao dịch tại server |
+| Luồng | Backend tạo payment URL với `vnp_ReturnUrl` trỏ về frontend return page để FE forward query sang backend check result. IPN/server callback nên cấu hình public URL riêng trỏ về `/api/commerce/payments/vnpay-return` khi làm việc với VNPay sandbox/production |
 | FE check kết quả (public) | FE nhận query params từ VNPay Return URL rồi forward sang `GET /api/commerce/payments/check-result` để backend verify chữ ký và trả kết quả |
 | FE check kết quả (user-auth) | FE có thể gọi `GET /api/commerce/orders/:orderCode/check-result` (CUSTOMER) để tra cứu theo orderCode sau đăng nhập |
 | Nguồn sự thật | Trạng thái trong DB do IPN cập nhật |
 
 ---
 
-## 12. Notification API
+## 12. Stats API
+
+| Trạng thái hiện tại | Method | Endpoint | Auth / Role | Request payload | Response payload |
+|---|---|---|---|---|---|
+| Đã có | GET | `/api/commerce/seller/revenue-summary` | SELLER | Query optional:<br>`from?: ISO-8601`<br>`to?: ISO-8601` | `shopId: number`<br>`totalOrders: number`<br>`totalRevenue: number`<br>`pendingOrders: number`<br>`processingOrders: number`<br>`deliveredOrders: number`<br>`cancelledOrders: number`<br>`recentOrders: [ ... ]`<br>`revenueSeries: [ { date, revenue } ]` |
+| Đã có | GET | `/api/commerce/admin/dashboard-summary` | ADMIN | Query optional:<br>`from?: ISO-8601`<br>`to?: ISO-8601` | `totalOrders: number`<br>`totalRevenue: number`<br>`pendingOrders: number`<br>`deliveredOrders: number`<br>`cancelledOrders: number`<br>`monthlyRevenue: number`<br>`recentOrders: [ ... ]` |
+
+---
+
+## 13. Notification API
 
 | Trạng thái hiện tại | Method | Endpoint | Auth / Role | Request payload | Response payload |
 |---|---|---|---|---|---|
 | Chưa có | GET | `/api/notifications/me` | User đã đăng nhập | Query optional:<br>`page?: number`<br>`limit?: number`<br>`isRead?: boolean` | `notifications: [ { id, type, title, content, isRead, createdAt } ]`<br>`unreadCount: number`<br>`meta.pagination: { page, limit, total, totalPages }` |
 | Chưa có | PATCH | `/api/notifications/:id/read` | User đã đăng nhập | Path param:<br>`id: number`<br><br>Không có body | `notification: { id, isRead: true, readAt }` |
 
+### 13.1 Ghi chú riêng cho Notification
+
+| Nội dung | Ghi chú |
+|---|---|
+| Scope hiện tại | Chưa implement trong đợt bổ sung API backend này |
+| Kafka / event | Không thuộc scope file này, sẽ do thành viên khác thực hiện |
+
 ---
 
-## 13. Error response dùng chung
+## 14. Error response dùng chung
 
 | Trường | Kiểu dữ liệu | Mô tả |
 |---|---|---|
@@ -180,7 +210,7 @@
 
 ---
 
-## 14. Danh sách error code chuẩn
+## 15. Danh sách error code chuẩn
 
 | Error code | Ý nghĩa | Service |
 |---|---|---|
@@ -189,6 +219,9 @@
 | `FORBIDDEN` | Không có quyền truy cập | Chung |
 | `INVALID_TOKEN` | Token không hợp lệ hoặc hết hạn | Auth |
 | `RESOURCE_NOT_FOUND` | Không tìm thấy tài nguyên | Chung |
+| `USER_NOT_FOUND` | Không tìm thấy người dùng | Auth |
+| `LAST_ADMIN_PROTECTED` | Không thể hạ quyền admin active cuối cùng | Auth |
+| `ROLE_NOT_CONFIGURED` | Hệ thống chưa cấu hình role cần dùng | Auth |
 | `SHOP_ALREADY_EXISTS` | Seller đã có shop | Catalog |
 | `SHOP_NOT_FOUND` | Không tìm thấy shop (thường khi seller chưa tạo shop) | Catalog / Commerce |
 | `PRODUCT_NOT_FOUND` | Không tìm thấy sản phẩm | Catalog |
@@ -208,21 +241,22 @@
 
 ---
 
-## 15. Enum chuẩn
+## 16. Enum chuẩn
 
 | Enum | Giá trị |
 |---|---|
 | `UserRole` | `CUSTOMER`, `SELLER`, `ADMIN` |
+| `UserStatus` | `ACTIVE`, `INACTIVE`, `BLOCKED` |
 | `PaymentMethod` | `COD`, `VNPAY` |
 | `PaymentStatus` | `PENDING`, `PAID`, `FAILED`, `COD_PENDING` |
 | `OrderStatus` | `PENDING`, `AWAITING_PAYMENT`, `CONFIRMED`, `PROCESSING`, `SHIPPING`, `DELIVERED`, `CANCELLED` |
 | `ProductStatus` | `ACTIVE`, `INACTIVE`, `OUT_OF_STOCK`, `DELETED` |
 | `CategoryStatus` | `ACTIVE`, `INACTIVE` |
-| `ShopStatus` | `ACTIVE`, `INACTIVE` |
+| `ShopStatus` | `ACTIVE`, `INACTIVE`, `PENDING` |
 
 ---
 
-## 16. Header dùng chung
+## 17. Header dùng chung
 
 | Header / Cookie | Khi nào dùng | Ví dụ |
 |---|---|---|
@@ -233,24 +267,25 @@
 
 ---
 
-## 17. Tổng hợp nhanh trạng thái endpoint
+## 18. Tổng hợp nhanh trạng thái endpoint
 
 | Nhóm API | Đã có | Chưa có | Lệch path |
 |---|---:|---:|---:|
-| Auth | 5 | 0 | 0 |
+| Auth | 9 | 0 | 0 |
 | Upload | 1 | 0 | 0 |
-| Shop | 4 | 3 | 0 |
+| Shop | 9 | 0 | 0 |
 | Category | 4 | 0 | 0 |
-| Product | 9 | 0 | 0 |
+| Product | 13 | 0 | 0 |
 | Cart | 5 | 0 | 0 |
-| Order | 8 | 0 | 0 |
-| Payment | 2 | 1 | 0 |
+| Order | 12 | 0 | 0 |
+| Payment | 3 | 0 | 0 |
+| Stats | 2 | 0 | 0 |
 | Notification | 0 | 2 | 0 |
-| **Tổng** | **38** | **6** | **0** |
+| **Tổng** | **58** | **2** | **0** |
 
 ---
 
-## 18. Quy tắc frontend cần nhớ
+## 19. Quy tắc frontend cần nhớ
 
 | Quy tắc | Nội dung |
 |---|---|
