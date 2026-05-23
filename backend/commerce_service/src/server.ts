@@ -7,6 +7,10 @@ import orderRoutes from "./routes/order";
 import paymentRoutes from "./routes/payment";
 import adminRoutes from "./routes/admin";
 import statsRoutes from "./routes/stats";
+import { prisma } from "./config/prisma";
+
+const { assertDatabaseLive, assertRedisLive } = require("../../shared/startup-checks.cjs");
+const serviceName = "commerce_service";
 
 const app = express();
 const port = Number(process.env.PORT) || 3003;
@@ -66,6 +70,26 @@ app.use((error: Error, _req: express.Request, res: express.Response, _next: expr
   });
 });
 
-app.listen(port, () => {
-  console.log(`commerce_service listening on port ${port}`);
+async function start() {
+  await assertDatabaseLive(prisma, serviceName);
+  await assertRedisLive(serviceName);
+
+  app.listen(port, () => {
+    console.log(`commerce_service listening on port ${port}`);
+  });
+}
+
+start().catch(async (error) => {
+  logStartupError(serviceName, error);
+  await prisma.$disconnect().catch(() => undefined);
+  process.exit(1);
 });
+
+function logStartupError(service: string, error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`[${service}] Startup failed: ${message}`);
+
+  if (process.env.STARTUP_DEBUG === "true" && error instanceof Error && error.stack) {
+    console.error(error.stack);
+  }
+}
