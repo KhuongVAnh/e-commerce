@@ -1,10 +1,14 @@
-require("dotenv/config");
-
+const path = require("path");
 const { PrismaPg } = require("@prisma/adapter-pg");
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
+const { buildDatabaseUrl, loadServiceEnv } = require("../../shared/db-url.cjs");
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL || "" });
+loadServiceEnv(path.resolve(__dirname, ".."), "auth_service");
+
+const adapter = new PrismaPg({
+  connectionString: buildDatabaseUrl({ defaultSchema: "auth_service", includeSearchPath: true }),
+});
 const prisma = new PrismaClient({ adapter });
 
 const SEED_USERS = [
