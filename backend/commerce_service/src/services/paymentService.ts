@@ -1,8 +1,8 @@
 import crypto from "crypto";
-import { OrderStatus, TransactionStatus } from "@prisma/client";
+import { OrderStatus, PaymentStatus, TransactionStatus } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { HttpError } from "../utils/http";
-import { PaymentStatus } from "@prisma/client";
+import { getShopIdBySellerId } from "./catalogClient";
 import "../config/env"; // Đảm bảo đã load env
 import { publishEvent } from "../config/kafka";
 
@@ -13,6 +13,10 @@ const vnpUrl = process.env.VNP_URL || ""; // vnpay cung cấp
 const corsAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS || "";
 const routeCheckout = process.env.ROUTE_CHECKOUT || "";
 const returnUrl = (() => {
+    if (process.env.VNP_RETURN_URL) {
+        return process.env.VNP_RETURN_URL;
+    }
+
     const frontendOrigins = corsAllowedOrigins
         .split(",")
         .map((value) => value.trim())
@@ -20,7 +24,7 @@ const returnUrl = (() => {
     const frontendOrigin = frontendOrigins[0] || "";
 
     if (!frontendOrigin || !routeCheckout) {
-        return process.env.VNP_RETURN_URL || "";
+        return "";
     }
 
     return new URL(routeCheckout, frontendOrigin).toString();
@@ -103,6 +107,12 @@ export type VNPayCheckoutSession = {
     paymentUrl: string;
     createdAt: Date;
     expiresAt: Date;
+};
+
+export type PaymentLookupAuthUser = {
+    userId: string;
+    role: string;
+    shopId?: string;
 };
 
 export function buildVNPayCheckoutUrl(input: CreateVNPayUrlInput, createdAt: Date, expiresAt: Date): string {
@@ -391,5 +401,82 @@ export async function checkPaymentFromOrderCode(orderCode: string) {
         isPaid,
         isFailed,
         isPending,
+    };
+}
+
+async function resolvePaymentLookupShopId(input: PaymentLookupAuthUser): Promise<bigint> {
+    if (input.shopId && input.shopId.trim()) {
+        try {
+            return BigInt(input.shopId);
+        } catch {
+            // fall through to catalog lookup
+        }
+    }
+
+    const shopId = await getShopIdBySellerId(input.userId);
+    if (!shopId) {
+        throw new HttpError(404, "Không tìm thấy shop của seller", {
+            code: "SHOP_NOT_FOUND",
+        });
+    }
+
+    return BigInt(shopId);
+}
+
+export async function getPaymentByOrderForUser(orderId: bigint, authUser: PaymentLookupAuthUser) {
+    const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+            payments: {
+                orderBy: { createdAt: "desc" },
+            },
+        },
+    });
+
+    if (!order) {
+        throw new HttpError(404, "Không tìm thấy đơn hàng", {
+            code: "ORDER_NOT_FOUND",
+        });
+    }
+
+    const role = String(authUser.role ?? "").toUpperCase();
+    if (role === "CUSTOMER") {
+        if (order.customerId.toString() !== authUser.userId) {
+            throw new HttpError(403, "Bạn không có quyền truy cập thanh toán của đơn hàng này", {
+                code: "FORBIDDEN",
+            });
+        }
+    } else if (role === "SELLER") {
+        const shopId = await resolvePaymentLookupShopId(authUser);
+        if (order.shopId !== shopId) {
+            throw new HttpError(403, "Bạn không có quyền truy cập thanh toán của đơn hàng này", {
+                code: "FORBIDDEN",
+            });
+        }
+    } else if (role !== "ADMIN") {
+        throw new HttpError(403, "Bạn không có quyền truy cập", {
+            code: "FORBIDDEN",
+        });
+    }
+
+    const payment = order.payments[0];
+    if (!payment) {
+        throw new HttpError(404, "Không tìm thấy thanh toán của đơn hàng", {
+            code: "PAYMENT_NOT_FOUND",
+        });
+    }
+
+    return {
+        payment: {
+            orderId: order.id,
+            method: payment.method,
+            status: payment.status,
+            amount: Number(payment.amount),
+            transactionRef: payment.transactionRef,
+            providerResponse: payment.providerResponse,
+            checkoutUrlExpiresAt: payment.checkoutUrlExpiresAt?.toISOString() ?? null,
+            createdAt: payment.createdAt.toISOString(),
+            updatedAt: payment.updatedAt.toISOString(),
+        },
     };
 }

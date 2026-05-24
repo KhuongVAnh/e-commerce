@@ -9,6 +9,10 @@ import { shouldUseGatewayAuth } from "./utils/routeMatcher";
 import { authMiddleware } from "./middlewares/auth";
 import notificationRoutes from "./routes/notificationRoutes";
 import { startKafkaConsumer } from "./services/kafkaConsumer";
+import { prisma } from "./config/prisma";
+
+const { assertDatabaseLive, assertRedisLive } = require("../../shared/startup-checks.cjs");
+const serviceName = "api_gateway";
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
@@ -84,11 +88,10 @@ app.use("/api/auth", createServiceProxy(authServiceUrl));
 app.use("/api/catalog", createServiceProxy(catalogServiceUrl));
 app.use("/api/commerce", createServiceProxy(commerceServiceUrl));
 
+async function start() {
+  await assertDatabaseLive(prisma, serviceName);
+  await assertRedisLive(serviceName);
+
 app.listen(port, () => {
   console.log(`api_gateway listening on port ${port}`);
-  
-  // Start Kafka Consumer
-  startKafkaConsumer().catch((err) => {
-    console.error("[Kafka Consumer] Failed to start consumer:", err);
-  });
 });
