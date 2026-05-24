@@ -4,12 +4,21 @@ import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
+// Thêm các trang quản lý của Admin
+import UserManagement from './pages/admin/UserManagement';
+import ShopManagement from './pages/admin/ShopManagement';
+import CategoryManagement from './pages/admin/CategoryManagement';
+
 import SellerDashboard from './pages/seller/SellerDashboard';
 import ShopForm from './pages/seller/ShopForm';
 
 // Import giao diện Seller Products
 import SellerProductList from './pages/seller/ProductList';
 import SellerProductForm from './pages/seller/ProductForm';
+
+// Thêm các trang quản lý Seller Orders
+import SellerOrderList from './pages/seller/OrderList';
+import SellerOrderDetail from './pages/seller/OrderDetail';
 
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -24,9 +33,6 @@ import PaymentResult from './pages/customer/PaymentResult';
 
 const Unauthorized = () => <div className="p-10 text-center text-red-500 font-bold text-2xl">403 - Bạn không có quyền truy cập!</div>;
 const NotFound = () => <div className="p-10 text-center text-gray-700 font-bold text-2xl">404 - Trang không tồn tại</div>;
-
-// Component tạm cho trang Orders của Seller
-const PlaceholderOrders = () => <div className="p-10 text-center text-slate-400 font-bold">Giao diện Quản lý Đơn hàng (Đang phát triển)</div>;
 
 function App() {
   return (
@@ -56,6 +62,9 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
           <Route path="/admin" element={<DashboardLayout roleTitle="Admin" />}>
             <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="shops" element={<ShopManagement />} />
+            <Route path="categories" element={<CategoryManagement />} />
           </Route>
         </Route>
 
@@ -73,7 +82,8 @@ function App() {
             <Route path="products/:id/edit" element={<SellerProductForm />} />
             
             {/* Quản lý Đơn hàng */}
-            <Route path="orders" element={<PlaceholderOrders />} />
+            <Route path="orders" element={<SellerOrderList />} />
+            <Route path="orders/:id" element={<SellerOrderDetail />} />
           </Route>
         </Route>
 
