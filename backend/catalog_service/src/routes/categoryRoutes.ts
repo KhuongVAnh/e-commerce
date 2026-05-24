@@ -1,7 +1,9 @@
 import { NextFunction, Request, Response, Router } from "express";
 import {
     createCategoryController,
+    deleteCategoryController,
     listCategoriesController,
+    updateCategoryController,
 } from "../controllers/categoryController";
 import { authMiddleware } from "../middlewares/auth";
 import { roleMiddleware } from "../middlewares/role";
@@ -26,6 +28,20 @@ router.post(
     authMiddleware,
     roleMiddleware(["ADMIN"]),
     asyncHandler(createCategoryController),
+);
+
+router.put(
+    "/categories/:categoryId",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(updateCategoryController),
+);
+
+router.delete(
+    "/categories/:categoryId",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(deleteCategoryController),
 );
 
 export default router;
