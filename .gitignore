@@ -36,9 +36,10 @@ dist/
 /backend/docs/DATABASE_SCHEMA.md
 /backend/docs/DEVELOPER_ONBOARDING.md
 /backend/docs/FOLDER_STRUCTURE.md
-/backend/docs/INTEGRATION_GUIDE.md
+/backend/docs/INTEGRATION_GUIDE.md  
 /backend/docs/PROJECT_OVERVIEW.md
 /backend/docs/SAGA_ANALYSIS.md
 /backend/README.md
 /backend/smoke-tests/README.md
 /backend/smoke-tests/run.mjs
+
