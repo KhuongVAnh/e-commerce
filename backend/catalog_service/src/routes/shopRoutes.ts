@@ -4,6 +4,7 @@ import {
     getMyShopController,
     updateMyShopController,
     getShopBySellerIdController,
+    getShopByIdInternalController,
 } from "../controllers/shopController";
 import {
     adminGetShopController,
@@ -49,6 +50,12 @@ router.put(
 router.get(
     "/shops/internal/by-seller/:sellerId",
     asyncHandler(getShopBySellerIdController),
+);
+
+// internal endpoint to lookup shop owner by shopId
+router.get(
+    "/shops/internal/:shopId",
+    asyncHandler(getShopByIdInternalController),
 );
 
 // ─────────────────────────────────────────────────────────────

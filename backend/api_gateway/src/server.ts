@@ -6,6 +6,9 @@ import { gatewayAuth } from "./middlewares/gatewayAuth";
 import uploadRoutes from "./routes/uploadRoutes";
 import { createServiceProxy } from "./utils/proxy";
 import { shouldUseGatewayAuth } from "./utils/routeMatcher";
+import { authMiddleware } from "./middlewares/auth";
+import notificationRoutes from "./routes/notificationRoutes";
+import { startKafkaConsumer } from "./services/kafkaConsumer";
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
@@ -74,10 +77,18 @@ app.use((req, res, next) => {
   gatewayAuth(req, res, next);
 });
 
+// local notification routes (authenticates and handles routes locally)
+app.use("/api/notifications", authMiddleware, notificationRoutes);
+
 app.use("/api/auth", createServiceProxy(authServiceUrl));
 app.use("/api/catalog", createServiceProxy(catalogServiceUrl));
 app.use("/api/commerce", createServiceProxy(commerceServiceUrl));
 
 app.listen(port, () => {
   console.log(`api_gateway listening on port ${port}`);
+  
+  // Start Kafka Consumer
+  startKafkaConsumer().catch((err) => {
+    console.error("[Kafka Consumer] Failed to start consumer:", err);
+  });
 });

@@ -279,5 +279,20 @@ export async function getShopBySellerId(sellerId: string) {
     return { shop: toShopResponse(shop) };
 }
 
+// Lấy shop theo shopId cho các service nội bộ
+export async function getShopByIdInternal(shopId: string) {
+    const shopIdAsBigInt = parsePositiveBigInt(shopId, "shopId");
+
+    const shop = await prisma.shop.findUnique({
+        where: { id: shopIdAsBigInt },
+    });
+
+    if (!shop) {
+        return { shop: null };
+    }
+
+    return { shop: toShopResponse(shop) };
+}
+
 
 
