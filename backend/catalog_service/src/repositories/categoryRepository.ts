@@ -23,8 +23,37 @@ export async function findCategoryBySlug(slug: string) {
     });
 }
 
+// Hàm này tìm category theo id để service kiểm tra tồn tại trước khi update hoặc delete.
+export async function findCategoryById(categoryId: bigint) {
+    return prisma.category.findUnique({
+        where: { id: categoryId },
+    });
+}
+
 export async function createCategoryRecord(data: Prisma.CategoryCreateInput) {
     return prisma.category.create({ data });
+}
+
+// Hàm này cập nhật category ở tầng repository để service chỉ tập trung xử lý nghiệp vụ.
+export async function updateCategoryRecord(categoryId: bigint, data: Prisma.CategoryUpdateInput) {
+    return prisma.category.update({
+        where: { id: categoryId },
+        data,
+    });
+}
+
+// Hàm này đếm product đang tham chiếu category để chặn hard delete gây lỗi khóa ngoại.
+export async function countProductsByCategoryId(categoryId: bigint) {
+    return prisma.product.count({
+        where: { categoryId },
+    });
+}
+
+// Hàm này hard delete category sau khi service đã xác nhận không còn product liên quan.
+export async function deleteCategoryRecord(categoryId: bigint) {
+    return prisma.category.delete({
+        where: { id: categoryId },
+    });
 }
 
 export async function listCategoryRecords(params: listCategoryParams) {

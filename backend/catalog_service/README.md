@@ -9,7 +9,7 @@
 - Port mặc định: `3002`
 - File nguồn chính: `src/server.ts`
 - File build: `dist/server.js`
-- Biến môi trường hiện có: `PORT`, `DATABASE_URL`
+- Biến môi trường hiện có: `PORT`, `DATABASE_URL`, `REDIS_URL`, `CACHE_ENABLED`
 - Có khung `src/` theo hướng MVC
 
 ## Cấu hình database
@@ -22,6 +22,18 @@
 npx prisma generate
 npx prisma migrate deploy
 ```
+
+## Cấu hình Redis cache
+
+- `REDIS_URL`: địa chỉ Redis, mặc định nên dùng `redis://localhost:6379` khi chạy local.
+- `CACHE_ENABLED`: đặt `false` nếu muốn tắt cache khi debug.
+- `CACHE_PRODUCT_LIST_TTL_SECONDS`: TTL cho danh sách product, mặc định 60 giây.
+- `CACHE_PRODUCT_DETAIL_TTL_SECONDS`: TTL cho chi tiết product, mặc định 60 giây.
+- `CACHE_CATEGORY_LIST_TTL_SECONDS`: TTL cho danh sách category, mặc định 300 giây.
+
+Ghi chú:
+- Redis được thiết kế theo kiểu fail-open, Redis lỗi thì API vẫn đọc database.
+- Các API đọc có header `X-Cache` với giá trị `HIT`, `MISS` hoặc `BYPASS`.
 
 ## Cách chạy
 

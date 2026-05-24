@@ -74,7 +74,7 @@ function assertRegisterInput(input: RegisterInput): Required<Pick<RegisterInput,
   };
 }
 
-function assertLoginInput(input: LoginInput): Required<LoginInput> {
+function assertLoginInput(input: LoginInput): Required<Pick<LoginInput, "email" | "password">> & { role?: UserRole } {
   const fieldErrors: Array<{ field: string; message: string }> = [];
 
   if (!input.email) {
@@ -104,7 +104,7 @@ function assertLoginInput(input: LoginInput): Required<LoginInput> {
   return {
     email: normalizeEmail(input.email as string),
     password: input.password as string,
-    role: (normalizedRole as UserRole) || UserRole.CUSTOMER,
+    ...(normalizedRole ? { role: normalizedRole as UserRole } : {}),
   };
 }
 
@@ -213,7 +213,7 @@ export async function login(input: LoginInput) {
     });
   }
 
-  if (user.role.name !== payload.role) {
+  if (payload.role && user.role.name !== payload.role) {
     throw new HttpError(401, "Vai trò không hợp lệ", {
       code: "INVALID_CREDENTIALS",
     });
@@ -233,11 +233,8 @@ export async function login(input: LoginInput) {
   }
 
   let shopId: string | null = null;
-  if (payload.role === UserRole.SELLER) {
-    // Chỉ fetch shopId nếu user thực sự có role SELLER trong DB
-    if (user.role.name === UserRole.SELLER) {
-      shopId = await getShopIdBySellerId(user.id.toString());
-    }
+  if (user.role.name === UserRole.SELLER) {
+    shopId = await getShopIdBySellerId(user.id.toString());
   }
 
   const jwtPayload = {
@@ -288,7 +285,14 @@ export async function refresh(input: RefreshInput) {
     });
   }
 
-  const userId = BigInt(payload.userId);
+  let userId: bigint;
+  try {
+    userId = BigInt(payload.userId);
+  } catch {
+    throw new HttpError(401, "Refresh token không hợp lệ", {
+      code: "INVALID_REFRESH_TOKEN",
+    });
+  }
   const tokenHash = hashRefreshToken(refreshToken);
 
   const storedToken = await prisma.refreshToken.findFirst({
@@ -388,9 +392,18 @@ export async function logout(input: RefreshInput) {
     });
   }
 
+  let userId: bigint;
+  try {
+    userId = BigInt(payload.userId);
+  } catch {
+    throw new HttpError(401, "Refresh token không hợp lệ", {
+      code: "INVALID_REFRESH_TOKEN",
+    });
+  }
+
   const result = await prisma.refreshToken.updateMany({
     where: {
-      userId: BigInt(payload.userId),
+      userId,
       tokenHash: hashRefreshToken(refreshToken),
       revokedAt: null,
     },

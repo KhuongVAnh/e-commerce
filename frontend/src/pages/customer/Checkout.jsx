@@ -100,25 +100,22 @@ const Checkout = () => {
       };
 
       const orderRes = await axiosClient.post('/commerce/orders/checkout', payload);
-      const orderResultData = orderRes.data || orderRes;
+      
+      const responseData = orderRes.data || orderRes;
+      const orderData = responseData.data || responseData;
 
-      // Cập nhật lại số lượng giỏ hàng trên icon Header
       fetchCartTotal();
 
       if (paymentMethod === 'VNPAY') {
-        // Gọi API tạo link thanh toán
-        const orderId = orderResultData.orderId || orderResultData.data?.orderId;
-        const vnpayRes = await axiosClient.post('/commerce/payments/create-vnpay-url', { 
-          orderId: orderId, 
-          returnUrl: "http://localhost:5173/payment-return" 
-        });
-        
-        const vnpayUrl = vnpayRes.data?.paymentUrl || vnpayRes.data?.data?.paymentUrl || vnpayRes.paymentUrl;
-        
+        const vnpayUrl = orderData.paymentUrl;
+        const orderCode = orderData.orderCode;
+
+        sessionStorage.setItem('currentOrderCode', orderCode);
+
         if (vnpayUrl) {
           window.location.href = vnpayUrl;
         } else {
-          alert("Lỗi tạo link thanh toán VNPay, đơn hàng đã được lưu dưới dạng Chờ thanh toán.");
+          alert("Lỗi: Backend không trả về link VNPay. Đơn hàng đã được lưu dưới dạng Chờ thanh toán.");
           navigate('/orders');
         }
       } else {
@@ -127,6 +124,7 @@ const Checkout = () => {
       }
 
     } catch (error) {
+      console.error("Chi tiết lỗi đặt hàng:", error);
       alert(error.response?.data?.message || "Có lỗi xảy ra khi tạo đơn!");
     } finally {
       setSubmitting(false);

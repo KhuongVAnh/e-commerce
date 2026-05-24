@@ -85,7 +85,7 @@ export async function getShopIdBySellerId(sellerId: string): Promise<string | nu
         const response = await fetch(`${catalogApiBaseUrl}/shops/internal/by-seller/${sellerId}`);
 
         if (!response.ok) {
-            console.error(`[auth_service] Catalog Service error: ${response.status}`);
+            console.error(`[commerce_service] Catalog Service error: ${response.status}`);
             return null;
         }
 
@@ -94,7 +94,7 @@ export async function getShopIdBySellerId(sellerId: string): Promise<string | nu
         
         return shop?.id ? shop.id.toString() : null;
     } catch (error) {
-        console.error("[auth_service] Failed to call Catalog Service:", error);
+        console.error("[commerce_service] Failed to call Catalog Service:", error);
         return null;
     }
 }
@@ -118,7 +118,13 @@ export async function decrementProductsStock(items: Array<{ productId: bigint; q
         const body = await response.json().catch(() => ({}));
         throw new HttpError(response.status === 400 ? 400 : 502, body.message || "Failed to decrement stock", {
             code: body.error?.code || "STOCK_DECREMENT_FAILED",
-            details: body.error?.details || body.message,
+            details: Array.isArray(body.error?.details)
+                ? body.error.details
+                : body.message
+                    ? [body.message]
+                    : [],
+            fieldErrors: body.error?.fieldErrors,
+            hint: body.error?.hint,
         });
     }
 }
@@ -140,9 +146,15 @@ export async function incrementProductsStock(items: Array<{ productId: bigint; q
 
     if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        throw new HttpError(502, body.message || "Failed to increment stock", {
+        throw new HttpError(response.status === 400 ? 400 : 502, body.message || "Failed to increment stock", {
             code: body.error?.code || "STOCK_INCREMENT_FAILED",
-            details: body.error?.details || body.message,
+            details: Array.isArray(body.error?.details)
+                ? body.error.details
+                : body.message
+                    ? [body.message]
+                    : [],
+            fieldErrors: body.error?.fieldErrors,
+            hint: body.error?.hint,
         });
     }
 }
