@@ -9,7 +9,7 @@
 - Port mặc định: `3003`
 - File nguồn chính: `src/server.ts`
 - File build: `dist/server.js`
-- Biến môi trường hiện có: `PORT`, `DATABASE_URL`
+- Biến môi trường hiện có: `PORT`, `DB_SCHEMA`
 - Có khung `src/` theo hướng MVC
 
 ## Cấu hình database

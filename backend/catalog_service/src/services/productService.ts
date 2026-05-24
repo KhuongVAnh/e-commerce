@@ -188,6 +188,24 @@ function parsePositivePrice(value: string | number): Prisma.Decimal {
     return new Prisma.Decimal(parsed.toFixed(2));
 }
 
+function parseNonNegativePrice(value: string, field: string): Prisma.Decimal {
+    const parsed = Number(value);
+
+    if (!Number.isFinite(parsed) || parsed < 0) {
+        throw new HttpError(400, "Dữ liệu không hợp lệ", {
+            code: "VALIDATION_ERROR",
+            fieldErrors: [
+                {
+                    field,
+                    message: `${field} phải là số không âm`,
+                },
+            ],
+        });
+    }
+
+    return new Prisma.Decimal(parsed.toFixed(2));
+}
+
 function isSellerEditableStatus(value: string): value is SellerEditableStatus {
     return SELLER_EDITABLE_STATUSES.includes(value as SellerEditableStatus);
 }
@@ -538,6 +556,8 @@ function assertPublicListProductQuery(query: listProductQuery): {
     shopId?: bigint;
     categoryId?: bigint;
     keyword?: string;
+    minPrice?: Prisma.Decimal;
+    maxPrice?: Prisma.Decimal;
     sortBy: PublicProductSortBy;
 } {
     const fieldErrors: Array<{ field: string; message: string }> = [];
@@ -551,6 +571,8 @@ function assertPublicListProductQuery(query: listProductQuery): {
         : typeof query.q === "string"
             ? query.q.trim()
             : "";
+    const rawMinPrice = typeof query.minPrice === "string" ? query.minPrice.trim() : "";
+    const rawMaxPrice = typeof query.maxPrice === "string" ? query.maxPrice.trim() : "";
     const rawSortBy = typeof query.sortBy === "string" ? query.sortBy.trim() : "";
 
     let page = 1;
@@ -603,6 +625,37 @@ function assertPublicListProductQuery(query: listProductQuery): {
         }
     }
 
+    let minPrice: Prisma.Decimal | undefined;
+    if (rawMinPrice) {
+        try {
+            minPrice = parseNonNegativePrice(rawMinPrice, "minPrice");
+        } catch {
+            fieldErrors.push({
+                field: "minPrice",
+                message: "minPrice phải là số không âm",
+            });
+        }
+    }
+
+    let maxPrice: Prisma.Decimal | undefined;
+    if (rawMaxPrice) {
+        try {
+            maxPrice = parseNonNegativePrice(rawMaxPrice, "maxPrice");
+        } catch {
+            fieldErrors.push({
+                field: "maxPrice",
+                message: "maxPrice phải là số không âm",
+            });
+        }
+    }
+
+    if (minPrice !== undefined && maxPrice !== undefined && minPrice.gt(maxPrice)) {
+        fieldErrors.push({
+            field: "minPrice",
+            message: "minPrice phải nhỏ hơn hoặc bằng maxPrice",
+        });
+    }
+
     let sortBy: PublicProductSortBy = "latest";
     if (rawSortBy) {
         if (!isPublicProductSortBy(rawSortBy)) {
@@ -628,6 +681,8 @@ function assertPublicListProductQuery(query: listProductQuery): {
         shopId,
         categoryId,
         keyword: rawKeyword || undefined,
+        minPrice,
+        maxPrice,
         sortBy,
     };
 }
@@ -639,6 +694,8 @@ function normalizePublicProductListCacheQuery(payload: {
     shopId?: bigint;
     categoryId?: bigint;
     keyword?: string;
+    minPrice?: Prisma.Decimal;
+    maxPrice?: Prisma.Decimal;
     sortBy: PublicProductSortBy;
 }) {
     return {
@@ -647,6 +704,8 @@ function normalizePublicProductListCacheQuery(payload: {
         shopId: payload.shopId !== undefined ? payload.shopId.toString() : null,
         categoryId: payload.categoryId !== undefined ? payload.categoryId.toString() : null,
         keyword: payload.keyword ?? null,
+        minPrice: payload.minPrice !== undefined ? payload.minPrice.toFixed(2) : null,
+        maxPrice: payload.maxPrice !== undefined ? payload.maxPrice.toFixed(2) : null,
         sortBy: payload.sortBy,
     };
 }
@@ -789,6 +848,8 @@ type PublicProductListResponse = {
         keyword: string | null;
         shopId: number | null;
         categoryId: number | null;
+        minPrice: number | null;
+        maxPrice: number | null;
         sortBy: PublicProductSortBy;
     };
 };
@@ -825,6 +886,8 @@ export async function listPublicProducts(query: listProductQuery): Promise<Publi
             keyword: payload.keyword ?? null,
             shopId: payload.shopId !== undefined ? Number(payload.shopId) : null,
             categoryId: payload.categoryId !== undefined ? Number(payload.categoryId) : null,
+            minPrice: payload.minPrice !== undefined ? Number(payload.minPrice) : null,
+            maxPrice: payload.maxPrice !== undefined ? Number(payload.maxPrice) : null,
             sortBy: payload.sortBy,
         },
     };

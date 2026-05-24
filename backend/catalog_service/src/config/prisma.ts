@@ -2,23 +2,10 @@ import "./env";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
-function buildConnectionString(): string {
-    const databaseUrl = process.env.DATABASE_URL || "";
-    if (!databaseUrl) {
-        return "";
-    }
+const { buildDatabaseUrl } = require("../../../shared/db-url.cjs");
 
-    const parsed = new URL(databaseUrl);
-    const schemaFromQuery = parsed.searchParams.get("schema");
-    const schema = process.env.DB_SCHEMA || schemaFromQuery || "catalog_service";
-
-    // Khoá chặt schema runtime cho adapter-pg, tránh rơi về schema mặc định `public`.
-    parsed.searchParams.set("schema", schema);
-    parsed.searchParams.set("options", `-c search_path=${schema}`);
-
-    return parsed.toString();
-}
-
-const adapter = new PrismaPg({ connectionString: buildConnectionString() });
+const adapter = new PrismaPg({
+    connectionString: buildDatabaseUrl({ defaultSchema: "catalog_service", includeSearchPath: true }),
+});
 
 export const prisma = new PrismaClient({ adapter });
