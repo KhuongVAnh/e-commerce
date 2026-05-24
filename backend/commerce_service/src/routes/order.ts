@@ -7,6 +7,7 @@ import {
     getMyOrderDetailController,
     getMyOrdersController,
     sellerGetOrdersController,
+    sellerGetOrderDetailController,
     sellerUpdateOrderStatusController,
 } from "../controllers/order";
 import { authMiddleware } from "../middlewares/auth";
@@ -48,6 +49,9 @@ router.get("/orders/:orderCode/check-result", roleMiddleware(["CUSTOMER"]), chec
 
 /** GET /seller/orders – Danh sách đơn hàng của shop */
 router.get("/seller/orders", roleMiddleware(["SELLER"]), sellerGetOrdersController);
+
+/** GET /seller/orders/:id – Chi tiết đơn hàng của shop */
+router.get("/seller/orders/:id", roleMiddleware(["SELLER"]), sellerGetOrderDetailController);
 
 /** PATCH /seller/orders/:id/status – Cập nhật trạng thái đơn hàng */
 router.patch("/seller/orders/:id/status", roleMiddleware(["SELLER"]), sellerUpdateOrderStatusController);

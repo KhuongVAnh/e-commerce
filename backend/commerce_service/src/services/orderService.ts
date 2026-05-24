@@ -429,6 +429,31 @@ export async function listSellerOrders(shopId: bigint, input: ListOrdersInput) {
     return { total, orders };
 }
 
+export async function getSellerOrderDetail(shopId: bigint, orderId: bigint) {
+    const order = await prisma.order.findFirst({
+        where: {
+            id: orderId,
+            shopId,
+        },
+        include: {
+            items: {
+                orderBy: { id: "asc" },
+            },
+            payments: {
+                orderBy: { createdAt: "desc" },
+            },
+        },
+    });
+
+    if (!order) {
+        throw new HttpError(404, "Không tìm thấy đơn hàng", {
+            code: "ORDER_NOT_FOUND",
+        });
+    }
+
+    return order;
+}
+
 const SELLER_ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
     [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
     [OrderStatus.AWAITING_PAYMENT]: [OrderStatus.CANCELLED],
