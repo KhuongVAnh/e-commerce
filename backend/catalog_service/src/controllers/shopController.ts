@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { createShop, getMyShop, updateMyShop, getShopBySellerId } from "../services/shopService";
+import { createShop, getMyShop, updateMyShop, getShopBySellerId, getShopByIdInternal } from "../services/shopService";
 import { sendSuccess } from "../utils/https";
 
 // controller chỉ return success response, 
@@ -41,6 +41,16 @@ export async function getShopBySellerIdController(req: Request, res: Response, _
     sendSuccess(res, {
         requestId: res.locals.requestId,
         message: "Lấy shop theo sellerId thành công",
+        data,
+    });
+}
+
+export async function getShopByIdInternalController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const shopId = req.params.shopId as string;
+    const data = await getShopByIdInternal(shopId);
+    sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Lấy shop theo shopId thành công",
         data,
     });
 }

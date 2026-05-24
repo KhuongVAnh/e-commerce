@@ -2,6 +2,7 @@ import { UserRole } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { HttpError } from "../utils/http";
 import { hashPassword, verifyPassword } from "../utils/password";
+import { publishEvent } from "../config/kafka";
 import {
   getTokenExpiryIso,
   hashRefreshToken,
@@ -193,6 +194,14 @@ export async function register(input: RegisterInput) {
       role: true,
     },
   });
+
+  // Publish registration event to Kafka
+  publishEvent("user.registered", {
+      userId: user.id.toString(),
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role.name,
+  }).catch((err) => console.error("[auth_service] Failed to publish user.registered event:", err));
 
   return {
     user: toUserResponse(user),

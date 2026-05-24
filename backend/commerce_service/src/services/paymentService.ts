@@ -4,6 +4,7 @@ import { prisma } from "../config/prisma";
 import { HttpError } from "../utils/http";
 import { PaymentStatus } from "@prisma/client";
 import "../config/env"; // Đảm bảo đã load env
+import { publishEvent } from "../config/kafka";
 
 // Lấy config từ env
 const tmnCode = process.env.VNP_TMN_CODE || ""; // vnpay cung cấp
@@ -295,6 +296,28 @@ export async function processIpn(vnpParams: Record<string, any>): Promise<{ code
             },
         });
     });
+
+    // Publish payment event to Kafka (async)
+    if (isSuccess) {
+        publishEvent("payment.succeeded", {
+            orderId: order.id.toString(),
+            orderCode: order.orderCode,
+            customerId: order.customerId.toString(),
+            amount: Number(order.totalAmount),
+            transactionRef: normalizedParams["vnp_TransactionNo"],
+        }).catch((err) => {
+            console.error("[commerce_service] Failed to publish payment.succeeded event:", err);
+        });
+    } else {
+        publishEvent("payment.failed", {
+            orderId: order.id.toString(),
+            orderCode: order.orderCode,
+            customerId: order.customerId.toString(),
+            amount: Number(order.totalAmount),
+        }).catch((err) => {
+            console.error("[commerce_service] Failed to publish payment.failed event:", err);
+        });
+    }
 
     // Trả về mã thành công cho VNPay
     return { code: "00", message: "Confirm Success" };
