@@ -1,5 +1,10 @@
 import { Router } from "express";
-import { vnpayIpnController, checkResultVNPAYController } from "../controllers/payment";
+import {
+    vnpayIpnController,
+    checkResultVNPAYController,
+    getPaymentByOrderController,
+} from "../controllers/payment";
+import { authMiddleware } from "../middlewares/auth";
 
 const router = Router();
 
@@ -16,5 +21,7 @@ router.get("/payments/vnpay-return", vnpayIpnController);
  * FE forward toàn bộ query params từ VNPay để controller đối chiếu và trả về kết quả chính xác dựa trên DB.
  */
 router.get("/payments/check-result", checkResultVNPAYController);
+
+router.get("/payments/order/:orderId", authMiddleware, getPaymentByOrderController);
 
 export default router;

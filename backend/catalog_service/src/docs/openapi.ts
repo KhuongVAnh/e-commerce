@@ -151,6 +151,8 @@ const openApiDocument = {
                   keyword: { type: "string", nullable: true, example: "ao" },
                   shopId: { type: "integer", nullable: true, example: null },
                   categoryId: { type: "integer", nullable: true, example: 2 },
+                  minPrice: { type: "number", nullable: true, example: 100000 },
+                  maxPrice: { type: "number", nullable: true, example: 500000 },
                   sortBy: { type: "string", example: "price_asc" },
                 },
               },
@@ -627,6 +629,24 @@ const openApiDocument = {
             in: "query",
             required: false,
             schema: { type: "string" },
+          },
+          {
+            name: "q",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "minPrice",
+            in: "query",
+            required: false,
+            schema: { type: "number", minimum: 0 },
+          },
+          {
+            name: "maxPrice",
+            in: "query",
+            required: false,
+            schema: { type: "number", minimum: 0 },
           },
           {
             name: "sortBy",

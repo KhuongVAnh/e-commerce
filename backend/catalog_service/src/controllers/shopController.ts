@@ -1,5 +1,12 @@
 import { NextFunction, Request, Response } from "express";
-import { createShop, getMyShop, updateMyShop, getShopBySellerId, getShopByIdInternal } from "../services/shopService";
+import {
+    createShop,
+    getMyShop,
+    updateMyShop,
+    getShopBySellerId, 
+    getPublicShopDetail,
+    listPublicShops,
+} from "../services/shopService";
 import { sendSuccess } from "../utils/https";
 
 // controller chỉ return success response, 
@@ -14,6 +21,32 @@ export async function createShopController(req: Request, res: Response, _next: N
         message: "Tạo shop thành công",
         data,
         statusCode: 201,
+    });
+}
+
+export async function listPublicShopsController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const data = await listPublicShops({
+        q: typeof req.query.q === "string" ? req.query.q : undefined,
+        status: typeof req.query.status === "string" ? req.query.status : undefined,
+        page: typeof req.query.page === "string" ? req.query.page : undefined,
+        limit: typeof req.query.limit === "string" ? req.query.limit : undefined,
+    });
+
+    sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Lấy danh sách shop thành công",
+        data,
+        pagination: data.pagination,
+    });
+}
+
+export async function getPublicShopDetailController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const data = await getPublicShopDetail(String(req.params.shopId ?? ""));
+
+    sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Lấy chi tiết shop thành công",
+        data,
     });
 }
 
@@ -41,16 +74,6 @@ export async function getShopBySellerIdController(req: Request, res: Response, _
     sendSuccess(res, {
         requestId: res.locals.requestId,
         message: "Lấy shop theo sellerId thành công",
-        data,
-    });
-}
-
-export async function getShopByIdInternalController(req: Request, res: Response, _next: NextFunction): Promise<void> {
-    const shopId = req.params.shopId as string;
-    const data = await getShopByIdInternal(shopId);
-    sendSuccess(res, {
-        requestId: res.locals.requestId,
-        message: "Lấy shop theo shopId thành công",
         data,
     });
 }
