@@ -3,9 +3,14 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import swaggerUi from "swagger-ui-express";
 import authRoutes from "./routes/authRoutes";
+import adminRoutes from "./routes/adminRoutes";
 import openApiDocument from "./docs/openapi";
 import { requestContextMiddleware } from "./middlewares/requestContext";
 import { HttpError, sendError } from "./utils/http";
+import { prisma } from "./config/prisma";
+
+const { assertDatabaseLive, assertRedisLive } = require("../../shared/startup-checks.cjs");
+const serviceName = "auth_service";
 
 const app = express();
 const port = Number(process.env.PORT) || 3001;
@@ -31,6 +36,7 @@ app.get("/health", (_req, res) => {
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/auth/admin", adminRoutes);
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("[auth_service] unhandled error:", error);
@@ -60,6 +66,26 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
   });
 });
 
-app.listen(port, () => {
-  console.log(`auth_service listening on port ${port}`);
+async function start() {
+  await assertDatabaseLive(prisma, serviceName);
+  await assertRedisLive(serviceName);
+
+  app.listen(port, () => {
+    console.log(`auth_service listening on port ${port}`);
+  });
+}
+
+start().catch(async (error) => {
+  logStartupError(serviceName, error);
+  await prisma.$disconnect().catch(() => undefined);
+  process.exit(1);
 });
+
+function logStartupError(service: string, error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`[${service}] Startup failed: ${message}`);
+
+  if (process.env.STARTUP_DEBUG === "true" && error instanceof Error && error.stack) {
+    console.error(error.stack);
+  }
+}

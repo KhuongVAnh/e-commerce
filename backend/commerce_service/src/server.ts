@@ -5,6 +5,12 @@ import { requestContextMiddleware } from "./middlewares/requestContext";
 import cartRoutes from "./routes/cart";
 import orderRoutes from "./routes/order";
 import paymentRoutes from "./routes/payment";
+import adminRoutes from "./routes/admin";
+import statsRoutes from "./routes/stats";
+import { prisma } from "./config/prisma";
+
+const { assertDatabaseLive, assertRedisLive } = require("../../shared/startup-checks.cjs");
+const serviceName = "commerce_service";
 
 const app = express();
 const port = Number(process.env.PORT) || 3003;
@@ -29,6 +35,8 @@ app.get("/health", (_req, res) => {
 app.use("/api/commerce", cartRoutes);
 app.use("/api/commerce", orderRoutes);
 app.use("/api/commerce", paymentRoutes);
+app.use("/api/commerce", adminRoutes);
+app.use("/api/commerce", statsRoutes);
 
 // Middleware xử lý lỗi chung, bắt tất cả lỗi được ném ra từ các controller hoặc middleware phía trên
 app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -62,6 +70,26 @@ app.use((error: Error, _req: express.Request, res: express.Response, _next: expr
   });
 });
 
-app.listen(port, () => {
-  console.log(`commerce_service listening on port ${port}`);
+async function start() {
+  await assertDatabaseLive(prisma, serviceName);
+  await assertRedisLive(serviceName);
+
+  app.listen(port, () => {
+    console.log(`commerce_service listening on port ${port}`);
+  });
+}
+
+start().catch(async (error) => {
+  logStartupError(serviceName, error);
+  await prisma.$disconnect().catch(() => undefined);
+  process.exit(1);
 });
+
+function logStartupError(service: string, error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`[${service}] Startup failed: ${message}`);
+
+  if (process.env.STARTUP_DEBUG === "true" && error instanceof Error && error.stack) {
+    console.error(error.stack);
+  }
+}

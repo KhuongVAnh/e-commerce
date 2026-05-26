@@ -1,5 +1,7 @@
-import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
+
+const { loadServiceEnv } = require("../shared/db-url.cjs");
+const databaseUrl = loadServiceEnv(__dirname, "auth_service");
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -8,6 +10,6 @@ export default defineConfig({
     seed: "node prisma/seed.js",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    url: databaseUrl,
   },
 });

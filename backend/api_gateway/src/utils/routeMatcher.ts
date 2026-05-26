@@ -17,7 +17,8 @@ export function isProtectedAuthService(req: Request): boolean {
 
     return (
         (req.method === "GET" && pathname === "/api/auth/me") ||
-        (req.method === "POST" && pathname === "/api/auth/logout")
+        (req.method === "POST" && pathname === "/api/auth/logout") ||
+        pathname.startsWith("/api/auth/admin/")
     );
 }
 
@@ -29,21 +30,24 @@ export function isProtectedCatalogService(req: Request): boolean {
 
     return (
         // ===== SHOP (seller/admin) =====
-        (req.method === "POST" && pathname === "/api/shops") ||
-        (req.method === "GET" && pathname === "/api/shops/my-shop") ||
-        (req.method === "PUT" && pathname === "/api/shops/my-shop") ||
-        (req.method === "GET" && pathname === "/api/admin/shops") ||
+        (req.method === "POST" && pathname === "/api/catalog/shops") ||
+        (req.method === "GET" && pathname === "/api/catalog/shops/my-shop") ||
+        (req.method === "PUT" && pathname === "/api/catalog/shops/my-shop") ||
+        pathname.startsWith("/api/catalog/admin/shops") ||
 
         // ===== CATEGORY (admin) =====
-        (req.method === "POST" && pathname === "/api/categories") ||
-        (req.method === "PUT" && pathname.startsWith("/api/categories/")) ||
-        (req.method === "DELETE" && pathname.startsWith("/api/categories/")) ||
+        (req.method === "POST" && pathname === "/api/catalog/categories") ||
+        (req.method === "PUT" && pathname.startsWith("/api/catalog/categories/")) ||
+        (req.method === "DELETE" && pathname.startsWith("/api/catalog/categories/")) ||
 
         // ===== PRODUCT (seller) =====
-        (req.method === "POST" && pathname === "/api/products") ||
-        (req.method === "PUT" && pathname.startsWith("/api/products/")) ||
-        (req.method === "DELETE" && pathname.startsWith("/api/products/")) ||
-        (req.method === "PATCH" && pathname.startsWith("/api/products/"))
+        (req.method === "POST" && pathname === "/api/catalog/products") ||
+        (req.method === "PUT" && pathname.startsWith("/api/catalog/products/")) ||
+        (req.method === "DELETE" && pathname.startsWith("/api/catalog/products/")) ||
+        (req.method === "PATCH" && pathname.startsWith("/api/catalog/products/")) ||
+
+        // ===== PRODUCT (admin) =====
+        pathname.startsWith("/api/catalog/admin/products")
     );
 }
 
@@ -55,19 +59,22 @@ export function isProtectedCommerceService(req: Request): boolean {
 
     return (
         // ===== CART =====
-        pathname.startsWith("/api/cart") ||
+        pathname.startsWith("/api/commerce/cart") ||
 
         // ===== ORDER =====
-        pathname.startsWith("/api/orders") ||
-        pathname.startsWith("/api/seller/orders") ||
+        pathname.startsWith("/api/commerce/orders") ||
+        pathname.startsWith("/api/commerce/seller/orders") ||
+
+        // ===== ORDER (admin) =====
+        pathname.startsWith("/api/commerce/admin/orders") ||
 
         // ===== PAYMENT =====
-        (req.method === "POST" && pathname === "/api/payments/create-vnpay-url") ||
-        (req.method === "GET" && pathname.startsWith("/api/payments/order/")) ||
+        (req.method === "POST" && pathname === "/api/commerce/payments/create-vnpay-url") ||
+        (req.method === "GET" && pathname.startsWith("/api/commerce/payments/order/")) ||
 
         // ===== STATS =====
-        pathname.startsWith("/api/seller/revenue-summary") ||
-        pathname.startsWith("/api/admin/dashboard-summary")
+        pathname.startsWith("/api/commerce/seller/revenue-summary") ||
+        pathname.startsWith("/api/commerce/admin/dashboard-summary")
     );
 }
 

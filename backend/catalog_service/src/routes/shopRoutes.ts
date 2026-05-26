@@ -1,10 +1,17 @@
 import { NextFunction, Request, Response, Router } from "express";
 import {
     createShopController,
+    getPublicShopDetailController,
+    listPublicShopsController,
     getMyShopController,
     updateMyShopController,
     getShopBySellerIdController,
 } from "../controllers/shopController";
+import {
+    adminGetShopController,
+    adminListShopsController,
+    adminUpdateShopStatusController,
+} from "../controllers/adminShopController";
 import { authMiddleware } from "../middlewares/auth";
 import { roleMiddleware } from "../middlewares/role";
 
@@ -18,6 +25,11 @@ function asyncHandler(
         handler(req, res, next).catch(next); // cú pháp luôn gọi handler, nếu lỗi thì chạy catch, catch gọi next
     };
 }
+
+router.get(
+    "/shops",
+    asyncHandler(listPublicShopsController),
+);
 
 router.post(
     "/shops",
@@ -44,6 +56,36 @@ router.put(
 router.get(
     "/shops/internal/by-seller/:sellerId",
     asyncHandler(getShopBySellerIdController),
+);
+
+router.get(
+    "/shops/:shopId",
+    asyncHandler(getPublicShopDetailController),
+);
+
+// ─────────────────────────────────────────────────────────────
+// Admin routes
+// ─────────────────────────────────────────────────────────────
+
+router.get(
+    "/admin/shops",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(adminListShopsController),
+);
+
+router.get(
+    "/admin/shops/:shopId",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(adminGetShopController),
+);
+
+router.patch(
+    "/admin/shops/:shopId/status",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(adminUpdateShopStatusController),
 );
 
 export default router;
