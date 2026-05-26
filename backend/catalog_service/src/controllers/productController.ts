@@ -96,6 +96,8 @@ export async function listPublicProductsController(req: Request, res: Response, 
         categoryId: readQueryValue(req.query.categoryId),
         keyword: readQueryValue(req.query.keyword),
         q: readQueryValue(req.query.q),
+        minPrice: readQueryValue(req.query.minPrice),
+        maxPrice: readQueryValue(req.query.maxPrice),
         sortBy: readQueryValue(req.query.sortBy),
     };
 

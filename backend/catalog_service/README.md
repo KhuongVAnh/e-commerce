@@ -9,7 +9,7 @@
 - Port mặc định: `3002`
 - File nguồn chính: `src/server.ts`
 - File build: `dist/server.js`
-- Biến môi trường hiện có: `PORT`, `DATABASE_URL`, `REDIS_URL`, `CACHE_ENABLED`
+- Biến môi trường hiện có: `PORT`, `DB_SCHEMA`, `REDIS_URL`, `CACHE_ENABLED`
 - Có khung `src/` theo hướng MVC
 
 ## Cấu hình database
