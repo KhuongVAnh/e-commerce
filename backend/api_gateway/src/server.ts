@@ -91,7 +91,8 @@ app.use("/api/commerce", createServiceProxy(commerceServiceUrl));
 async function start() {
   await assertDatabaseLive(prisma, serviceName);
   await assertRedisLive(serviceName);
-
+}
 app.listen(port, () => {
   console.log(`api_gateway listening on port ${port}`);
 });
+
