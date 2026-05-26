@@ -1,230 +1,230 @@
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import axiosClient from '../../utils/axiosClient';
+
+const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
 const Home = () => {
-  const navigate = useNavigate();
+  // States cho Sản phẩm
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  
+  // States cho Danh mục
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  
+  // Quản lý trạng thái Popup thông báo lỗi
+  const [errorPopup, setErrorPopup] = useState({ isOpen: false, message: '' });
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await axiosClient.get('/catalog/categories');
+        const responseData = res.data || res;
+        
+        // Trích xuất mảng danh mục từ cấu trúc trả về
+        let cats = [];
+        if (responseData?.success && responseData?.data?.categories) {
+          cats = responseData.data.categories;
+        } else if (responseData?.categories) {
+          cats = responseData.categories;
+        } else if (Array.isArray(responseData)) {
+          cats = responseData;
+        } else if (responseData?.data && Array.isArray(responseData.data)) {
+          cats = responseData.data;
+        }
+
+        setCategories(cats.slice(0, 6)); 
+      } catch (err) {
+        console.error("Lỗi khi tải danh mục:", err);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    // Gọi API lấy Sản phẩm mới nhất
+    const fetchProducts = async () => {
+      try {
+        const res = await axiosClient.get('/catalog/products', {
+          params: { limit: 8, sortBy: 'latest' } 
+        });
+        
+        const responseData = res.data || res;
+        
+        if (responseData?.success && responseData?.data?.products) {
+          setProducts(responseData.data.products);
+        } else if (responseData?.products) {
+          setProducts(responseData.products);
+        } else if (Array.isArray(responseData)) {
+          setProducts(responseData);
+        }
+      } catch (err) {
+        console.error("Lỗi khi tải sản phẩm trang chủ:", err);
+        setErrorPopup({ 
+          isOpen: true, 
+          message: err.response?.data?.message || 'Không thể kết nối đến máy chủ để tải sản phẩm. Vui lòng thử lại sau.' 
+        });
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
+    fetchCategories();
+    fetchProducts();
+  }, []);
+
+  const closeErrorPopup = () => setErrorPopup({ isOpen: false, message: '' });
 
   return (
-    <>
-      {/* 1. HERO BANNER */}
-      <section className="mt-4 mb-12">
-        <div className="relative overflow-hidden rounded-[2rem] bg-[#2b3896] text-white min-h-[480px] flex items-center">
-          <div className="absolute inset-0 opacity-60">
-            <img 
-              className="w-full h-full object-cover" 
-              src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop" 
-              alt="Luxury Watch" 
-            />
+    <main className="min-h-screen bg-[#f9f9fc] font-['Inter']">
+      {/* 1. BANNER KHUYẾN MÃI */}
+      <section className="bg-gradient-to-r from-[#2b3896] to-[#4551af] text-white py-24 px-6 md:px-12 text-center shadow-inner">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-4xl md:text-6xl font-black mb-6 font-['Be_Vietnam_Pro'] tracking-tight">
+            Khám phá tinh hoa thủ công
+          </h1>
+          <p className="text-lg md:text-xl text-indigo-100 mb-10 leading-relaxed font-medium">
+            Nơi hội tụ những tác phẩm độc bản từ các nghệ nhân hàng đầu, mang đậm dấu ấn văn hóa và phong cách hiện đại.
+          </p>
+          <Link 
+            to="/products" 
+            className="inline-flex items-center gap-2 bg-white text-[#2b3896] px-8 py-4 rounded-full font-bold hover:bg-gray-50 hover:scale-105 transition-all shadow-lg"
+          >
+            Mua sắm ngay
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
+        </div>
+      </section>
+
+      {/* 2. DANH MỤC NỔI BẬT */}
+      <section className="max-w-screen-xl mx-auto px-6 md:px-12 pt-16">
+        <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-8 font-['Be_Vietnam_Pro']">Danh mục nổi bật</h2>
+        
+        {loadingCategories ? (
+          <div className="flex gap-4 overflow-hidden">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="w-32 h-40 bg-gray-200 animate-pulse rounded-2xl flex-shrink-0"></div>
+            ))}
           </div>
-          <div className="relative z-10 px-8 md:px-24 max-w-2xl">
-            <span className="inline-block px-4 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold tracking-widest uppercase mb-6">
-              New Collection 2026
-            </span>
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter leading-tight mb-6 font-headline">
-              Đẳng Cấp Thời Thượng.
-            </h1>
-            <p className="text-lg md:text-xl text-indigo-100 mb-8 font-body opacity-90">
-              Khám phá bộ sưu tập đồ công nghệ và thời trang cao cấp được tuyển chọn kỹ lưỡng dành riêng cho bạn.
-            </p>
-            <button className="bg-gradient-to-br from-[#2b3896] to-[#4551af] px-8 py-4 rounded-full font-bold text-lg hover:scale-105 transition-transform active:scale-95 shadow-lg">
-              Mua Sắm Ngay
+        ) : categories.length === 0 ? (
+          <div className="text-gray-500 italic">Đang cập nhật danh mục...</div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
+            {categories.map((category) => (
+              <Link 
+                key={category.id} 
+                to={`/products?categoryId=${category.id}`} 
+                className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#2b3896]/30 transition-all group flex flex-col items-center text-center"
+              >
+                <div className="w-16 h-16 rounded-full bg-[#f4f5fa] text-[#2b3896] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform group-hover:bg-[#2b3896] group-hover:text-white">
+                  {/* Nếu Backend trả về icon hoặc image thì dùng ảnh, không thì dùng icon mặc định */}
+                  {category.imageUrl ? (
+                     <img src={category.imageUrl} alt={category.name} className="w-10 h-10 object-contain" />
+                  ) : (
+                     <span className="material-symbols-outlined text-3xl">category</span>
+                  )}
+                </div>
+                <h3 className="font-bold text-gray-800 text-sm group-hover:text-[#2b3896] line-clamp-2">
+                  {category.name}
+                </h3>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 3. SẢN PHẨM MỚI NHẤT */}
+      <section className="max-w-screen-xl mx-auto px-6 md:px-12 py-20">
+        <div className="flex items-center justify-between mb-12">
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 font-['Be_Vietnam_Pro']">Sản phẩm mới nhất</h2>
+          <Link to="/products" className="hidden md:flex items-center gap-1 text-[#2b3896] font-bold hover:underline">
+            Xem tất cả
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
+        </div>
+
+        {loadingProducts ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <span className="material-symbols-outlined animate-spin text-5xl text-[#2b3896]">progress_activity</span>
+            <p className="mt-4 text-gray-500 font-medium">Đang tải sản phẩm...</p>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-24 bg-white rounded-3xl border border-gray-100 shadow-sm">
+            <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">inventory_2</span>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Chưa có sản phẩm nào</h3>
+            <p className="text-gray-500">Các gian hàng hiện đang cập nhật sản phẩm. Vui lòng quay lại sau!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {products.map((product) => (
+              <div key={product.id} className="bg-white rounded-2xl p-5 shadow-[0px_8px_24px_rgba(43,56,150,0.04)] border border-gray-100 group transition-all hover:-translate-y-1 hover:shadow-[0px_12px_32px_rgba(43,56,150,0.08)] flex flex-col">
+                <Link to={`/product/${product.id}`} className="block relative w-full h-56 bg-gray-50 rounded-xl overflow-hidden mb-5">
+                  <img 
+                    src={product.thumbnailUrl || 'https://via.placeholder.com/300'} 
+                    alt={product.name} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-[#2b3896]">
+                    Mới
+                  </div>
+                </Link>
+                
+                <div className="flex flex-col flex-grow">
+                  <Link to={`/product/${product.id}`}>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#2b3896] transition-colors">
+                      {product.name}
+                    </h3>
+                  </Link>
+                  {product.shopName && (
+                    <p className="text-xs text-gray-500 mb-3 flex items-center gap-1 font-medium">
+                      <span className="material-symbols-outlined text-[14px]">storefront</span>
+                      {product.shopName}
+                    </p>
+                  )}
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-50">
+                    <span className="text-xl font-black text-[#2b3896]">
+                      {formatPrice(product.price)} <span className="text-sm font-bold align-top">₫</span>
+                    </span>
+                    <Link 
+                      to={`/product/${product.id}`}
+                      className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-[#2b3896] hover:text-white transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-sm">shopping_cart</span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <div className="mt-10 text-center md:hidden">
+          <Link to="/products" className="inline-flex items-center gap-2 text-[#2b3896] font-bold px-6 py-3 bg-white rounded-full border border-gray-200 shadow-sm">
+            Xem tất cả sản phẩm
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
+        </div>
+      </section>
+
+      {/* ERROR POPUP */}
+      {errorPopup.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl transform transition-all text-center border border-gray-100">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="material-symbols-outlined text-3xl text-red-600" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2 font-['Be_Vietnam_Pro']">Thông báo</h3>
+            <p className="text-gray-600 mb-8 text-sm leading-relaxed">{errorPopup.message}</p>
+            <button 
+              onClick={closeErrorPopup} 
+              className="w-full bg-gray-100 text-gray-800 font-bold py-3.5 rounded-xl hover:bg-gray-200 active:scale-95 transition-all"
+            >
+              Đóng
             </button>
           </div>
         </div>
-      </section>
-
-      {/* 2. CATEGORY BAR */}
-      <section className="mb-16">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 font-headline">Danh Mục Nổi Bật</h2>
-          <Link to="/categories" className="text-sm font-semibold text-[#2b3896] hover:underline">Xem tất cả</Link>
-        </div>
-        
-        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-2 px-2">
-          {[
-            { icon: 'devices', name: 'Điện tử' },
-            { icon: 'apparel', name: 'Thời trang' },
-            { icon: 'content_cut', name: 'Làm đẹp' },
-            { icon: 'chair', name: 'Nội thất' },
-            { icon: 'local_mall', name: 'Tạp hóa' },
-            { icon: 'fitness_center', name: 'Thể thao' },
-            { icon: 'toys', name: 'Đồ chơi' }
-          ].map((cat, index) => (
-            
-            <div 
-              key={index} 
-              onClick={() => navigate(`/products?category=${encodeURIComponent(cat.name)}`)}
-              className="flex-shrink-0 flex flex-col items-center gap-3 group cursor-pointer"
-            >
-              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-[#2b3896] group-hover:text-white transition-all duration-300">
-                <span className="material-symbols-outlined text-3xl">{cat.icon}</span>
-              </div>
-              <span className="text-xs font-semibold tracking-wide text-gray-700">{cat.name}</span>
-            </div>
-
-          ))}
-        </div>
-      </section>
-
-      {/* 3. PRODUCT GRID */}
-      <section>
-        <div className="flex items-baseline justify-between mb-10">
-          <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 font-headline">Khám Phá Sản Phẩm</h2>
-          <div className="flex gap-4 hidden md:flex">
-            <button className="px-4 py-2 rounded-full bg-gray-200 text-sm font-medium text-gray-900">Bán chạy</button>
-            <button className="px-4 py-2 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100 transition-colors">Mới nhất</button>
-          </div>
-        </div>
-
-        {/* Lưới sản phẩm */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          
-          {/* SẢN PHẨM 1 */}
-          <div className="group flex flex-col bg-white rounded-[2rem] overflow-hidden shadow-[0px_12px_32px_rgba(43,56,150,0.06)] hover:-translate-y-2 transition-all duration-300 border border-gray-50">
-            <div className="relative aspect-square overflow-hidden bg-gray-100">
-              <img className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80" alt="Tai nghe" />
-              <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-[#2b3896] shadow-sm hover:bg-red-50 hover:text-red-500 transition-colors">
-                <span className="material-symbols-outlined">favorite</span>
-              </button>
-            </div>
-            <div className="p-6 flex flex-col flex-1">
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Audio Excellence</span>
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm text-yellow-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                  <span className="text-xs font-bold text-gray-700">4.8</span>
-                </div>
-              </div>
-              <h3 className="text-lg font-bold mb-4 line-clamp-2 leading-snug text-gray-900">Tai nghe Wireless Studio Pro Max – Midnight Black</h3>
-              <div className="mt-auto flex items-center justify-between">
-                <div>
-                  <span className="text-xs text-gray-500 font-medium">Official Store</span>
-                  <p className="text-xl font-extrabold text-[#2b3896] mt-1">4.500.000<span className="text-xs font-medium align-top ml-0.5">₫</span></p>
-                </div>
-                <button className="w-10 h-10 rounded-xl bg-[#2b3896] text-white flex items-center justify-center active:scale-90 transition-transform">
-                  <span className="material-symbols-outlined">add_shopping_cart</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* SẢN PHẨM 2 */}
-          <div className="group flex flex-col bg-white rounded-[2rem] overflow-hidden shadow-[0px_12px_32px_rgba(43,56,150,0.06)] hover:-translate-y-2 transition-all duration-300 border border-gray-50">
-            <div className="relative aspect-square overflow-hidden bg-gray-100">
-              <img className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500&q=80" alt="Laptop" />
-              <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-[#2b3896] shadow-sm hover:bg-red-50 hover:text-red-500 transition-colors">
-                <span className="material-symbols-outlined">favorite</span>
-              </button>
-              <div className="absolute bottom-4 left-4 px-3 py-1 bg-[#6c3400] text-white text-[10px] font-bold rounded-lg uppercase">Sale 15%</div>
-            </div>
-            <div className="p-6 flex flex-col flex-1">
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Computing</span>
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm text-yellow-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                  <span className="text-xs font-bold text-gray-700">4.9</span>
-                </div>
-              </div>
-              <h3 className="text-lg font-bold mb-4 line-clamp-2 leading-snug text-gray-900">Laptop ZenBook 14 - Titanium Gray Edition</h3>
-              <div className="mt-auto flex items-center justify-between">
-                <div>
-                  <span className="text-xs text-gray-500 font-medium">Tech Center</span>
-                  <p className="text-xl font-extrabold text-[#8f4700] mt-1">28.900.000<span className="text-xs font-medium align-top ml-0.5">₫</span></p>
-                </div>
-                <button className="w-10 h-10 rounded-xl bg-[#2b3896] text-white flex items-center justify-center active:scale-90 transition-transform">
-                  <span className="material-symbols-outlined">add_shopping_cart</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* SẢN PHẨM 3 */}
-          <div className="group flex flex-col bg-white rounded-[2rem] overflow-hidden shadow-[0px_12px_32px_rgba(43,56,150,0.06)] hover:-translate-y-2 transition-all duration-300 border border-gray-50">
-            <div className="relative aspect-square overflow-hidden bg-gray-100">
-              <img className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80" alt="Giày chạy bộ" />
-              <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-[#2b3896] shadow-sm hover:bg-red-50 hover:text-red-500 transition-colors">
-                <span className="material-symbols-outlined">favorite</span>
-              </button>
-            </div>
-            <div className="p-6 flex flex-col flex-1">
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Sportswear</span>
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm text-yellow-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                  <span className="text-xs font-bold text-gray-700">4.5</span>
-                </div>
-              </div>
-              <h3 className="text-lg font-bold mb-4 line-clamp-2 leading-snug text-gray-900">Giày Chạy Bộ Performance X1 - Crimson Red</h3>
-              <div className="mt-auto flex items-center justify-between">
-                <div>
-                  <span className="text-xs text-gray-500 font-medium">Official Store</span>
-                  <p className="text-xl font-extrabold text-[#2b3896] mt-1">2.250.000<span className="text-xs font-medium align-top ml-0.5">₫</span></p>
-                </div>
-                <button className="w-10 h-10 rounded-xl bg-[#2b3896] text-white flex items-center justify-center active:scale-90 transition-transform">
-                  <span className="material-symbols-outlined">add_shopping_cart</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* SẢN PHẨM 4 */}
-          <div className="group flex flex-col bg-white rounded-[2rem] overflow-hidden shadow-[0px_12px_32px_rgba(43,56,150,0.06)] hover:-translate-y-2 transition-all duration-300 border border-gray-50">
-            <div className="relative aspect-square overflow-hidden bg-gray-100">
-              <img className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=500&q=80" alt="Kính mát" />
-              <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-[#2b3896] shadow-sm hover:bg-red-50 hover:text-red-500 transition-colors">
-                <span className="material-symbols-outlined">favorite</span>
-              </button>
-            </div>
-            <div className="p-6 flex flex-col flex-1">
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Accessories</span>
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm text-yellow-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                  <span className="text-xs font-bold text-gray-700">4.7</span>
-                </div>
-              </div>
-              <h3 className="text-lg font-bold mb-4 line-clamp-2 leading-snug text-gray-900">Kính Mát Phi Công Classic Gold - Limited</h3>
-              <div className="mt-auto flex items-center justify-between">
-                <div>
-                  <span className="text-xs text-gray-500 font-medium">Luxury Vision</span>
-                  <p className="text-xl font-extrabold text-[#2b3896] mt-1">1.800.000<span className="text-xs font-medium align-top ml-0.5">₫</span></p>
-                </div>
-                <button className="w-10 h-10 rounded-xl bg-[#2b3896] text-white flex items-center justify-center active:scale-90 transition-transform">
-                  <span className="material-symbols-outlined">add_shopping_cart</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        {/* --- KHU VỰC PHÂN TRANG --- */}
-        <div className="flex justify-center items-center gap-2 mt-12 font-body">
-          <button className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-[#2b3896] transition-colors cursor-not-allowed" disabled>
-            <span className="material-symbols-outlined">chevron_left</span>
-          </button>
-
-          <button className="w-10 h-10 flex items-center justify-center rounded-full bg-[#2b3896] text-white font-bold shadow-md">
-            1
-          </button>
-          <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-gray-600 hover:bg-gray-100 border border-gray-200 font-semibold transition-colors">
-            2
-          </button>
-          <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-gray-600 hover:bg-gray-100 border border-gray-200 font-semibold transition-colors hidden sm:flex">
-            3
-          </button>
-          
-          <span className="text-gray-400 font-bold tracking-widest px-2">...</span>
-          
-          <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-gray-600 hover:bg-gray-100 border border-gray-200 font-semibold transition-colors">
-            8
-          </button>
-
-          <button className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-[#2b3896] transition-colors">
-            <span className="material-symbols-outlined">chevron_right</span>
-          </button>
-        </div>
-      </section>
-    </>
+      )}
+    </main>
   );
 };
 
