@@ -8,6 +8,8 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import ShopManagement from './pages/admin/ShopManagement';
 import CategoryManagement from './pages/admin/CategoryManagement';
+import ProductManagement from './pages/admin/ProductManagement';
+import OrderManagement from './pages/admin/OrderManagement';
 
 import SellerDashboard from './pages/seller/SellerDashboard';
 import ShopForm from './pages/seller/ShopForm';
@@ -71,6 +73,8 @@ function App() {
             <Route path="users" element={<UserManagement />} />
             <Route path="shops" element={<ShopManagement />} />
             <Route path="categories" element={<CategoryManagement />} />
+            <Route path="products" element={<ProductManagement />} />
+            <Route path="orders" element={<OrderManagement />} />
           </Route>
         </Route>
 
