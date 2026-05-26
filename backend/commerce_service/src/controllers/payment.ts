@@ -1,8 +1,12 @@
 import { Request, Response } from "express";
-import { processIpn, verifyIpnSignature, checkPaymentFromOrderCode } from "../services/paymentService";
+import {
+    processIpn,
+    verifyIpnSignature,
+    checkPaymentFromOrderCode,
+    getPaymentByOrderForUser,
+} from "../services/paymentService";
 import { sendSuccess, sendError } from "../utils/http";
-import { prisma } from "../config/prisma";
-import { PaymentStatus, TransactionStatus } from "@prisma/client";
+import { parseRequiredBigInt, serializeBigInt } from "../utils/validation";
 
 // ─────────────────────────────────────────────────────────────
 // Controllers cho VNPay Payment
@@ -94,5 +98,20 @@ export async function checkResultVNPAYController(req: Request, res: Response) {
                 isPending,
             },
         },
+    });
+}
+
+export async function getPaymentByOrderController(req: Request, res: Response) {
+    const orderId = parseRequiredBigInt(req.params.orderId, "orderId");
+    const data = await getPaymentByOrderForUser(orderId, {
+        userId: req.authUser!.userId,
+        role: req.authUser!.role,
+        shopId: req.authUser?.shopId,
+    });
+
+    return sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Lấy thông tin thanh toán thành công",
+        data: serializeBigInt(data),
     });
 }
