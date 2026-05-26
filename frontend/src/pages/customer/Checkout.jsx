@@ -74,7 +74,11 @@ const Checkout = () => {
           throw new Error("Không có sản phẩm nào của Shop này trong giỏ hàng");
         }
 
-        const itemIds = shopData.items.map(item => item.id);
+        const selectedItemIdsFromCart = location.state?.cartItemIds || [];
+        const itemIds = selectedItemIdsFromCart.length > 0 
+          ? selectedItemIdsFromCart 
+          : shopData.items.map(item => item.id);
+          
         setCartItemIds(itemIds);
 
         const previewRes = await axiosClient.post('/commerce/cart/checkout-preview', {
