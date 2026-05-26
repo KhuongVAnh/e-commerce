@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axiosClient from '../../utils/axiosClient';
+import useAuthStore from '../../store/useAuthStore';
+import useCartStore from '../../store/useCartStore';
 
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
 const Home = () => {
+  // Lấy state đăng nhập và hàm cập nhật giỏ hàng từ global store
+  const { isAuthenticated } = useAuthStore();
+  const { fetchCartTotal } = useCartStore();
+
   // States cho Sản phẩm
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -22,7 +28,6 @@ const Home = () => {
         const res = await axiosClient.get('/catalog/categories');
         const responseData = res.data || res;
         
-        // Trích xuất mảng danh mục từ cấu trúc trả về
         let cats = [];
         if (responseData?.success && responseData?.data?.categories) {
           cats = responseData.data.categories;
@@ -42,7 +47,6 @@ const Home = () => {
       }
     };
 
-    // Gọi API lấy Sản phẩm mới nhất
     const fetchProducts = async () => {
       try {
         const res = await axiosClient.get('/catalog/products', {
@@ -72,6 +76,45 @@ const Home = () => {
     fetchCategories();
     fetchProducts();
   }, []);
+
+  // HÀM XỬ LÝ THÊM VÀO GIỎ HÀNG TRỰC TIẾP TỪ TRANG CHỦ
+  const handleAddToCart = async (e, product) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isAuthenticated) {
+      setErrorPopup({ isOpen: true, message: 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!' });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('accessToken') || '';
+
+      const res = await axiosClient.post('/commerce/cart/items', {
+        productId: product.id, 
+        quantity: 1 
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = res.data || res;
+      
+      if (result.success || res.status === 200 || res.status === 201 || result.id) {
+        if (fetchCartTotal) fetchCartTotal();
+        alert(`Đã thêm "${product.name}" vào giỏ hàng!`);
+      } else {
+        throw new Error(result.message || "Backend không phản hồi thành công.");
+      }
+    } catch (err) {
+      console.error("Chi tiết lỗi API giỏ hàng:", err);
+      setErrorPopup({ 
+        isOpen: true, 
+        message: err.response?.data?.message || err.message || 'Có lỗi xảy ra khi kết nối đến server.' 
+      });
+    }
+  };
 
   const closeErrorPopup = () => setErrorPopup({ isOpen: false, message: '' });
 
@@ -117,7 +160,6 @@ const Home = () => {
                 className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#2b3896]/30 transition-all group flex flex-col items-center text-center"
               >
                 <div className="w-16 h-16 rounded-full bg-[#f4f5fa] text-[#2b3896] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform group-hover:bg-[#2b3896] group-hover:text-white">
-                  {/* Nếu Backend trả về icon hoặc image thì dùng ảnh, không thì dùng icon mặc định */}
                   {category.imageUrl ? (
                      <img src={category.imageUrl} alt={category.name} className="w-10 h-10 object-contain" />
                   ) : (
@@ -185,12 +227,14 @@ const Home = () => {
                     <span className="text-xl font-black text-[#2b3896]">
                       {formatPrice(product.price)} <span className="text-sm font-bold align-top">₫</span>
                     </span>
-                    <Link 
-                      to={`/product/${product.id}`}
+                    
+                    <button 
+                      onClick={(e) => handleAddToCart(e, product)}
                       className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-[#2b3896] hover:text-white transition-colors"
+                      title="Thêm vào giỏ hàng"
                     >
                       <span className="material-symbols-outlined text-sm">shopping_cart</span>
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </div>
