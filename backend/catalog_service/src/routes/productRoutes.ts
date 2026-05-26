@@ -10,6 +10,12 @@ import {
     decrementStockInternalController,
     incrementStockInternalController,
 } from "../controllers/productController";
+import {
+    adminDeleteProductController,
+    adminGetProductController,
+    adminListProductsController,
+    adminUpdateProductController,
+} from "../controllers/adminProductController";
 import { authMiddleware } from "../middlewares/auth";
 import { roleMiddleware } from "../middlewares/role";
 
@@ -75,6 +81,38 @@ router.post(
 router.post(
     "/internal/products/increment-stock",
     asyncHandler(incrementStockInternalController),
+);
+
+// ─────────────────────────────────────────────────────────────
+// Admin routes
+// ─────────────────────────────────────────────────────────────
+
+router.get(
+    "/admin/products",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(adminListProductsController),
+);
+
+router.get(
+    "/admin/products/:productId",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(adminGetProductController),
+);
+
+router.put(
+    "/admin/products/:productId",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(adminUpdateProductController),
+);
+
+router.delete(
+    "/admin/products/:productId",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(adminDeleteProductController),
 );
 
 export default router;

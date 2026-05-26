@@ -1,25 +1,13 @@
-require("dotenv/config");
-
+const path = require("path");
 const { PrismaPg } = require("@prisma/adapter-pg");
 const { PrismaClient } = require("@prisma/client");
+const { buildDatabaseUrl, loadServiceEnv } = require("../../shared/db-url.cjs");
 
-function buildConnectionString() {
-  const databaseUrl = process.env.DATABASE_URL || "";
-  if (!databaseUrl) {
-    return "";
-  }
+loadServiceEnv(path.resolve(__dirname, ".."), "catalog_service");
 
-  const parsed = new URL(databaseUrl);
-  const schemaFromQuery = parsed.searchParams.get("schema");
-  const schema = process.env.DB_SCHEMA || schemaFromQuery || "catalog_service";
-
-  parsed.searchParams.set("schema", schema);
-  parsed.searchParams.set("options", `-c search_path=${schema}`);
-
-  return parsed.toString();
-}
-
-const adapter = new PrismaPg({ connectionString: buildConnectionString() });
+const adapter = new PrismaPg({
+  connectionString: buildDatabaseUrl({ defaultSchema: "catalog_service", includeSearchPath: true }),
+});
 const prisma = new PrismaClient({ adapter });
 
 const SELLER_ONE_ID = 1001n;
