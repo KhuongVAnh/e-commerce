@@ -117,22 +117,27 @@ const ShopList = () => {
                                 key={shop.id} 
                                 className="bg-white p-8 rounded-xl shadow-[0_12px_32px_rgba(43,56,150,0.06)] border border-gray-50 flex flex-col items-center text-center group hover:translate-y-[-4px] transition-transform duration-300"
                             >
-                                <div className="w-32 h-32 rounded-full overflow-hidden mb-8 border-4 border-gray-50 shadow-inner mx-auto relative group-hover:border-[#2b3896]/20 transition-colors">
+                                <div className="w-32 h-32 rounded-full overflow-hidden mb-8 border-4 border-gray-50 shadow-inner mx-auto relative group-hover:border-indigo-700/20 transition-colors bg-gray-100 flex items-center justify-center">
                                     <img 
                                         src={shop.logoUrl || fallback.img} 
                                         alt={`Logo ${shop.name}`} 
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = fallback.img;
+                                        }}
                                     />
                                 </div>
-                                <h3 className="font-['Be_Vietnam_Pro'] text-2xl font-bold text-[#2b3896] mb-3 line-clamp-1">
+                                <h3 className="font-['Be_Vietnam_Pro'] text-2xl font-bold text-indigo-900 mb-3 line-clamp-1">
                                     {shop.name}
                                 </h3>
                                 <p className="text-gray-500 mb-8 line-clamp-2 leading-relaxed text-sm">
                                     {shop.description || fallback.desc}
                                 </p>
+                                
                                 <Link 
-                                    to={`/products?shopId=${shop.id}`}
-                                    className="mt-auto inline-flex items-center justify-center px-8 py-4 bg-gradient-to-br from-[#2b3896] to-[#4551af] text-white font-bold rounded-full w-full shadow-lg shadow-[#2b3896]/20 group-hover:scale-[1.02] active:scale-95 transition-all"
+                                    to={`/shop/${shop.id}`}
+                                    className="mt-auto flex items-center justify-center px-8 py-3.5 bg-indigo-700 text-white font-bold rounded-full w-full shadow-md hover:bg-indigo-800 hover:shadow-lg active:scale-95 transition-all"
                                 >
                                     Tham quan gian hàng
                                 </Link>
