@@ -2,8 +2,8 @@ import axiosClient from '../utils/axiosClient';
 
 export const authService = {
   // Gọi API Đăng nhập
-  login: (email, password) => {
-    return axiosClient.post('/auth/login', { email, password });
+  login: (email, password, role) => {
+    return axiosClient.post('/auth/login', { email, password, role });
   },
 
   // Gọi API Đăng ký
@@ -19,5 +19,9 @@ export const authService = {
   // Gọi API Đăng xuất
   logout: () => {
     return axiosClient.post('/auth/logout');
+  },
+
+  refresh: () => {
+    return axiosClient.post('/auth/refresh');
   }
 };

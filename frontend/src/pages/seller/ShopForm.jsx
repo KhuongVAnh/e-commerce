@@ -4,8 +4,11 @@ import axiosClient from '../../utils/axiosClient';
 const ShopForm = () => {
   const [loading, setLoading] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
-  const [shopStatus, setShopStatus] = useState('');
-  const [formData, setFormData] = useState({ name: '', description: '', address: '', logoUrl: '' });
+  const [initialData, setInitialData] = useState(null);
+  const [formData, setFormData] = useState({ 
+    name: '', description: '', phone: '', address: '', logoUrl: '', coverUrl: '' 
+  });
+  const [logoFile, setLogoFile] = useState(null);
   const [status, setStatus] = useState({ type: '', msg: '' });
 
   const logoInputRef = useRef(null);
@@ -14,17 +17,18 @@ const ShopForm = () => {
     const loadShopInfo = async () => {
       try {
         const res = await axiosClient.get('/catalog/shops/my-shop');
-        if (res && (res.shop || res.data)) {
-          const shopData = res.shop || res.data;
-          setFormData({
-            name: shopData.name || '', description: shopData.description || '',
-            address: shopData.address || '', logoUrl: shopData.logoUrl || ''
-          });
-          setShopStatus(shopData.status);
+        if (res.data?.shop) {
+          const fetchedData = {
+            name: res.data.shop.name || '', description: res.data.shop.description || '',
+            address: res.data.shop.address || '', logoUrl: res.data.shop.logoUrl || '',
+            phone: res.data.shop.phone || '', coverUrl: res.data.shop.coverUrl || '',
+          };
+          setFormData(fetchedData);
+          setInitialData(fetchedData);
           setIsUpdate(true);
         }
-      } catch (err) {
-        console.warn("Chưa có shop. Hệ thống sẵn sàng tạo mới.");
+      } catch {
+        console.log("Chưa có shop");
       }
     };
     loadShopInfo();
@@ -32,31 +36,50 @@ const ShopForm = () => {
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-    setStatus({ type: 'loading', msg: 'Đang tải logo lên server...' });
-    const formDataUpload = new FormData();
-    formDataUpload.append('image', file);
-    try {
-      const res = await axiosClient.post('/uploads/images', formDataUpload, { headers: { 'Content-Type': 'multipart/form-data' }});
-      setFormData({ ...formData, logoUrl: res.url || res.data?.url });
-      setStatus({ type: 'success', msg: 'Tải logo thành công!' });
-    } catch (error) { 
-      setStatus({ type: 'error', msg: 'Lỗi tải ảnh' }); 
-    } finally { 
-      setTimeout(() => setStatus({ type: '', msg: '' }), 3000); 
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      setFormData({ ...formData, [type]: previewUrl });
+      if (type === 'logoUrl') setLogoFile(file);
     }
+  };
+
+  const handleDiscard = () => {
+    if (initialData) setFormData(initialData);
+    else setFormData({ name: '', description: '', phone: '', address: '', logoUrl: '', coverUrl: '' });
+    setLogoFile(null);
+  };
+
+  const uploadImage = async (file) => {
+    const uploadData = new FormData();
+    uploadData.append('image', file);
+    const res = await axiosClient.post('/uploads/images', uploadData);
+    return res.data.url;
   };
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      if (isUpdate) await axiosClient.put('/catalog/shops/my-shop', formData);
-      else await axiosClient.post('/catalog/shops', formData);
-      setStatus({ type: 'success', msg: 'Đã lưu thiết lập!' });
-      setIsUpdate(true);
-      setShopStatus('PENDING'); // Tạo mới mặc định chờ duyệt
-    } catch (err) {
-      setStatus({ type: 'error', msg: err.response?.data?.message || 'Có lỗi xảy ra!' });
+      const uploadedLogoUrl = logoFile ? await uploadImage(logoFile) : formData.logoUrl;
+      const payload = {
+        name: formData.name, description: formData.description,
+        address: formData.address, logoUrl: uploadedLogoUrl || 'https://via.placeholder.com/150'
+      };
+
+      if (isUpdate) {
+        await axiosClient.put('/catalog/shops/my-shop', payload);
+        setStatus({ type: 'success', msg: 'Saved!' });
+      } else {
+        await axiosClient.post('/catalog/shops', payload);
+        setStatus({ type: 'success', msg: 'Created!' });
+        setIsUpdate(true);
+      }
+      const savedData = { ...formData, logoUrl: uploadedLogoUrl };
+      setFormData(savedData);
+      setInitialData(savedData);
+      setLogoFile(null);
+      setLastUpdated(`Today at ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`);
+    } catch {
+      setStatus({ type: 'error', msg: 'Error!' });
     } finally {
       setLoading(false);
       setTimeout(() => setStatus({ type: '', msg: '' }), 3000);

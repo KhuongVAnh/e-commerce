@@ -5,51 +5,27 @@ import useAuthStore from '../../store/useAuthStore';
 
 const SellerDashboard = () => {
   const { user } = useAuthStore();
-  const [recentOrders, setRecentOrders] = useState([]);
-  const [summary, setSummary] = useState({
-    totalRevenue: 0, totalOrders: 0, pending: 0, processing: 0, delivered: 0, cancelled: 0, chartData: []
-  });
-  const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState({ from: '', to: '' });
+  const [orders, setOrders] = useState([]);
+  const [summary, setSummary] = useState(null);
 
-  useEffect(() => { fetchDashboardData(); }, [dateRange]);
-
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    try {
-      const query = new URLSearchParams();
-      if (dateRange.from) query.append('from', new Date(dateRange.from).toISOString());
-      if (dateRange.to) query.append('to', new Date(dateRange.to).toISOString());
-
-      const [summaryRes, ordersRes] = await Promise.allSettled([
-        axiosClient.get(`/commerce/seller/revenue-summary?${query.toString()}`),
-        axiosClient.get('/commerce/seller/orders?limit=5')
-      ]);
-
-      if (summaryRes.status === 'fulfilled' && (summaryRes.value?.data || summaryRes.value)) {
-        const data = summaryRes.value.data || summaryRes.value;
-        setSummary({
-          totalRevenue: data.totalRevenue || 0,
-          totalOrders: data.totalOrders || 0,
-          pending: data.pendingCount || 0,
-          processing: data.processingCount || 0,
-          delivered: data.deliveredCount || 0,
-          cancelled: data.cancelledCount || 0,
-          chartData: data.chartData || []
-        });
+  useEffect(() => {
+    const getDashboardData = async () => {
+      try {
+        const [summaryRes, ordersRes] = await Promise.all([
+          axiosClient.get('/commerce/seller/revenue-summary'),
+          axiosClient.get('/commerce/seller/orders', { params: { limit: 5 } }),
+        ]);
+        setSummary(summaryRes.data);
+        setOrders(ordersRes.data.orders || []);
+      } catch (err) {
+        console.error("Lỗi lấy dữ liệu dashboard seller", err);
       }
+    };
+    getDashboardData();
+  }, []);
 
-      if (ordersRes.status === 'fulfilled' && (ordersRes.value?.data || ordersRes.value)) {
-        setRecentOrders(ordersRes.value.data || ordersRes.value || []);
-      }
-    } catch (err) {
-      console.error("Lỗi lấy dữ liệu Dashboard Seller", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDateChange = (e) => { setDateRange({ ...dateRange, [e.target.name]: e.target.value }); };
+  const totalRevenue = summary?.totalRevenue || orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  const pendingCount = orders.filter(o => o.orderStatus === 'PENDING').length;
 
   return (
     <div className="p-4 md:p-8 space-y-6 bg-[#f8fafc] min-h-screen">
@@ -68,10 +44,10 @@ const SellerDashboard = () => {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Orders', val: summary.totalOrders, color: 'text-indigo-600' },
-          { label: 'Revenue', val: `${summary.totalRevenue.toLocaleString()} ₫`, color: 'text-slate-800' },
-          { label: 'Pending', val: summary.pending, color: 'text-orange-600', border: 'border-l-4 border-orange-400' },
-          { label: 'Delivered', val: summary.delivered, color: 'text-emerald-600', border: 'border-l-4 border-emerald-500' },
+          { label: 'Orders', val: orders.length, color: 'text-indigo-600' },
+          { label: 'Revenue', val: `${totalRevenue.toLocaleString()} ₫`, color: 'text-slate-800' },
+          { label: 'Products', val: summary?.productCount || 'N/A', color: 'text-slate-800' },
+          { label: 'Pending', val: pendingCount, color: 'text-rose-600', border: 'border-l-4 border-indigo-500' },
         ].map((kpi, i) => (
           <div key={i} className={`bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 ${kpi.border || ''}`}>
             <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{kpi.label}</p>

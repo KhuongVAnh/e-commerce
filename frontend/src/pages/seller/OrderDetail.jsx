@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import axiosClient from '../../utils/axiosClient';
 
 const SellerOrderDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [orderData, setOrderData] = useState(null);
   const [paymentData, setPaymentData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     const fetchOrderAndPayment = async () => {
@@ -17,11 +17,21 @@ const SellerOrderDetail = () => {
           axiosClient.get(`/commerce/payments/order/${id}`)
         ]);
 
-        if (orderRes.status === 'fulfilled') setOrderData(orderRes.value.data || orderRes.value.order);
-        if (paymentRes.status === 'fulfilled') setPaymentData(paymentRes.value.data?.payment || paymentRes.value.payment);
+        if (orderRes.status === 'fulfilled') {
+          setOrderData(orderRes.value.data.order);
+        } else {
+          setErrorMsg(orderRes.reason?.message || "Không thể tải chi tiết đơn hàng.");
+        }
+        
+        if (paymentRes.status === 'fulfilled') {
+          setPaymentData(paymentRes.value.data.payment);
+        }
+
       } catch (error) {
         console.error("Lỗi fetch data", error);
-      } finally { setLoading(false); }
+      } finally {
+        setLoading(false);
+      }
     };
     fetchOrderAndPayment();
   }, [id]);
@@ -31,17 +41,17 @@ const SellerOrderDetail = () => {
       await axiosClient.patch(`/commerce/seller/orders/${id}/status`, { status: newStatus });
       setOrderData({ ...orderData, orderStatus: newStatus });
       alert(`Đã cập nhật trạng thái đơn hàng thành ${newStatus}`);
-    } catch (error) {
-      if (error.response?.data?.error?.code === 'INVALID_STATUS_TRANSITION') {
-        alert("LỖI HỆ THỐNG: Chuyển trạng thái đơn hàng không hợp lệ theo state machine!");
-      } else {
-        alert("Lỗi khi cập nhật trạng thái: " + (error.response?.data?.message || 'Lỗi server'));
-      }
+    } catch {
+      alert("Lỗi khi cập nhật trạng thái!");
     }
   };
 
   if (loading) return <div className="p-10 text-center text-slate-500">Đang tải dữ liệu...</div>;
-  if (!orderData) return <div className="p-10 text-center text-slate-500 font-bold">Không tìm thấy đơn hàng hoặc bạn không có quyền truy cập.</div>;
+  if (!orderData) return <div className="p-10 text-center text-rose-500">{errorMsg || "Không tìm thấy đơn hàng."}</div>;
+
+  const subtotal = orderData.items?.reduce((sum, item) => sum + Number(item.priceSnapshot || 0) * Number(item.quantity || 0), 0) || 0;
+  const shippingFee = Number(orderData.shippingFee || 0);
+  const totalAmount = Number(orderData.totalAmount || subtotal + shippingFee);
 
   return (
     <div className="p-6 md:p-10 font-sans bg-[#f8fafc] min-h-full">
@@ -107,12 +117,12 @@ const SellerOrderDetail = () => {
           <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm">
             <h2 className="text-lg font-black text-slate-900 mb-4">Summary</h2>
             <div className="space-y-3 mb-4 text-sm font-medium text-slate-600 border-b border-slate-100 pb-4">
-              <div className="flex justify-between"><span>Subtotal</span><span>{orderData.subtotal?.toLocaleString() || 0} ₫</span></div>
-              <div className="flex justify-between"><span>Shipping Fee</span><span>{orderData.shippingFee?.toLocaleString() || 0} ₫</span></div>
+              <div className="flex justify-between"><span>Subtotal</span><span>{subtotal.toLocaleString()} ₫</span></div>
+              <div className="flex justify-between"><span>Shipping Fee</span><span>{shippingFee.toLocaleString()} ₫</span></div>
             </div>
             <div className="flex justify-between items-end">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Amount</span>
-              <span className="text-2xl font-black text-[#2e3785]">{orderData.totalAmount?.toLocaleString() || 0} ₫</span>
+              <span className="text-2xl font-black text-[#2e3785]">{totalAmount.toLocaleString()} ₫</span>
             </div>
           </div>
         </div>

@@ -1,68 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axiosClient from '../../utils/axiosClient';
 
 const ShopManagement = () => {
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ q: '', status: '', page: 1, limit: 10 });
-  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
-  const [searchInput, setSearchInput] = useState('');
-  const [stats, setStats] = useState({ total: 0, pending: 0 });
-  const [selectedShop, setSelectedShop] = useState(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [filters] = useState({ q: '', status: '' });
+  
+  // Stats mô phỏng theo Figma (Bạn có thể cập nhật gọi API sau)
+  const stats = { total: '1,248', pending: 42, products: '84,209' };
 
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => { setFilters(prev => ({ ...prev, q: searchInput, page: 1 })); }, 500);
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchInput]);
-
-  useEffect(() => { fetchShops(); fetchStats(); }, [filters.page, filters.status, filters.q]);
-
-  const fetchStats = async () => {
-    try {
-      const [totalRes, pendingRes] = await Promise.allSettled([
-        axiosClient.get('/catalog/admin/shops?limit=1'),
-        axiosClient.get('/catalog/admin/shops?status=PENDING&limit=1')
-      ]);
-      setStats({
-        total: totalRes.status === 'fulfilled' ? totalRes.value?.meta?.pagination?.total || 0 : 0,
-        pending: pendingRes.status === 'fulfilled' ? pendingRes.value?.meta?.pagination?.total || 0 : 0
-      });
-    } catch (error) { setStats({ total: 486, pending: 42 }); }
-  };
-
-  const fetchShops = async () => {
+  const fetchShops = useCallback(async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       const queryParams = new URLSearchParams(filters).toString();
       const res = await axiosClient.get(`/catalog/admin/shops?${queryParams}`);
-      if (!res.data) throw new Error("API Fallback");
-      setShops(res.data || []);
-      if (res.meta?.pagination) setPagination(res.meta.pagination);
+      setShops(res.data.shops || []);
     } catch (error) {
-      setShops([
-        { id: 1, name: 'An Ceramics Studio', sellerId: 'Nguyen Van An', status: 'ACTIVE', createdAt: '2023-10-12T00:00:00Z' },
-        { id: 2, name: 'Silk & Saffron', sellerId: 'Le Thi Mai', status: 'PENDING', createdAt: '2024-01-05T00:00:00Z' }
-      ]);
-      setPagination({ total: 486, totalPages: 49, page: filters.page, limit: 10 });
-    } finally { setLoading(false); }
-  };
+      setShops([]);
+      setErrorMsg(error.message || "Không thể tải danh sách shop.");
+    } finally { 
+      setLoading(false); 
+    }
+  }, [filters]);
 
-  const openShopDetail = async (shop) => {
-    setIsDetailModalOpen(true);
-    setDetailLoading(true);
-    try {
-      const res = await axiosClient.get(`/catalog/admin/shops/${shop.id}`);
-      if (!res.shop && !res.data) throw new Error("API Fallback");
-      setSelectedShop({ ...(res.shop || res.data), stats: res.stats });
-    } catch (error) {
-      setSelectedShop({
-        ...shop, description: 'Chuyên cung cấp các sản phẩm thủ công.',
-        address: '123 Đường Gốm Sứ, Hà Nội', stats: { productCount: shop.id === 1 ? 312 : 45 }
-      });
-    } finally { setDetailLoading(false); }
-  };
+  useEffect(() => {
+    fetchShops();
+  }, [fetchShops]);
 
   const handleUpdateStatus = async (shopId, newStatus) => {
     if(!window.confirm(`Xác nhận chuyển shop này sang trạng thái ${newStatus}?`)) return;
@@ -70,9 +35,7 @@ const ShopManagement = () => {
       await axiosClient.patch(`/catalog/admin/shops/${shopId}/status`, { status: newStatus });
       alert('Cập nhật trạng thái thành công!');
     } catch (error) {
-      alert("Lỗi: " + (error.response?.data?.message || 'Giả lập: Đã cập nhật.'));
-    } finally {
-      fetchShops(); fetchStats(); setIsDetailModalOpen(false);
+      alert("Lỗi: " + (error.message || 'Không thể cập nhật.'));
     }
   };
 
@@ -120,7 +83,11 @@ const ShopManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {loading ? <tr><td colSpan="5" className="text-center py-10 text-slate-400">Loading...</td></tr> : shops.map((s, idx) => (
+              {loading ? (
+                <tr><td colSpan="6" className="text-center py-10 text-slate-400">Loading...</td></tr>
+              ) : errorMsg ? (
+                <tr><td colSpan="6" className="text-center py-10 text-rose-500">{errorMsg}</td></tr>
+              ) : shops.map((s, idx) => (
                 <tr key={s.id || idx} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-4 md:px-6 py-4 md:py-5">
                     <div className="flex items-center gap-3 md:gap-4">

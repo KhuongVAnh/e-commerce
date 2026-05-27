@@ -2,7 +2,11 @@ import { Navigate, Outlet } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 
 const ProtectedRoute = ({ allowedRoles }) => {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, isAuthReady, user } = useAuthStore();
+
+  if (!isAuthReady) {
+    return <div className="p-10 text-center text-gray-500 font-bold">Đang kiểm tra phiên đăng nhập...</div>;
+  }
 
   // 1. NẾU CHƯA ĐĂNG NHẬP: Lập tức đá văng về trang Login
   if (!isAuthenticated) {

@@ -45,8 +45,7 @@ app.use("/api/commerce", statsRoutes);
 
 // Middleware xử lý lỗi chung, bắt tất cả lỗi được ném ra từ các controller hoặc middleware phía trên
 app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error("[commerce_service] unhandled error:", error);
-
+  
   // nếu lỗi thuộc lớp httpError đã được định nghĩa, thì trả về lỗi chuẩn cho client
   if (error instanceof HttpError) {
     sendError(res, {
@@ -62,8 +61,9 @@ app.use((error: Error, _req: express.Request, res: express.Response, _next: expr
     });
     return;
   }
-
+  
   // nếu lỗi không phải là HttpError, trả về lỗi 500 chung
+  console.error("[commerce_service] unhandled error:", error);
   sendError(res, {
     requestId: res.locals.requestId,
     statusCode: 500,

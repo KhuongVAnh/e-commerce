@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/useAuthStore';
 import useCartStore from '../../store/useCartStore';
+import axiosClient from '../../utils/axiosClient';
 
 const ProductList = () => {
   const [searchParams] = useSearchParams();
@@ -17,7 +18,6 @@ const ProductList = () => {
   const [error, setError] = useState(null);
 
   const { isAuthenticated } = useAuthStore();
-  const token = localStorage.getItem('accessToken') || '';
   const { fetchCartTotal } = useCartStore();
 
   const handleAddToCart = async (e, productId) => {
@@ -29,35 +29,23 @@ const ProductList = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:3000/api/commerce/cart/items', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ productId: productId, quantity: 1 })
+      await axiosClient.post('/commerce/cart/items', {
+        productId,
+        quantity: 1,
       });
-      
-      const result = await res.json();
-      if (res.ok && result.success) {
-        alert("Đã thêm sản phẩm vào giỏ hàng thành công!");
-      } else {
-        alert(result.message || "Không thể thêm vào giỏ hàng");
-      }
+      fetchCartTotal();
+      alert("Đã thêm sản phẩm vào giỏ hàng thành công!");
     } catch (err) {
       console.error(err);
-      alert("Có lỗi xảy ra khi kết nối đến server.");
+      alert(err.message || "Không thể thêm vào giỏ hàng");
     }
   };
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/catalog/categories');
-        const result = await res.json();
-        if (result.success) {
-          setCategories(result.data);
-        }
+        const result = await axiosClient.get('/catalog/categories');
+        setCategories(result.data);
       } catch (err) {
         console.error("Lỗi khi tải danh mục:", err);
       }
@@ -75,18 +63,11 @@ const ProductList = () => {
         if (searchFromUrl) queryParams.append('q', searchFromUrl);
         if (categoryIdFromUrl) queryParams.append('categoryId', categoryIdFromUrl);
 
-        const response = await fetch(`http://localhost:3000/api/catalog/products?${queryParams.toString()}`);
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(result.message || "Lỗi khi tải danh sách sản phẩm");
-        }
-
-        const fetchedProducts = Array.isArray(result.data) ? result.data : (result.data?.items || []);
-        setProducts(fetchedProducts);
+        const result = await axiosClient.get(`/catalog/products?${queryParams.toString()}`);
+        setProducts(Array.isArray(result.data) ? result.data : []);
 
       } catch (err) {
-        setError(err.message);
+        setError(err.message || "Lỗi khi tải danh sách sản phẩm");
       } finally {
         setLoading(false);
       }

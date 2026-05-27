@@ -4,64 +4,25 @@ import axiosClient from '../../utils/axiosClient';
 const OrderManagement = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('');
-  
-  // State Modal Order Detail
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [activeTab, setActiveTab] = useState('All Orders');
 
   useEffect(() => { fetchOrders(); }, [activeTab]);
 
   const fetchOrders = async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
-      const statusQuery = activeTab ? `&status=${activeTab}` : '';
-      const res = await axiosClient.get(`/commerce/admin/orders?limit=10${statusQuery}`);
-      if (!res.data) throw new Error("API Fallback");
-      setOrders(res.data || []);
+      // Gọi API chuẩn: GET /api/commerce/admin/orders
+      // Tuỳ biến filter status dựa vào activeTab
+      const res = await axiosClient.get(`/commerce/admin/orders?limit=10`);
+      setOrders(res.data.orders || []);
     } catch (error) {
-      setOrders([
-        { id: 1, orderCode: 'ORD-98210', customerName: 'Nguyen Van A.', shop: 'Hanoi Heritage Silks', paymentMethod: 'VNPAY', createdAt: '2026-10-24T10:00:00Z', totalAmount: 2450000, orderStatus: 'DELIVERED', paymentStatus: 'PAID' },
-        { id: 2, orderCode: 'ORD-98209', customerName: 'Le Thi B.', shop: 'Saigon Ceramics', paymentMethod: 'COD', createdAt: '2026-10-23T14:30:00Z', totalAmount: 890000, orderStatus: 'PENDING', paymentStatus: 'PENDING' }
-      ]);
-    } finally { setLoading(false); }
-  };
-
-  const updateStatus = async (id, status) => {
-    try {
-      await axiosClient.patch(`/commerce/admin/orders/${id}/status`, { status });
-      fetchOrders();
-      if(selectedOrder && selectedOrder.id === id) setIsModalOpen(false);
-    } catch (e) { 
-      alert("Lỗi cập nhật trạng thái (Giả lập thành công)"); 
-      fetchOrders();
-      if(selectedOrder && selectedOrder.id === id) setIsModalOpen(false);
+      setOrders([]);
+      setErrorMsg(error.message || "Không thể tải danh sách đơn hàng.");
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const openOrderDetail = async (order) => {
-    setIsModalOpen(true);
-    setDetailLoading(true);
-    try {
-      // API Lấy chi tiết đơn hàng (Sẽ có đủ items, receiver, payment)
-      const res = await axiosClient.get(`/commerce/admin/orders/${order.id}`);
-      if(!res.data && !res.order) throw new Error("API Fallback");
-      setSelectedOrder(res.data || res.order);
-    } catch (error) {
-      // Mock data chi tiết nếu API lỗi
-      setSelectedOrder({
-        ...order,
-        receiverName: order.customerName,
-        receiverPhone: '0987654321',
-        receiverAddress: '123 Đường Cầu Giấy, Hà Nội',
-        items: [
-          { productId: 101, productName: 'Sản phẩm demo 1', quantity: 2, unitPrice: 500000, subtotal: 1000000 },
-          { productId: 102, productName: 'Sản phẩm demo 2', quantity: 1, unitPrice: 1450000, subtotal: 1450000 }
-        ],
-        shippingFee: 0
-      });
-    } finally { setDetailLoading(false); }
   };
 
   return (
@@ -100,17 +61,34 @@ const OrderManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {loading ? <tr><td colSpan="7" className="text-center py-10 text-slate-400">Loading orders...</td></tr> : orders.map((o, idx) => (
+              {loading ? (
+                <tr><td colSpan="8" className="text-center py-10 text-slate-400">Loading orders...</td></tr>
+              ) : errorMsg ? (
+                <tr><td colSpan="8" className="text-center py-10 text-rose-500">{errorMsg}</td></tr>
+              ) : orders.map((o, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-4 md:px-6 py-4 font-bold text-[#2e3785] text-xs md:text-sm">#{o.orderCode}</td>
-                  <td className="px-4 md:px-6 py-4 font-bold text-slate-900 text-xs md:text-sm">{o.customerName || 'N/A'}</td>
-                  <td className="px-4 md:px-6 py-4"><span className="px-2 md:px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[9px] font-black">{o.shop || o.shopId}</span></td>
-                  <td className="px-4 md:px-6 py-4 font-bold text-[#2e3785] text-xs">{o.paymentMethod}</td>
-                  <td className="px-4 md:px-6 py-4 font-black text-[#2e3785] text-xs">{o.totalAmount?.toLocaleString()} ₫</td>
-                  <td className="px-4 md:px-6 py-4"><span className="px-2 py-1 bg-slate-100 text-slate-600 font-black text-[9px] uppercase rounded-md">{o.orderStatus}</span></td>
-                  <td className="px-4 md:px-6 py-4 text-right">
-                    {/* Bổ sung nút Xem chi tiết */}
-                    <button onClick={() => openOrderDetail(o)} className="text-[#2e3785] bg-indigo-50 px-3 py-1.5 rounded-lg font-bold text-xs hover:bg-indigo-100 transition">Detail</button>
+                  <td className="px-4 md:px-6 py-4">
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-slate-200 overflow-hidden text-slate-500 font-bold text-[10px] md:text-xs flex items-center justify-center shrink-0 border border-slate-100">
+                        {idx % 2 === 0 ? <img src={`https://i.pravatar.cc/150?u=${idx}`} alt="" className="w-full h-full object-cover" /> : 'TD'}
+                      </div>
+                      <span className="font-bold text-slate-900 text-xs md:text-sm">{o.receiverName}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 md:px-6 py-4"><span className="px-2 md:px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[9px] md:text-[10px] font-black">Shop #{o.shopId}</span></td>
+                  <td className="px-4 md:px-6 py-4">
+                    <div className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm font-bold text-[#2e3785]">
+                      <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${o.paymentMethod === 'VNPAY' ? 'bg-[#2e3785]' : 'bg-orange-500'}`}></div> {o.paymentMethod}
+                    </div>
+                  </td>
+                  <td className="px-4 md:px-6 py-4 text-xs md:text-sm font-medium text-slate-500">{new Date(o.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 md:px-6 py-4 font-black text-[#2e3785] text-xs md:text-sm">{o.totalAmount.toLocaleString()} ₫</td>
+                  <td className="px-4 md:px-6 py-4">
+                    {o.orderStatus === 'DELIVERED' && <span className="px-2 md:px-3 py-1 bg-emerald-50 text-emerald-600 font-black text-[9px] md:text-[10px] uppercase rounded-md tracking-wider">DELIVERED</span>}
+                    {o.orderStatus === 'PENDING' && <span className="px-2 md:px-3 py-1 bg-orange-50 text-orange-600 font-black text-[9px] md:text-[10px] uppercase rounded-md tracking-wider">PENDING</span>}
+                    {o.orderStatus === 'CANCELLED' && <span className="px-2 md:px-3 py-1 bg-rose-50 text-rose-600 font-black text-[9px] md:text-[10px] uppercase rounded-md tracking-wider">CANCELLED</span>}
+                    {!['DELIVERED', 'PENDING', 'CANCELLED'].includes(o.orderStatus) && <span className="px-2 md:px-3 py-1 bg-indigo-50 text-indigo-600 font-black text-[9px] md:text-[10px] uppercase rounded-md tracking-wider">{o.orderStatus}</span>}
                   </td>
                 </tr>
               ))}

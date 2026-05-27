@@ -1,80 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axiosClient from '../../utils/axiosClient';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ q: '', role: '', status: '', page: 1, limit: 10 });
-  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
-  const [searchInput, setSearchInput] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalLoading, setModalLoading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [filters, setFilters] = useState({ q: '', role: '', status: '' });
 
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => { setFilters(prev => ({ ...prev, q: searchInput, page: 1 })); }, 500);
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchInput]);
-
-  useEffect(() => { fetchUsers(); }, [filters.page, filters.role, filters.status, filters.q]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       const queryParams = new URLSearchParams(filters).toString();
       const res = await axiosClient.get(`/auth/admin/users?${queryParams}`);
-      if (!res.data) throw new Error("API Fallback");
-      setUsers(res.data || []);
-      if (res.meta?.pagination) setPagination(res.meta.pagination);
+      setUsers(res.data.users || []);
     } catch (error) {
-      setUsers([
-        { id: 'usr_1', fullName: 'Linh Nguyen', email: 'linh.nguyen@merchant.vn', role: 'ADMIN', status: 'ACTIVE' },
-        { id: 'usr_2', fullName: 'Minh Tran', email: 'minh.seller@elevated.co', role: 'SELLER', status: 'ACTIVE' },
-        { id: 'usr_3', fullName: 'Quoc Bao', email: 'q.bao@gmail.com', role: 'CUSTOMER', status: 'BANNED' }
-      ]);
-      setPagination({ total: 1240, totalPages: 124, page: filters.page, limit: 10 });
-    } finally { setLoading(false); }
+      setUsers([]);
+      setErrorMsg(error.message || "Không thể tải danh sách người dùng.");
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const handleFilterChange = (e) => {
+    setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
-  const handleFilterChange = (e) => { setFilters({ ...filters, [e.target.name]: e.target.value, page: 1 }); };
-
-  const openUserDetail = async (userId) => {
-    setIsModalOpen(true);
-    setModalLoading(true);
-    setSelectedUser(null);
+  // Logic Xóa User / Block User (Cập nhật Status)
+  const handleBlockUser = async (userId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn thao tác với tài khoản này?')) return;
+    
     try {
-      const res = await axiosClient.get(`/auth/admin/users/${userId}`);
-      if (!res.data && !res.user) throw new Error("API Fallback");
-      setSelectedUser(res.data || res.user); 
+      // Gọi API DELETE hoặc PATCH status (Tuỳ BE thiết kế block bằng gì)
+      await axiosClient.delete(`/auth/admin/users/${userId}`);
+      alert('Thao tác thành công!');
+      fetchUsers();
     } catch (error) {
-      const fallbackUser = users.find(u => u.id === userId);
-      setSelectedUser({ ...fallbackUser });
-    } finally { setModalLoading(false); }
-  };
-
-  const handleUpdateUser = async (e) => {
-    e.preventDefault();
-    setIsSaving(true);
-    try {
-      await axiosClient.patch(`/auth/admin/users/${selectedUser.id}`, { fullName: selectedUser.fullName, role: selectedUser.role, status: selectedUser.status });
-      alert('Cập nhật người dùng thành công!');
-      setIsModalOpen(false); fetchUsers();
-    } catch (error) {
-      if (error.response?.data?.error?.code === 'LAST_ADMIN_PROTECTED') alert("LỖI BẢO MẬT: Không thể thay đổi quyền hoặc khóa tài khoản Admin cuối cùng!");
-      else { alert("Lỗi: " + (error.response?.data?.message || 'Giả lập: Cập nhật thành công.')); setIsModalOpen(false); fetchUsers(); }
-    } finally { setIsSaving(false); }
-  };
-
-  const handleDeleteUser = async () => {
-    if (!window.confirm('Bạn có chắc chắn muốn XÓA VĨNH VIỄN người dùng này?')) return;
-    try {
-      await axiosClient.delete(`/auth/admin/users/${selectedUser.id}`);
-      alert('Đã xóa người dùng!');
-      setIsModalOpen(false); fetchUsers();
-    } catch (error) {
-      if (error.response?.data?.error?.code === 'LAST_ADMIN_PROTECTED') alert("LỖI BẢO MẬT: Không thể xóa tài khoản Admin cuối cùng!");
-      else { alert("Lỗi xóa user: " + (error.response?.data?.message || 'Giả lập: Xóa thành công.')); setIsModalOpen(false); fetchUsers(); }
+      // Xử lý bắt lỗi đặc thù theo yêu cầu
+      if (error.error?.code === 'LAST_ADMIN_PROTECTED') {
+        alert("LỖI HỆ THỐNG: Không thể khoá/xoá tài khoản Admin cuối cùng của hệ thống!");
+      } else {
+        alert("Lỗi: " + (error.message || 'Không thể thao tác.'));
+      }
     }
   };
 
@@ -87,19 +58,30 @@ const UserManagement = () => {
         </div>
       </header>
 
-      <div className="flex flex-col md:flex-row gap-4 mb-8 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-        <input type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder="Search name/email..." className="flex-1 bg-slate-50 border-none py-3 px-4 rounded-xl text-sm focus:outline-none" />
-        <select name="role" value={filters.role} onChange={handleFilterChange} className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none">
-          <option value="">All Roles</option>
-          <option value="ADMIN">Admin</option>
-          <option value="SELLER">Seller</option>
-          <option value="CUSTOMER">Customer</option>
-        </select>
-        <select name="status" value={filters.status} onChange={handleFilterChange} className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none">
-          <option value="">All Status</option>
-          <option value="ACTIVE">Active</option>
-          <option value="BANNED">Banned</option>
-        </select>
+      {/* Filter Bar */}
+      <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-6 md:mb-8 bg-white p-3 md:p-4 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="relative flex-1">
+          <span className="material-symbols-outlined absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+          <input 
+            type="text" name="q" value={filters.q} onChange={handleFilterChange}
+            placeholder="Filter by name or email address..." 
+            className="w-full bg-slate-50 border-none py-2.5 md:py-3 pl-10 md:pl-11 pr-4 rounded-xl text-xs md:text-sm focus:ring-2 focus:ring-[#2e3785]/20 outline-none" 
+          />
+        </div>
+        <div className="flex gap-3 md:gap-4">
+          <select name="role" onChange={handleFilterChange} className="w-1/2 md:w-auto px-3 md:px-4 py-2.5 md:py-3 bg-slate-50 border border-slate-100 text-slate-700 text-xs md:text-sm font-bold rounded-xl outline-none appearance-none">
+            <option value="">All Roles</option>
+            <option value="ADMIN">Admin</option>
+            <option value="SELLER">Seller</option>
+            <option value="CUSTOMER">Customer</option>
+          </select>
+          <select name="status" onChange={handleFilterChange} className="w-1/2 md:w-auto px-3 md:px-4 py-2.5 md:py-3 bg-slate-50 border border-slate-100 text-slate-700 text-xs md:text-sm font-bold rounded-xl outline-none appearance-none">
+            <option value="">All Status</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+            <option value="BLOCKED">Blocked</option>
+          </select>
+        </div>
       </div>
 
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col flex-1">
@@ -114,22 +96,49 @@ const UserManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {loading ? <tr><td colSpan="4" className="p-8 text-center text-slate-500">Đang lấy dữ liệu...</td></tr> : users.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-[#2e3785] text-white flex items-center justify-center font-black">{u.fullName?.charAt(0)?.toUpperCase() || 'U'}</div>
-                      <div>
-                        <p className="font-bold text-slate-900 text-sm">{u.fullName}</p>
-                        <p className="text-xs font-medium text-slate-400">{u.email}</p>
+              {loading ? (
+                <tr><td colSpan="5" className="p-6 text-center text-slate-400">Loading...</td></tr>
+              ) : errorMsg ? (
+                <tr><td colSpan="5" className="p-6 text-center text-rose-500">{errorMsg}</td></tr>
+              ) : (
+                users.map((u) => (
+                  <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 md:px-6 py-3 md:py-4 text-[11px] md:text-xs font-bold text-slate-400">{u.id}</td>
+                    <td className="px-4 md:px-6 py-3 md:py-4">
+                      <div className="flex items-center gap-3 md:gap-4">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-100 overflow-hidden flex items-center justify-center shrink-0">
+                          {u.avatar ? <img src={u.avatar} alt="" className="w-full h-full object-cover" /> : <span className="material-symbols-outlined text-slate-400 text-sm md:text-base">person</span>}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-xs md:text-sm">{u.fullName}</p>
+                          <p className="text-[10px] md:text-[11px] font-medium text-slate-400">{u.email}</p>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4"><span className="px-3 py-1 bg-slate-100 text-slate-700 text-[10px] font-black uppercase rounded">{u.role}</span></td>
-                  <td className="px-6 py-4"><span className={`text-xs font-bold ${u.status === 'ACTIVE' ? 'text-emerald-600' : 'text-rose-600'}`}>{u.status}</span></td>
-                  <td className="px-6 py-4 text-right"><button onClick={() => openUserDetail(u.id)} className="text-[#2e3785] font-bold text-xs hover:underline bg-indigo-50 px-3 py-1.5 rounded-lg">View & Edit</button></td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 md:px-6 py-3 md:py-4">
+                      {u.role === 'ADMIN' && <span className="px-2 md:px-3 py-1 bg-indigo-50 text-indigo-700 text-[8px] md:text-[9px] font-black uppercase tracking-wider rounded border border-indigo-100">ADMIN</span>}
+                      {u.role === 'SELLER' && <span className="px-2 md:px-3 py-1 bg-orange-50 text-orange-700 text-[8px] md:text-[9px] font-black uppercase tracking-wider rounded border border-orange-100">SELLER</span>}
+                      {u.role === 'CUSTOMER' && <span className="px-2 md:px-3 py-1 bg-slate-100 text-slate-600 text-[8px] md:text-[9px] font-black uppercase tracking-wider rounded border border-slate-200">CUSTOMER</span>}
+                    </td>
+                    <td className="px-4 md:px-6 py-3 md:py-4">
+                      <div className={`flex items-center gap-1.5 text-[11px] md:text-xs font-bold ${u.status === 'ACTIVE' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${u.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                        {u.status === 'ACTIVE' ? 'Active' : u.status === 'BLOCKED' ? 'Blocked' : 'Inactive'}
+                      </div>
+                    </td>
+                    <td className="px-4 md:px-6 py-3 md:py-4 text-right">
+                      <div className="flex justify-end gap-1 md:gap-2 text-slate-400">
+                        <button onClick={() => handleBlockUser(u.id, u.role)} className="w-7 h-7 md:w-8 md:h-8 rounded-full hover:bg-slate-100 hover:text-rose-600 flex items-center justify-center transition" title="Block/Delete">
+                          <span className="material-symbols-outlined text-[14px] md:text-[16px]">lock</span>
+                        </button>
+                        <button className="w-7 h-7 md:w-8 md:h-8 rounded-full hover:bg-slate-100 hover:text-[#2e3785] flex items-center justify-center transition" title="View History">
+                          <span className="material-symbols-outlined text-[14px] md:text-[16px]">history</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

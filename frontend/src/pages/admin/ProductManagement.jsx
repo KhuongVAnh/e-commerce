@@ -1,39 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axiosClient from '../../utils/axiosClient';
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ q: '', status: '', shopId: '', categoryId: '', page: 1, limit: 10 });
-  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+  const [errorMsg, setErrorMsg] = useState('');
+  const [filters] = useState({ q: '', status: '', shopId: '', categoryId: '' });
 
-  useEffect(() => { fetchProducts(); }, [filters]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       const queryParams = new URLSearchParams(filters).toString();
-      const res = await axiosClient.get(`/catalog/admin/products?${queryParams}`);
-      if (!res.data) throw new Error("API Fallback");
-      setProducts(res.data || []);
-      if (res.meta?.pagination) setPagination(res.meta.pagination);
+      const res = await axiosClient.get(`/catalog/admin/products?${queryParams}&limit=10`);
+      setProducts(res.data.products || []);
     } catch (error) {
-      setProducts([
-        // Đã sửa lại cấu trúc mock khớp 100% với tài liệu API Product (shop và category là Object)
-        { id: 1, name: 'Hmong Indigo Silk Scarf', sku: 'VN-SC-042', shop: { id: 101, name: 'Sapa Ethos' }, category: { id: 11, name: 'TEXTILES' }, price: 1250000, stockQuantity: 142, status: 'ACTIVE' },
-        { id: 2, name: 'Bat Trang Celadon Set', sku: 'VN-CE-992', shop: { id: 102, name: 'Hanoi Heritage' }, category: { id: 12, name: 'CERAMICS' }, price: 3480000, stockQuantity: 0, status: 'OUT_OF_STOCK' }
-      ]);
-      setPagination({ total: 12482, totalPages: 1249, page: filters.page, limit: 10 });
-    } finally { setLoading(false); }
-  };
+      setProducts([]);
+      setErrorMsg(error.message || "Không thể tải danh sách sản phẩm.");
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
 
-  const deleteProduct = async (id) => {
-    if(!window.confirm("Xóa sản phẩm này vĩnh viễn?")) return;
-    try {
-      await axiosClient.delete(`/catalog/admin/products/${id}`);
-      fetchProducts();
-    } catch (e) { alert("Lỗi xóa sản phẩm (Giả lập thành công)"); fetchProducts(); }
-  };
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   return (
     <div className="p-4 md:p-6 lg:p-10 font-sans bg-[#f8fafc] min-h-full flex flex-col">
@@ -68,26 +59,46 @@ const ProductManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {loading ? <tr><td colSpan="6" className="text-center py-10 text-slate-400">Loading products...</td></tr> : products.map((p, idx) => (
+              {loading ? (
+                <tr><td colSpan="6" className="text-center py-10 text-slate-400">Loading products...</td></tr>
+              ) : errorMsg ? (
+                <tr><td colSpan="6" className="text-center py-10 text-rose-500">{errorMsg}</td></tr>
+              ) : products.map((p, idx) => (
                 <tr key={p.id || idx} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-4 md:px-6 py-4">
                     <div className="flex items-center gap-3 md:gap-4">
-                      <div className="w-12 h-12 md:w-14 md:h-14 bg-slate-100 rounded-xl flex items-center justify-center"><span className="font-black text-slate-300">{p.name?.charAt(0)}</span></div>
+                      <div className="w-12 h-12 md:w-14 md:h-14 bg-slate-100 rounded-xl overflow-hidden shrink-0 border border-slate-200">
+                        <img src={p.thumbnailUrl || `https://picsum.photos/seed/${p.id}/150`} alt="" className="w-full h-full object-cover" />
+                      </div>
                       <div>
                         <p className="font-bold text-slate-900 text-xs md:text-sm mb-0.5">{p.name}</p>
-                        <p className="text-[10px] md:text-[11px] font-medium text-slate-400 uppercase">SKU: {p.sku || p.slug || p.id}</p>
+                        <p className="text-[10px] md:text-[11px] font-medium text-slate-400 uppercase">SKU: PROD-{p.id}</p>
                       </div>
                     </div>
                   </td>
-                  {/* Trích xuất an toàn dữ liệu Shop và Category từ Object */}
-                  <td className="px-4 md:px-6 py-4 font-bold text-[#2e3785] text-xs md:text-sm">{p.shop?.name || p.shopId || 'N/A'}</td>
-                  <td className="px-4 md:px-6 py-4"><span className="px-2 md:px-3 py-1 font-black text-[9px] md:text-[10px] uppercase tracking-wider rounded-full bg-slate-100 text-slate-600">{p.category?.name || p.categoryId || 'N/A'}</span></td>
+                  <td className="px-4 md:px-6 py-4 font-bold text-[#2e3785] text-xs md:text-sm">{p.shop?.name || `Shop #${p.shopId}`}</td>
+                  <td className="px-4 md:px-6 py-4">
+                    <span className={`px-2 md:px-3 py-1 font-black text-[9px] md:text-[10px] uppercase tracking-wider rounded-full ${
+                      idx % 3 === 0 ? 'bg-indigo-50 text-indigo-700' : idx % 2 === 0 ? 'bg-orange-50 text-orange-700' : 'bg-blue-50 text-blue-700'
+                    }`}>{p.category?.name || p.categoryId}</span>
+                  </td>
                   <td className="px-4 md:px-6 py-4">
                     <p className="font-black text-slate-900 text-xs md:text-sm">{p.price?.toLocaleString()} ₫</p>
-                    <p className="text-[10px] md:text-[11px] font-medium text-slate-500 mt-0.5">{p.stockQuantity} in stock</p>
+                    {p.status === 'DELETED' ? (
+                      <p className="text-[9px] md:text-[10px] font-bold text-rose-500 uppercase tracking-widest mt-0.5">Deleted</p>
+                    ) : (
+                      <p className="text-[10px] md:text-[11px] font-medium text-slate-500 mt-0.5">{p.stockQuantity} in stock</p>
+                    )}
                   </td>
-                  <td className="px-4 md:px-6 py-4"><span className="px-2 md:px-3 py-1 bg-slate-100 text-slate-600 font-bold text-[10px] md:text-xs rounded-full">{p.status}</span></td>
-                  <td className="px-4 md:px-6 py-4 text-right"><button onClick={() => deleteProduct(p.id)} className="text-rose-500 font-bold text-xs hover:underline">Delete</button></td>
+                  <td className="px-4 md:px-6 py-4">
+                    {p.status === 'ACTIVE' && <span className="px-2 md:px-3 py-1 bg-emerald-50 text-emerald-700 font-bold text-[10px] md:text-xs rounded-full flex items-center gap-1 w-fit"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> ACTIVE</span>}
+                    {p.status === 'OUT_OF_STOCK' && <span className="px-2 md:px-3 py-1 bg-slate-100 text-slate-500 font-bold text-[10px] md:text-xs rounded-full flex items-center gap-1 w-fit"><div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div> OUT OF STOCK</span>}
+                    {p.status === 'DELETED' && <span className="px-2 md:px-3 py-1 bg-rose-50 text-rose-700 font-bold text-[10px] md:text-xs rounded-full flex items-center gap-1 w-fit"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div> DELETED</span>}
+                    {p.status === 'INACTIVE' && <span className="px-2 md:px-3 py-1 bg-orange-50 text-orange-700 font-bold text-[10px] md:text-xs rounded-full flex items-center gap-1 w-fit"><div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div> INACTIVE</span>}
+                  </td>
+                  <td className="px-4 md:px-6 py-4 text-right">
+                    <button className="w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 transition"><span className="material-symbols-outlined text-[18px] md:text-[20px]">more_vert</span></button>
+                  </td>
                 </tr>
               ))}
             </tbody>

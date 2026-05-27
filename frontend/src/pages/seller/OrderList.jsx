@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axiosClient from '../../utils/axiosClient';
 import { useNavigate } from 'react-router-dom';
 
@@ -6,6 +6,7 @@ const SellerOrderList = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
   const [activeTab, setActiveTab] = useState('ALL');
 
   const tabs = [
@@ -18,21 +19,24 @@ const SellerOrderList = () => {
     { key: 'CANCELLED', label: 'Cancelled' }
   ];
 
-  useEffect(() => { fetchOrders(); }, [activeTab]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       const query = activeTab !== 'ALL' ? `?status=${activeTab}` : '';
       const res = await axiosClient.get(`/commerce/seller/orders${query}`);
-      setOrders(res.data || []);
+      setOrders(res.data.orders || []);
     } catch (error) {
-      console.warn("Lỗi API lấy đơn hàng:", error);
-      setOrders([]); // Tuyệt đối không mock
+      setErrorMsg(error.message || "Không thể tải danh sách đơn hàng.");
+      setOrders([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
@@ -40,11 +44,7 @@ const SellerOrderList = () => {
       setOrders(orders.map(o => o.id === orderId ? { ...o, orderStatus: newStatus } : o));
       alert(`Đã cập nhật trạng thái thành ${newStatus}`);
     } catch (error) {
-      if (error.response?.data?.error?.code === 'INVALID_STATUS_TRANSITION') {
-        alert("LỖI HỆ THỐNG: Chuyển trạng thái đơn hàng không hợp lệ theo quy trình!");
-      } else {
-        alert("Lỗi khi cập nhật: " + (error.response?.data?.message || "Internal Error"));
-      }
+      alert("Lỗi khi cập nhật trạng thái: " + (error.message || "Internal Error"));
     }
   };
 
@@ -94,6 +94,8 @@ const SellerOrderList = () => {
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr><td colSpan="7" className="p-10 text-center text-slate-400 font-medium">Loading orders...</td></tr>
+              ) : errorMsg ? (
+                <tr><td colSpan="7" className="p-10 text-center text-rose-500 font-medium">{errorMsg}</td></tr>
               ) : orders.length === 0 ? (
                 <tr><td colSpan="7" className="p-10 text-center text-slate-400 font-medium">Không có đơn hàng.</td></tr>
               ) : orders.map((order) => (

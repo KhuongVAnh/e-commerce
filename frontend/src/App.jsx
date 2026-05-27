@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
 import CustomerLayout from './layouts/CustomerLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+import useAuthStore from './store/useAuthStore';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
@@ -32,6 +34,8 @@ import PaymentResult from './pages/customer/PaymentResult';
 import Categories from './pages/customer/Categories';
 import ShopList from './pages/customer/ShopList';
 import ShopDetail from './pages/customer/ShopDetail';
+import Notifications from './pages/notifications/Notifications';
+import NotificationDetail from './pages/notifications/NotificationDetail';
 
 const Unauthorized = () => (
   <div className="p-10 text-center text-red-500 font-bold text-2xl">
@@ -46,6 +50,12 @@ const NotFound = () => (
 );
 
 function App() {
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
   return (
     <BrowserRouter>
       <Routes>
@@ -73,6 +83,8 @@ function App() {
             <Route path="checkout" element={<Checkout />} />
             <Route path="orders" element={<OrderList />} />
             <Route path="orders/:id" element={<OrderDetail />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="notifications/:id" element={<NotificationDetail />} />
             <Route path="payment-return" element={<PaymentResult />} />
           </Route>
         </Route>
@@ -89,6 +101,8 @@ function App() {
             <Route path="categories" element={<CategoryManagement />} />
             <Route path="products" element={<ProductManagement />} />
             <Route path="orders" element={<OrderManagement />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="notifications/:id" element={<NotificationDetail />} />
           </Route>
         </Route>
 
@@ -111,6 +125,8 @@ function App() {
             <Route path="products/:id/edit" element={<SellerProductForm />} />
             <Route path="orders" element={<SellerOrderList />} />
             <Route path="orders/:id" element={<SellerOrderDetail />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="notifications/:id" element={<NotificationDetail />} />
           </Route>
         </Route>
 

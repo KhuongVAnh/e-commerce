@@ -46,11 +46,13 @@ const corsOptions = corsEnabled
 
       callback(new Error(`Origin ${origin} is not allowed by CORS`));
     },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-request-id"],
   }
   : {
     origin: true,
+    credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-request-id"],
   };
@@ -119,5 +121,6 @@ async function start() {
 }
 app.listen(port, () => {
   console.log(`api_gateway listening on port ${port}`);
+  void startKafkaConsumer();
 });
 
