@@ -33,6 +33,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
+app.use("/api/catalog/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
 app.use("/api/catalog", shopRoutes);
 app.use("/api/catalog", productRoutes);

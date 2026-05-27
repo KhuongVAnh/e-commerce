@@ -8,6 +8,8 @@ import paymentRoutes from "./routes/payment";
 import adminRoutes from "./routes/admin";
 import statsRoutes from "./routes/stats";
 import { prisma } from "./config/prisma";
+import swaggerUi from "swagger-ui-express";
+import openApiDocument from "./docs/openapi";
 
 const { assertDatabaseLive, assertRedisLive } = require("../../shared/startup-checks.cjs");
 const serviceName = "commerce_service";
@@ -31,6 +33,9 @@ app.get("/health", (_req, res) => {
     service: "commerce_service",
   });
 });
+
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
+app.use("/api/commerce/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
 app.use("/api/commerce", cartRoutes);
 app.use("/api/commerce", orderRoutes);

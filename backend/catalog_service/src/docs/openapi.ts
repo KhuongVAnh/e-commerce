@@ -7,13 +7,19 @@ const openApiDocument = {
   },
   servers: [
     {
+      url: "http://localhost:3000",
+      description: "API Gateway (Port 3000)",
+    },
+    {
       url: "http://localhost:3002",
-      description: "Catalog Service Local",
+      description: "Catalog Service Local (Port 3002)",
     },
   ],
   tags: [
     { name: "Categories", description: "Quan ly category" },
     { name: "Products", description: "Quan ly product cho seller" },
+    { name: "Shops", description: "Quan ly shop cho seller va nguoi dung" },
+    { name: "Admin", description: "Quan tri he thong (ADMIN)" },
   ],
   components: {
     securitySchemes: {
@@ -362,6 +368,77 @@ const openApiDocument = {
               pagination: { nullable: true, example: null },
               version: { type: "string", example: "v1" },
               warnings: { type: "array", items: { type: "string" }, example: [] },
+            },
+          },
+        },
+      },
+      ShopData: {
+        type: "object",
+        properties: {
+          id: { oneOf: [{ type: "number" }, { type: "string" }], example: 3001 },
+          sellerId: { oneOf: [{ type: "number" }, { type: "string" }], example: 1001 },
+          name: { type: "string", example: "CNWeb Tech Store" },
+          slug: { type: "string", example: "cnweb-tech-store" },
+          address: { type: "string", example: "12 Nguyen Hue, Quan 1, TP.HCM" },
+          description: { type: "string", example: "Shop cong nghe chuyen phu kien va thiet bi so." },
+          status: { type: "string", enum: ["ACTIVE", "INACTIVE", "PENDING"], example: "ACTIVE" },
+          createdAt: { type: "string", format: "date-time", example: "2026-05-16T00:00:00.000Z" },
+          updatedAt: { type: "string", format: "date-time", example: "2026-05-16T00:00:00.000Z" },
+        },
+      },
+      ShopCreateRequest: {
+        type: "object",
+        required: ["name", "address"],
+        properties: {
+          name: { type: "string", example: "CNWeb Tech Store" },
+          address: { type: "string", example: "12 Nguyen Hue, Quan 1, TP.HCM" },
+          logoUrl: { type: "string", example: "https://example.com/logo.png" },
+          description: { type: "string", example: "Shop cong nghe chuyen phu kien va thiet bi so." },
+        },
+      },
+      ShopUpdateRequest: {
+        type: "object",
+        properties: {
+          name: { type: "string", example: "CNWeb Tech Store V2" },
+          address: { type: "string", example: "14 Nguyen Hue, Quan 1, TP.HCM" },
+          logoUrl: { type: "string", example: "https://example.com/logo-v2.png" },
+          description: { type: "string", example: "Mo ta moi." },
+        },
+      },
+      ShopSuccessResponse: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          message: { type: "string", example: "Thanh cong" },
+          data: {
+            type: "object",
+            properties: {
+              shop: { $ref: "#/components/schemas/ShopData" },
+            },
+          },
+        },
+      },
+      ShopListSuccessResponse: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          message: { type: "string", example: "Thanh cong" },
+          data: {
+            type: "object",
+            properties: {
+              shops: {
+                type: "array",
+                items: { $ref: "#/components/schemas/ShopData" },
+              },
+              pagination: {
+                type: "object",
+                properties: {
+                  page: { type: "integer", example: 1 },
+                  limit: { type: "integer", example: 20 },
+                  total: { type: "integer", example: 5 },
+                  totalPages: { type: "integer", example: 1 },
+                },
+              },
             },
           },
         },
@@ -903,6 +980,338 @@ const openApiDocument = {
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/catalog/shops": {
+      post: {
+        tags: ["Shops"],
+        summary: "Seller tao shop moi",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/ShopCreateRequest" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Tao shop thanh cong",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ShopSuccessResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Du lieu khong hop le hoac Seller da co shop",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+      get: {
+        tags: ["Shops"],
+        summary: "Lay danh sach shop (Public)",
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", example: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", example: 20 } },
+          { name: "q", in: "query", schema: { type: "string" }, description: "Tim kiem theo ten shop" },
+          { name: "status", in: "query", schema: { type: "string", enum: ["ACTIVE", "INACTIVE"] } },
+        ],
+        responses: {
+          "200": {
+            description: "Lay danh sach shop thanh cong",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ShopListSuccessResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/catalog/shops/my-shop": {
+      get: {
+        tags: ["Shops"],
+        summary: "Seller lay thong tin shop cua minh",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": {
+            description: "Thanh cong",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ShopSuccessResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Khong tim thay shop",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        tags: ["Shops"],
+        summary: "Seller cap nhat thong tin shop cua minh",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/ShopUpdateRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Cap nhat thanh cong",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ShopSuccessResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/catalog/shops/{id}": {
+      get: {
+        tags: ["Shops"],
+        summary: "Lay chi tiet shop theo ID (Public)",
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer" }, example: 3001 },
+        ],
+        responses: {
+          "200": {
+            description: "Thanh cong",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    { $ref: "#/components/schemas/ShopSuccessResponse" },
+                    {
+                      type: "object",
+                      properties: {
+                        stats: {
+                          type: "object",
+                          properties: {
+                            productCount: { type: "integer", example: 12 },
+                          },
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Shop khong ton tai",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/catalog/admin/shops": {
+      get: {
+        tags: ["Admin"],
+        summary: "Admin lay danh sach shop",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", example: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", example: 20 } },
+          { name: "q", in: "query", schema: { type: "string" } },
+          { name: "status", in: "query", schema: { type: "string", enum: ["ACTIVE", "INACTIVE", "PENDING"] } },
+        ],
+        responses: {
+          "200": {
+            description: "Thanh cong",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ShopListSuccessResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/catalog/admin/shops/{shopId}": {
+      get: {
+        tags: ["Admin"],
+        summary: "Admin lay chi tiet shop",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "shopId", in: "path", required: true, schema: { type: "integer" }, example: 3001 },
+        ],
+        responses: {
+          "200": {
+            description: "Thanh cong",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ShopSuccessResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/catalog/admin/shops/{shopId}/status": {
+      patch: {
+        tags: ["Admin"],
+        summary: "Admin duyet/khoa status cua shop",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "shopId", in: "path", required: true, schema: { type: "integer" }, example: 3001 },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["status"],
+                properties: {
+                  status: { type: "string", enum: ["ACTIVE", "INACTIVE", "PENDING"], example: "ACTIVE" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Cap nhat thanh cong",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ShopSuccessResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/catalog/admin/products": {
+      get: {
+        tags: ["Admin"],
+        summary: "Admin lay danh sach tat ca san pham",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", example: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", example: 20 } },
+          { name: "q", in: "query", schema: { type: "string" } },
+          { name: "status", in: "query", schema: { type: "string", enum: ["ACTIVE", "INACTIVE", "OUT_OF_STOCK", "DELETED"] } },
+          { name: "shopId", in: "query", schema: { type: "integer" } },
+          { name: "categoryId", in: "query", schema: { type: "integer" } },
+        ],
+        responses: {
+          "200": {
+            description: "Thanh cong",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "object",
+                      properties: {
+                        products: {
+                          type: "array",
+                          items: { $ref: "#/components/schemas/ProductData" },
+                        },
+                        pagination: {
+                          type: "object",
+                          properties: {
+                            page: { type: "integer", example: 1 },
+                            limit: { type: "integer", example: 20 },
+                            total: { type: "integer", example: 50 },
+                            totalPages: { type: "integer", example: 3 },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/catalog/admin/products/{productId}": {
+      get: {
+        tags: ["Admin"],
+        summary: "Admin lay chi tiet san pham",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "productId", in: "path", required: true, schema: { type: "integer" }, example: 10 },
+        ],
+        responses: {
+          "200": {
+            description: "Thanh cong",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ProductSuccessResponse" },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        tags: ["Admin"],
+        summary: "Admin cap nhat bat ky san pham nao",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "productId", in: "path", required: true, schema: { type: "integer" }, example: 10 },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/ProductUpdateRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Cap nhat thanh cong",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ProductSuccessResponse" },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ["Admin"],
+        summary: "Admin xoa mem san pham",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "productId", in: "path", required: true, schema: { type: "integer" }, example: 10 },
+        ],
+        responses: {
+          "200": {
+            description: "Xoa thanh cong",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ProductSuccessResponse" },
               },
             },
           },
