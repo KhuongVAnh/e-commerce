@@ -26,20 +26,7 @@ const Home = () => {
     const fetchCategories = async () => {
       try {
         const res = await axiosClient.get('/catalog/categories');
-        const responseData = res.data || res;
-        
-        let cats = [];
-        if (responseData?.success && responseData?.data?.categories) {
-          cats = responseData.data.categories;
-        } else if (responseData?.categories) {
-          cats = responseData.categories;
-        } else if (Array.isArray(responseData)) {
-          cats = responseData;
-        } else if (responseData?.data && Array.isArray(responseData.data)) {
-          cats = responseData.data;
-        }
-
-        setCategories(cats.slice(0, 6)); 
+        setCategories((res.data || []).slice(0, 6));
       } catch (err) {
         console.error("Lỗi khi tải danh mục:", err);
       } finally {
@@ -53,15 +40,7 @@ const Home = () => {
           params: { limit: 8, sortBy: 'latest' } 
         });
         
-        const responseData = res.data || res;
-        
-        if (responseData?.success && responseData?.data?.products) {
-          setProducts(responseData.data.products);
-        } else if (responseData?.products) {
-          setProducts(responseData.products);
-        } else if (Array.isArray(responseData)) {
-          setProducts(responseData);
-        }
+        setProducts(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error("Lỗi khi tải sản phẩm trang chủ:", err);
         setErrorPopup({ 
@@ -88,25 +67,13 @@ const Home = () => {
     }
 
     try {
-      const token = localStorage.getItem('accessToken') || '';
-
-      const res = await axiosClient.post('/commerce/cart/items', {
+      await axiosClient.post('/commerce/cart/items', {
         productId: product.id, 
         quantity: 1 
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
       });
 
-      const result = res.data || res;
-      
-      if (result.success || res.status === 200 || res.status === 201 || result.id) {
-        if (fetchCartTotal) fetchCartTotal();
-        alert(`Đã thêm "${product.name}" vào giỏ hàng!`);
-      } else {
-        throw new Error(result.message || "Backend không phản hồi thành công.");
-      }
+      if (fetchCartTotal) fetchCartTotal();
+      alert(`Đã thêm "${product.name}" vào giỏ hàng!`);
     } catch (err) {
       console.error("Chi tiết lỗi API giỏ hàng:", err);
       setErrorPopup({ 

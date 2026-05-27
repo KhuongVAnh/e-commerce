@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import axiosClient from '../../utils/axiosClient';
 
 const SellerOrderDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [orderData, setOrderData] = useState(null);
   const [paymentData, setPaymentData] = useState(null); // Lưu thông tin Payment (Task 3)
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     const fetchOrderAndPayment = async () => {
@@ -19,7 +19,9 @@ const SellerOrderDetail = () => {
         ]);
 
         if (orderRes.status === 'fulfilled') {
-          setOrderData(orderRes.value.data);
+          setOrderData(orderRes.value.data.order);
+        } else {
+          setErrorMsg(orderRes.reason?.message || "Không thể tải chi tiết đơn hàng.");
         }
         
         if (paymentRes.status === 'fulfilled') {
@@ -28,18 +30,6 @@ const SellerOrderDetail = () => {
 
       } catch (error) {
         console.error("Lỗi fetch data", error);
-        // Fallback data để bạn test UI nếu API chưa xong hẳn
-        setOrderData({
-          id, orderCode: 'ORD-9912', orderStatus: 'PENDING', 
-          receiverName: 'Nguyễn Văn A', receiverPhone: '0901234567', receiverAddress: '123 Lê Lợi, Quận 1, TP.HCM',
-          createdAt: '2026-05-17T10:00:00Z', subtotal: 1220000, shippingFee: 30000, grandTotal: 1250000,
-          items: [
-            { productId: 1, productNameSnapshot: 'Hand-Woven Mulberry Silk Scarf', quantity: 1, priceSnapshot: 1220000 }
-          ]
-        });
-        setPaymentData({
-          method: 'VNPAY', status: 'PAID', amount: 1250000, transactionRef: 'VNP123456789'
-        });
       } finally {
         setLoading(false);
       }
@@ -53,12 +43,17 @@ const SellerOrderDetail = () => {
       await axiosClient.patch(`/commerce/seller/orders/${id}/status`, { status: newStatus });
       setOrderData({ ...orderData, orderStatus: newStatus });
       alert(`Đã cập nhật trạng thái đơn hàng thành ${newStatus}`);
-    } catch (error) {
+    } catch {
       alert("Lỗi khi cập nhật trạng thái!");
     }
   };
 
-  if (loading || !orderData) return <div className="p-10 text-center text-slate-500">Đang tải dữ liệu...</div>;
+  if (loading) return <div className="p-10 text-center text-slate-500">Đang tải dữ liệu...</div>;
+  if (!orderData) return <div className="p-10 text-center text-rose-500">{errorMsg || "Không tìm thấy đơn hàng."}</div>;
+
+  const subtotal = orderData.items?.reduce((sum, item) => sum + Number(item.priceSnapshot || 0) * Number(item.quantity || 0), 0) || 0;
+  const shippingFee = Number(orderData.shippingFee || 0);
+  const totalAmount = Number(orderData.totalAmount || subtotal + shippingFee);
 
   return (
     <div className="p-6 md:p-10 font-sans bg-[#f8fafc] min-h-full">
@@ -169,12 +164,12 @@ const SellerOrderDetail = () => {
           <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm">
             <h2 className="text-lg font-black text-slate-900 mb-4">Summary</h2>
             <div className="space-y-3 mb-4 text-sm font-medium text-slate-600 border-b border-slate-100 pb-4">
-              <div className="flex justify-between"><span>Subtotal</span><span>{orderData.subtotal?.toLocaleString()} ₫</span></div>
-              <div className="flex justify-between"><span>Shipping Fee</span><span>{orderData.shippingFee?.toLocaleString()} ₫</span></div>
+              <div className="flex justify-between"><span>Subtotal</span><span>{subtotal.toLocaleString()} ₫</span></div>
+              <div className="flex justify-between"><span>Shipping Fee</span><span>{shippingFee.toLocaleString()} ₫</span></div>
             </div>
             <div className="flex justify-between items-end">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Amount</span>
-              <span className="text-2xl font-black text-[#2e3785]">{orderData.grandTotal?.toLocaleString()} ₫</span>
+              <span className="text-2xl font-black text-[#2e3785]">{totalAmount.toLocaleString()} ₫</span>
             </div>
           </div>
 

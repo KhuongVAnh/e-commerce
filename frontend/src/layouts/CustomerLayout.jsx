@@ -2,6 +2,7 @@ import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import useAuthStore from '../store/useAuthStore';
 import useCartStore from '../store/useCartStore';
+import { authService } from '../services/authService';
 
 const CustomerLayout = () => {
   const navigate = useNavigate();
@@ -18,7 +19,8 @@ const CustomerLayout = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try { await authService.logout(); } catch { /* ignore logout errors */ }
     clearAuthData();
     setIsDropdownOpen(false);
     navigate('/login');
@@ -28,7 +30,7 @@ const CustomerLayout = () => {
     if (isAuthenticated) {
       fetchCartTotal();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, fetchCartTotal]);
 
   const displayQuantity = totalQuantity > 99 ? '99+' : totalQuantity;
 

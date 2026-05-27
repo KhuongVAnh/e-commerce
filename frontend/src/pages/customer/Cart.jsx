@@ -1,13 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import useAuthStore from '../../store/useAuthStore';
+import axiosClient from '../../utils/axiosClient';
 
 const Cart = () => {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
-  
-  const token = localStorage.getItem('accessToken') || '';
-
   const [cartData, setCartData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,16 +15,10 @@ const Cart = () => {
   const fetchCart = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:3000/api/commerce/cart', {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await res.json();
-      
-      if (!res.ok || !result.success) throw new Error(result.message || "Lỗi khi tải giỏ hàng");
-      setCartData(result.data);
+      const res = await axiosClient.get('/commerce/cart');
+      setCartData(res.data);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Lỗi khi tải giỏ hàng");
     } finally {
       setLoading(false);
     }
@@ -58,22 +48,10 @@ const Cart = () => {
         }))
       }));
 
-      const res = await fetch(`http://localhost:3000/api/commerce/cart/items/${itemId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ quantity: newQuantity })
-      });
-      
-      const result = await res.json();
-      if (!res.ok || !result.success) {
-        fetchCart(); 
-        alert(result.message || "Lỗi cập nhật số lượng");
-      }
+      await axiosClient.patch(`/commerce/cart/items/${itemId}`, { quantity: newQuantity });
     } catch (err) {
       fetchCart();
+      alert(err.message || "Lỗi cập nhật số lượng");
     }
   };
 
@@ -95,13 +73,8 @@ const Cart = () => {
         return newIds;
       });
 
-      const res = await fetch(`http://localhost:3000/api/commerce/cart/items/${itemId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (!res.ok) fetchCart();
-    } catch (err) {
+      await axiosClient.delete(`/commerce/cart/items/${itemId}`);
+    } catch {
       fetchCart();
     }
   };

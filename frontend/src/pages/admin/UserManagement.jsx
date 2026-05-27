@@ -1,41 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axiosClient from '../../utils/axiosClient';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
   const [filters, setFilters] = useState({ q: '', role: '', status: '' });
 
-  useEffect(() => {
-    fetchUsers();
-  }, [filters]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       // API chuẩn: GET /api/auth/admin/users
       const queryParams = new URLSearchParams(filters).toString();
       const res = await axiosClient.get(`/auth/admin/users?${queryParams}`);
-      setUsers(res.data || []);
+      setUsers(res.data.users || []);
     } catch (error) {
-      // Mock data hiển thị y hệt Figma
-      setUsers([
-        { id: '#USR-88219', fullName: 'Linh Nguyen', email: 'linh.nguyen@merchant.vn', role: 'ADMIN', status: 'ACTIVE', avatar: 'https://i.pravatar.cc/150?u=1' },
-        { id: '#USR-77312', fullName: 'Minh Tran', email: 'minh.seller@elevated.co', role: 'SELLER', status: 'ACTIVE', avatar: 'https://i.pravatar.cc/150?u=2' },
-        { id: '#USR-12893', fullName: 'Quoc Bao', email: 'q.bao@gmail.com', role: 'CUSTOMER', status: 'BANNED', avatar: null },
-        { id: '#USR-55401', fullName: 'Mai Anh', email: 'anh.mai@shoppe.vn', role: 'CUSTOMER', status: 'ACTIVE', avatar: 'https://i.pravatar.cc/150?u=4' },
-      ]);
+      setUsers([]);
+      setErrorMsg(error.message || "Không thể tải danh sách người dùng.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
   // Logic Xóa User / Block User (Cập nhật Status)
-  const handleBlockUser = async (userId, currentRole) => {
+  const handleBlockUser = async (userId) => {
     if (!window.confirm('Bạn có chắc chắn muốn thao tác với tài khoản này?')) return;
     
     try {
@@ -45,10 +42,10 @@ const UserManagement = () => {
       fetchUsers();
     } catch (error) {
       // Xử lý bắt lỗi đặc thù theo yêu cầu
-      if (error.response?.data?.error?.code === 'LAST_ADMIN_PROTECTED') {
+      if (error.error?.code === 'LAST_ADMIN_PROTECTED') {
         alert("LỖI HỆ THỐNG: Không thể khoá/xoá tài khoản Admin cuối cùng của hệ thống!");
       } else {
-        alert("Lỗi: " + (error.response?.data?.message || 'Không thể thao tác.'));
+        alert("Lỗi: " + (error.message || 'Không thể thao tác.'));
       }
     }
   };
@@ -88,7 +85,8 @@ const UserManagement = () => {
           <select name="status" onChange={handleFilterChange} className="w-1/2 md:w-auto px-3 md:px-4 py-2.5 md:py-3 bg-slate-50 border border-slate-100 text-slate-700 text-xs md:text-sm font-bold rounded-xl outline-none appearance-none">
             <option value="">All Status</option>
             <option value="ACTIVE">Active</option>
-            <option value="BANNED">Banned</option>
+            <option value="INACTIVE">Inactive</option>
+            <option value="BLOCKED">Blocked</option>
           </select>
         </div>
       </div>
@@ -109,6 +107,8 @@ const UserManagement = () => {
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr><td colSpan="5" className="p-6 text-center text-slate-400">Loading...</td></tr>
+              ) : errorMsg ? (
+                <tr><td colSpan="5" className="p-6 text-center text-rose-500">{errorMsg}</td></tr>
               ) : (
                 users.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
@@ -132,7 +132,7 @@ const UserManagement = () => {
                     <td className="px-4 md:px-6 py-3 md:py-4">
                       <div className={`flex items-center gap-1.5 text-[11px] md:text-xs font-bold ${u.status === 'ACTIVE' ? 'text-emerald-600' : 'text-rose-600'}`}>
                         <div className={`w-1.5 h-1.5 rounded-full ${u.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                        {u.status === 'ACTIVE' ? 'Active' : 'Banned'}
+                        {u.status === 'ACTIVE' ? 'Active' : u.status === 'BLOCKED' ? 'Blocked' : 'Inactive'}
                       </div>
                     </td>
                     <td className="px-4 md:px-6 py-3 md:py-4 text-right">

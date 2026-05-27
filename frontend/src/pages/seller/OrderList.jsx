@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axiosClient from '../../utils/axiosClient';
 import { useNavigate } from 'react-router-dom';
 
@@ -6,6 +6,7 @@ const SellerOrderList = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
   const [activeTab, setActiveTab] = useState('ALL');
 
   const tabs = [
@@ -17,26 +18,24 @@ const SellerOrderList = () => {
     { key: 'CANCELLED', label: 'Cancelled' }
   ];
 
-  useEffect(() => {
-    fetchOrders();
-  }, [activeTab]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       const query = activeTab !== 'ALL' ? `?status=${activeTab}` : '';
       const res = await axiosClient.get(`/commerce/seller/orders${query}`);
-      setOrders(res.data || []);
+      setOrders(res.data.orders || []);
     } catch (error) {
-      // Mock data nếu API chưa có data thực tế
-      setOrders([
-        { id: '1', orderCode: 'ORD-9912', receiverName: 'Nguyễn Văn A', totalAmount: 1250000, orderStatus: 'PENDING', paymentMethod: 'VNPAY', createdAt: '2026-05-17T10:00:00Z' },
-        { id: '2', orderCode: 'ORD-9913', receiverName: 'Trần Thị B', totalAmount: 450000, orderStatus: 'CONFIRMED', paymentMethod: 'COD', createdAt: '2026-05-16T14:30:00Z' },
-      ]);
+      setErrorMsg(error.message || "Không thể tải danh sách đơn hàng.");
+      setOrders([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
@@ -44,7 +43,7 @@ const SellerOrderList = () => {
       setOrders(orders.map(o => o.id === orderId ? { ...o, orderStatus: newStatus } : o));
       alert(`Đã cập nhật trạng thái thành ${newStatus}`);
     } catch (error) {
-      alert("Lỗi khi cập nhật trạng thái: " + (error.response?.data?.message || "Internal Error"));
+      alert("Lỗi khi cập nhật trạng thái: " + (error.message || "Internal Error"));
     }
   };
 
@@ -96,6 +95,8 @@ const SellerOrderList = () => {
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr><td colSpan="7" className="p-10 text-center text-slate-400 font-medium">Loading orders...</td></tr>
+              ) : errorMsg ? (
+                <tr><td colSpan="7" className="p-10 text-center text-rose-500 font-medium">{errorMsg}</td></tr>
               ) : orders.length === 0 ? (
                 <tr><td colSpan="7" className="p-10 text-center text-slate-400 font-medium">No orders found.</td></tr>
               ) : orders.map((order) => (

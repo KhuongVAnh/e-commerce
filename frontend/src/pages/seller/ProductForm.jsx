@@ -10,6 +10,8 @@ const ProductForm = () => {
 
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [shopId, setShopId] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [formData, setFormData] = useState({
     name: '', categoryId: '', price: '', stockQuantity: '', description: '', thumbnailUrl: ''
   });
@@ -17,12 +19,16 @@ const ProductForm = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const catRes = await axiosClient.get('/catalog/categories');
+        const [catRes, shopRes] = await Promise.all([
+          axiosClient.get('/catalog/categories'),
+          axiosClient.get('/catalog/shops/my-shop'),
+        ]);
         setCategories(catRes.data || []);
+        setShopId(shopRes.data.shop.id);
 
         if (isUpdate) {
           const prodRes = await axiosClient.get(`/catalog/products/${id}`);
-          const product = prodRes.data?.product;
+          const product = prodRes.data.product;
           if (product) {
             setFormData({
               name: product.name,
@@ -45,24 +51,36 @@ const ProductForm = () => {
     e.preventDefault();
     setLoading(true);
 
-    const payload = {
-      name: formData.name,
-      categoryId: parseInt(formData.categoryId),
-      price: parseFloat(formData.price),
-      stockQuantity: parseInt(formData.stockQuantity),
-      description: formData.description,
-      thumbnailUrl: formData.thumbnailUrl || 'https://via.placeholder.com/300',
-      status: "ACTIVE"
-    };
-
     try {
+      let thumbnailUrl = formData.thumbnailUrl || 'https://via.placeholder.com/300';
+      if (imageFile) {
+        const uploadData = new FormData();
+        uploadData.append('image', imageFile);
+        const uploadRes = await axiosClient.post('/uploads/images', uploadData);
+        thumbnailUrl = uploadRes.data.url;
+      }
+
+      const payload = {
+        name: formData.name,
+        categoryId: parseInt(formData.categoryId),
+        price: parseFloat(formData.price),
+        stockQuantity: parseInt(formData.stockQuantity),
+        description: formData.description,
+        thumbnailUrl,
+        status: "ACTIVE"
+      };
+
+      if (!isUpdate) {
+        payload.shopId = Number(shopId);
+      }
+
       if (isUpdate) {
         await axiosClient.put(`/catalog/products/${id}`, payload);
       } else {
         await axiosClient.post('/catalog/products', payload);
       }
       navigate('/seller/products');
-    } catch (error) {
+    } catch {
       alert("Có lỗi xảy ra, vui lòng kiểm tra lại!");
     } finally {
       setLoading(false);
@@ -98,7 +116,10 @@ const ProductForm = () => {
               type="file" hidden ref={fileInputRef} 
               onChange={(e) => {
                 const file = e.target.files[0];
-                if(file) setFormData({...formData, thumbnailUrl: URL.createObjectURL(file)});
+                if(file) {
+                  setImageFile(file);
+                  setFormData({...formData, thumbnailUrl: URL.createObjectURL(file)});
+                }
               }} 
             />
             <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition">

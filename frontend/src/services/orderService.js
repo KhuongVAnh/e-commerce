@@ -8,6 +8,6 @@ export const orderService = {
     return axiosClient.get(`/commerce/orders/${id}`);
   },
   cancelOrder: (orderCode) => {
-    return axiosClient.post(`http://localhost:3000/api/commerce/orders/${orderCode}/cancel`);
+    return axiosClient.post(`/commerce/orders/${orderCode}/cancel`);
   }
 };
