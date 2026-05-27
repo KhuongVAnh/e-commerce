@@ -48,12 +48,10 @@ const CustomerLayout = () => {
       {/* 1. TOP NAVIGATION BAR */}
       <header className="sticky top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-sm">
         <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-          {/* Brand Logo */}
           <Link to="/" className="text-2xl font-bold tracking-tighter text-[#2b3896] font-headline">
             E-commerce
           </Link>
 
-          {/* Search Bar */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
             <form onSubmit={handleSearch} className="relative w-full">
               <input 
@@ -69,7 +67,6 @@ const CustomerLayout = () => {
             </form>
           </div>
 
-          {/* Action Cluster */}
           <div className="flex items-center gap-6">
             <nav className="hidden md:flex items-center gap-8">
               <Link to="/" className="text-[#2b3896] font-semibold border-b-2 border-[#2b3896] transition-colors duration-200">Home</Link>
@@ -78,7 +75,6 @@ const CustomerLayout = () => {
             </nav>
             
             <div className="flex items-center gap-4">
-              {/* Nút Giỏ hàng */}
               <Link to="/cart" className="relative cursor-pointer hover:opacity-70 active:scale-95 transition-all mr-2">
                 <span className="material-symbols-outlined text-[#2b3896] text-3xl">shopping_bag</span>
                 {totalQuantity > 0 && (
@@ -88,7 +84,6 @@ const CustomerLayout = () => {
                 )}
               </Link>
 
-              {/* KHU VỰC AUTH */}
               {isAuthenticated ? (
                 <div className="relative" ref={dropdownRef}>
                   <button 
@@ -100,7 +95,6 @@ const CustomerLayout = () => {
                     </span>
                   </button>
 
-                  {/* Dropdown Menu */}
                   {isDropdownOpen && (
                     <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden">
                       <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
@@ -119,9 +113,9 @@ const CustomerLayout = () => {
                         </Link>
 
                         {(user?.role === 'ADMIN' || user?.role === 'SELLER') && (
-                          <Link to={user.role === 'ADMIN' ? '/admin' : '/seller'} className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-orange-600 hover:bg-orange-50 transition-colors border-t border-gray-50 mt-1 pt-2">
+                          <Link to={user.role === 'ADMIN' ? '/admin' : '/seller'} onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-orange-600 hover:bg-orange-50 transition-colors border-t border-gray-50 mt-1 pt-2">
                             <span className="material-symbols-outlined text-[20px]">dashboard</span>
-                            Quản lý hệ thống
+                            {user.role === 'ADMIN' ? 'Trang quản trị' : 'Kênh người bán'}
                           </Link>
                         )}
                       </div>
@@ -154,18 +148,10 @@ const CustomerLayout = () => {
       {/* 3. FOOTER */}
       <footer className="bg-slate-900 text-slate-300 py-12 md:py-16 border-t border-slate-800 font-body">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-          
-          {/* Cột 1: Thông tin thương hiệu */}
           <div className="space-y-4">
-            <Link to="/" className="text-2xl font-bold tracking-tighter text-white font-headline">
-              E-commerce
-            </Link>
-            <p className="text-sm text-slate-400 leading-relaxed pr-4">
-              Khám phá bộ sưu tập đồ công nghệ và thời trang cao cấp được tuyển chọn kỹ lưỡng dành riêng cho bạn.
-            </p>
+            <Link to="/" className="text-2xl font-bold tracking-tighter text-white font-headline">E-commerce</Link>
+            <p className="text-sm text-slate-400 leading-relaxed pr-4">Khám phá bộ sưu tập đồ công nghệ và thời trang cao cấp được tuyển chọn kỹ lưỡng dành riêng cho bạn.</p>
           </div>
-
-          {/* Cột 2: Chăm sóc khách hàng */}
           <div>
             <h3 className="text-white font-semibold mb-6 uppercase tracking-wider text-sm">Chăm sóc khách hàng</h3>
             <ul className="space-y-3 text-sm">
@@ -175,8 +161,6 @@ const CustomerLayout = () => {
               <li><Link to="/contact" className="hover:text-white transition-colors">Liên hệ với chúng tôi</Link></li>
             </ul>
           </div>
-
-          {/* Cột 3: Về chúng tôi */}
           <div>
             <h3 className="text-white font-semibold mb-6 uppercase tracking-wider text-sm">Về thương hiệu</h3>
             <ul className="space-y-3 text-sm">
@@ -186,21 +170,12 @@ const CustomerLayout = () => {
               <li><Link to="/privacy" className="hover:text-white transition-colors">Chính sách bảo mật</Link></li>
             </ul>
           </div>
-
-          {/* Cột 4: Thanh toán & Kết nối */}
           <div>
             <h3 className="text-white font-semibold mb-6 uppercase tracking-wider text-sm">Thanh toán an toàn</h3>
             <div className="flex gap-3 mb-8">
-              {/* Nút VNPay giả lập */}
-              <div className="w-14 h-8 bg-white rounded flex items-center justify-center text-xs font-extrabold text-blue-800 border border-slate-700">
-                VNPAY
-              </div>
-              {/* Nút COD giả lập */}
-              <div className="w-14 h-8 bg-white rounded flex items-center justify-center text-xs font-extrabold text-gray-800 border border-slate-700">
-                COD
-              </div>
+              <div className="w-14 h-8 bg-white rounded flex items-center justify-center text-xs font-extrabold text-blue-800 border border-slate-700">VNPAY</div>
+              <div className="w-14 h-8 bg-white rounded flex items-center justify-center text-xs font-extrabold text-gray-800 border border-slate-700">COD</div>
             </div>
-            
             <h3 className="text-white font-semibold mb-4 uppercase tracking-wider text-sm">Kết nối</h3>
             <div className="flex gap-4">
               <a href="#" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-[#2b3896] hover:text-white transition-colors">
@@ -212,8 +187,6 @@ const CustomerLayout = () => {
             </div>
           </div>
         </div>
-
-        {/* Bản quyền */}
         <div className="max-w-7xl mx-auto px-6 mt-12 pt-8 border-t border-slate-800 text-sm text-center text-slate-500 flex flex-col md:flex-row justify-between items-center gap-4">
           <p>&copy; 2026 E-Commerce. Mọi quyền được bảo lưu.</p>
           <p>Dự án E-Commerce - Nhóm 26</p>
@@ -221,7 +194,6 @@ const CustomerLayout = () => {
       </footer>
 
       {/* 4. MOBILE NAVIGATION BAR */}
-
       <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pt-3 pb-8 md:hidden bg-white/90 backdrop-blur-2xl shadow-[0_-4px_20px_rgba(43,56,150,0.08)] border-t border-slate-100">
         <Link to="/" className="flex flex-col items-center justify-center bg-indigo-50 text-[#2b3896] rounded-xl px-4 py-1.5 active:scale-90 duration-150">
           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>home</span>
@@ -244,7 +216,6 @@ const CustomerLayout = () => {
           )}
         </Link>
       </nav>
-
     </div>
   );
 };
