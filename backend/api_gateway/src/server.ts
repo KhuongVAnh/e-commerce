@@ -96,5 +96,6 @@ async function start() {
 }
 app.listen(port, () => {
   console.log(`api_gateway listening on port ${port}`);
+  void startKafkaConsumer();
 });
 

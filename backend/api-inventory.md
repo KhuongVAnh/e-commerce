@@ -66,6 +66,7 @@
 | Đã có | GET | `/api/catalog/shops/my-shop` | SELLER | Không có body | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt }` |
 | Đã có | PUT | `/api/catalog/shops/my-shop` | SELLER | Ít nhất 1 field:<br>`name?: string`<br>`address?: string`<br>`logoUrl?: string`<br>`description?: string` | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt }` |
 | Đã có | GET | `/api/catalog/shops/internal/by-seller/:sellerId` | Internal | Path param:<br>`sellerId: string` | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt }` |
+| Đã có | GET | `/api/catalog/shops/internal/:shopId` | Internal | Path param:<br>`shopId: string` | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt }` |
 | Đã có | GET | `/api/catalog/admin/shops` | ADMIN | Query optional:<br>`q?: string`<br>`status?: ACTIVE, INACTIVE, PENDING`<br>`page?: number`<br>`limit?: number` | `shops: [ { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt } ]`<br>`pagination: { page, limit, total, totalPages }` |
 | Đã có | GET | `/api/catalog/admin/shops/:shopId` | ADMIN | Path param:<br>`shopId: number` | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt }` |
 | Đã có | PATCH | `/api/catalog/admin/shops/:shopId/status` | ADMIN | Path param:<br>`shopId: number`<br><br>Body:<br>`status: ACTIVE, INACTIVE, PENDING` | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt }` |
@@ -182,15 +183,15 @@
 
 | Trạng thái hiện tại | Method | Endpoint | Auth / Role | Request payload | Response payload |
 |---|---|---|---|---|---|
-| Chưa có | GET | `/api/notifications/me` | User đã đăng nhập | Query optional:<br>`page?: number`<br>`limit?: number`<br>`isRead?: boolean` | `notifications: [ { id, type, title, content, isRead, createdAt } ]`<br>`unreadCount: number`<br>`meta.pagination: { page, limit, total, totalPages }` |
-| Chưa có | PATCH | `/api/notifications/:id/read` | User đã đăng nhập | Path param:<br>`id: number`<br><br>Không có body | `notification: { id, isRead: true, readAt }` |
+| Đã có | GET | `/api/notifications/me` | User đã đăng nhập | Query optional:<br>`page?: number`<br>`limit?: number`<br>`isRead?: boolean` | `notifications: [ { id, userId, type, title, content, isRead, readAt, createdAt } ]`<br>`unreadCount: number`<br>`meta.pagination: { page, limit, total, totalPages }` |
+| Đã có | PATCH | `/api/notifications/:id/read` | User đã đăng nhập | Path param:<br>`id: number`<br><br>Không có body | `notification: { id, isRead: true, readAt }` |
 
 ### 13.1 Ghi chú riêng cho Notification
 
 | Nội dung | Ghi chú |
 |---|---|
-| Scope hiện tại | Chưa implement trong đợt bổ sung API backend này |
-| Kafka / event | Không thuộc scope file này, sẽ do thành viên khác thực hiện |
+| Scope hiện tại | Notification đang được xử lý local trong `api_gateway` |
+| Kafka / event | `api_gateway` consume các topic `user.registered`, `order.created`, `order.status.updated`, `payment.succeeded`, `payment.failed` để tạo notification |
 
 ---
 
@@ -273,15 +274,15 @@
 |---|---:|---:|---:|
 | Auth | 9 | 0 | 0 |
 | Upload | 1 | 0 | 0 |
-| Shop | 9 | 0 | 0 |
+| Shop | 10 | 0 | 0 |
 | Category | 4 | 0 | 0 |
 | Product | 13 | 0 | 0 |
 | Cart | 5 | 0 | 0 |
 | Order | 12 | 0 | 0 |
 | Payment | 3 | 0 | 0 |
 | Stats | 2 | 0 | 0 |
-| Notification | 0 | 2 | 0 |
-| **Tổng** | **58** | **2** | **0** |
+| Notification | 2 | 0 | 0 |
+| **Tổng** | **61** | **0** | **0** |
 
 ---
 

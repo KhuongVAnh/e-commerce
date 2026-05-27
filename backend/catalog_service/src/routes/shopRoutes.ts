@@ -59,6 +59,12 @@ router.get(
     asyncHandler(getShopBySellerIdController),
 );
 
+// internal endpoint for other services to lookup shop by shopId
+router.get(
+    "/shops/internal/:shopId",
+    asyncHandler(getShopByIdInternalController),
+);
+
 router.get(
     "/shops/:shopId",
     asyncHandler(getPublicShopDetailController),
