@@ -13,12 +13,32 @@ const TOPICS = [
     "payment.failed"
 ];
 
+async function ensureNotificationTopics() {
+    const admin = kafka.admin();
+
+    await admin.connect();
+    try {
+        await admin.createTopics({
+            waitForLeaders: true,
+            topics: TOPICS.map((topic) => ({
+                topic,
+                numPartitions: 1,
+                replicationFactor: 1,
+            })),
+        });
+    } finally {
+        await admin.disconnect();
+    }
+}
+
 export async function startKafkaConsumer() {
     if (isConsumerStarted) {
         return;
     }
 
     try {
+        await ensureNotificationTopics();
+
         await consumer.connect();
         console.log("[Kafka Consumer] Connected successfully.");
 
