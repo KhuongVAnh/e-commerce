@@ -83,6 +83,9 @@ export function isProtectedCommerceService(req: Request): boolean {
  */
 export function isProtectedNotificationService(req: Request): boolean {
     const pathname = getPathname(req);
+    if (pathname.startsWith("/api/notifications/docs")) {
+        return false;
+    }
     return pathname.startsWith("/api/notifications");
 }
 
