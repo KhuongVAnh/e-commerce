@@ -183,7 +183,9 @@
 
 | Trạng thái hiện tại | Method | Endpoint | Auth / Role | Request payload | Response payload |
 |---|---|---|---|---|---|
-| Đã có | GET | `/api/notifications/me` | User đã đăng nhập | Query optional:<br>`page?: number`<br>`limit?: number`<br>`isRead?: boolean` | `notifications: [ { id, userId, type, title, content, isRead, readAt, createdAt } ]`<br>`unreadCount: number`<br>`meta.pagination: { page, limit, total, totalPages }` |
+| Đã có | GET | `/api/notifications/me` | User đã đăng nhập | Query optional:<br>`page?: number`<br>`limit?: number`<br>`isRead?: boolean` | `notifications: [ { id, userId, type, title, content, metadata, isRead, readAt, createdAt } ]`<br>`unreadCount: number`<br>`meta.pagination: { page, limit, total, totalPages }` |
+| Đã có | GET | `/api/notifications/:id` | User đã đăng nhập | Path param:<br>`id: number` | `notification: { id, userId, type, title, content, metadata, isRead, readAt, createdAt }` |
+| Đã có | PATCH | `/api/notifications/read-all` | User đã đăng nhập | Không có body | `updatedCount: number` |
 | Đã có | PATCH | `/api/notifications/:id/read` | User đã đăng nhập | Path param:<br>`id: number`<br><br>Không có body | `notification: { id, isRead: true, readAt }` |
 
 ### 13.1 Ghi chú riêng cho Notification
@@ -192,6 +194,7 @@
 |---|---|
 | Scope hiện tại | Notification đang được xử lý local trong `api_gateway` |
 | Kafka / event | `api_gateway` consume các topic `user.registered`, `order.created`, `order.status.updated`, `payment.succeeded`, `payment.failed` để tạo notification |
+| Metadata | Notification mới có thể lưu `metadata` để frontend điều hướng tới đơn hàng/thanh toán/trang liên quan |
 
 ---
 
@@ -281,8 +284,8 @@
 | Order | 12 | 0 | 0 |
 | Payment | 3 | 0 | 0 |
 | Stats | 2 | 0 | 0 |
-| Notification | 2 | 0 | 0 |
-| **Tổng** | **61** | **0** | **0** |
+| Notification | 4 | 0 | 0 |
+| **Tổng** | **63** | **0** | **0** |
 
 ---
 

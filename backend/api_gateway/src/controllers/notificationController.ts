@@ -10,10 +10,19 @@ function serializeNotification(notif: any) {
         type: notif.type,
         title: notif.title,
         content: notif.content,
+        metadata: notif.metadata ?? null,
         isRead: notif.isRead,
         readAt: notif.readAt ? notif.readAt.toISOString() : null,
         createdAt: notif.createdAt.toISOString(),
     };
+}
+
+function parseBigIntId(value: string | string[] | undefined): bigint | null {
+    if (typeof value !== "string" || !/^\d+$/.test(value)) {
+        return null;
+    }
+
+    return BigInt(value);
 }
 
 /**
@@ -97,6 +106,77 @@ export async function getMyNotifications(req: Request, res: Response): Promise<v
 }
 
 /**
+ * GET /api/notifications/:id
+ * Retrieves one notification for the logged-in user.
+ */
+export async function getNotificationDetail(req: Request, res: Response): Promise<void> {
+    const authUser = (req as any).authUser;
+    const requestId = res.locals.requestId;
+    const idParam = req.params.id;
+
+    if (!authUser) {
+        sendError(res, {
+            requestId,
+            statusCode: 401,
+            message: "Bạn chưa đăng nhập",
+            error: { code: "UNAUTHORIZED" },
+        });
+        return;
+    }
+
+    try {
+        const userId = BigInt(authUser.userId);
+        const notificationId = parseBigIntId(idParam);
+
+        if (!notificationId) {
+            sendError(res, {
+                requestId,
+                statusCode: 400,
+                message: "ID thông báo không hợp lệ",
+                error: { code: "INVALID_NOTIFICATION_ID" },
+            });
+            return;
+        }
+
+        const notification = await prisma.notification.findFirst({
+            where: {
+                id: notificationId,
+                userId,
+            },
+        });
+
+        if (!notification) {
+            sendError(res, {
+                requestId,
+                statusCode: 404,
+                message: "Không tìm thấy thông báo hoặc bạn không có quyền sở hữu",
+                error: { code: "RESOURCE_NOT_FOUND" },
+            });
+            return;
+        }
+
+        sendSuccess(res, {
+            requestId,
+            message: "Lấy chi tiết thông báo thành công",
+            data: {
+                notification: serializeNotification(notification),
+            },
+        });
+    } catch (error: any) {
+        console.error("[NotificationController] getNotificationDetail error:", error);
+        sendError(res, {
+            requestId,
+            statusCode: 500,
+            message: "Lỗi hệ thống khi lấy chi tiết thông báo",
+            error: {
+                code: "INTERNAL_SERVER_ERROR",
+                details: [error.message],
+            },
+        });
+    }
+}
+
+/**
  * PATCH /api/notifications/:id/read
  * Marks a notification as read.
  */
@@ -117,7 +197,17 @@ export async function markNotificationAsRead(req: Request, res: Response): Promi
 
     try {
         const userId = BigInt(authUser.userId);
-        const notifId = BigInt(idParam as string);
+        const notifId = parseBigIntId(idParam);
+
+        if (!notifId) {
+            sendError(res, {
+                requestId,
+                statusCode: 400,
+                message: "ID thông báo không hợp lệ",
+                error: { code: "INVALID_NOTIFICATION_ID" },
+            });
+            return;
+        }
 
         // Verify the notification exists and belongs to the user
         const existing = await prisma.notification.findFirst({
@@ -160,6 +250,58 @@ export async function markNotificationAsRead(req: Request, res: Response): Promi
             requestId,
             statusCode: 500,
             message: "Lỗi hệ thống khi đánh dấu đã đọc",
+            error: {
+                code: "INTERNAL_SERVER_ERROR",
+                details: [error.message],
+            },
+        });
+    }
+}
+
+/**
+ * PATCH /api/notifications/read-all
+ * Marks all notifications of the logged-in user as read.
+ */
+export async function markAllNotificationsAsRead(req: Request, res: Response): Promise<void> {
+    const authUser = (req as any).authUser;
+    const requestId = res.locals.requestId;
+
+    if (!authUser) {
+        sendError(res, {
+            requestId,
+            statusCode: 401,
+            message: "Bạn chưa đăng nhập",
+            error: { code: "UNAUTHORIZED" },
+        });
+        return;
+    }
+
+    try {
+        const userId = BigInt(authUser.userId);
+        const result = await prisma.notification.updateMany({
+            where: {
+                userId,
+                isRead: false,
+            },
+            data: {
+                isRead: true,
+                readAt: new Date(),
+            },
+        });
+
+        sendSuccess(res, {
+            requestId,
+            message: "Đánh dấu tất cả thông báo đã đọc thành công",
+            data: {
+                updatedCount: result.count,
+            },
+        });
+    } catch (error: any) {
+        console.error("[NotificationController] markAllNotificationsAsRead error:", error);
+        sendError(res, {
+            requestId,
+            statusCode: 500,
+            message: "Lỗi hệ thống khi đánh dấu tất cả đã đọc",
             error: {
                 code: "INTERNAL_SERVER_ERROR",
                 details: [error.message],

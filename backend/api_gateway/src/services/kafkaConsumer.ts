@@ -13,6 +13,12 @@ const TOPICS = [
     "payment.failed"
 ];
 
+function pruneMetadata(metadata: Record<string, unknown>): any {
+    return Object.fromEntries(
+        Object.entries(metadata).filter(([, value]) => value !== undefined && value !== null),
+    );
+}
+
 async function ensureNotificationTopics() {
     const admin = kafka.admin();
 
@@ -73,7 +79,7 @@ export async function startKafkaConsumer() {
 export async function handleNotificationEvent(topic: string, payload: any) {
     switch (topic) {
         case "user.registered": {
-            const { userId, fullName, role } = payload;
+            const { userId, email, fullName, role } = payload;
             if (!userId) return;
 
             await prisma.notification.create({
@@ -82,13 +88,19 @@ export async function handleNotificationEvent(topic: string, payload: any) {
                     type: "user.registered",
                     title: "Đăng ký tài khoản thành công",
                     content: `Chào mừng ${fullName} đã tham gia hệ thống e-commerce với vai trò ${role}!`,
+                    metadata: pruneMetadata({
+                        userId,
+                        email,
+                        fullName,
+                        role,
+                    }),
                 }
             });
             break;
         }
 
         case "order.created": {
-            const { orderCode, customerId, totalAmount, receiverName, sellerId } = payload;
+            const { orderId, orderCode, customerId, shopId, totalAmount, receiverName, sellerId } = payload;
             if (!orderCode) return;
 
             // 1. Notify Customer
@@ -99,6 +111,14 @@ export async function handleNotificationEvent(topic: string, payload: any) {
                         type: "order.created",
                         title: "Đặt hàng thành công",
                         content: `Đơn hàng ${orderCode} của bạn đã được tạo thành công với tổng số tiền ${Number(totalAmount).toLocaleString()} VND.`,
+                        metadata: pruneMetadata({
+                            orderId,
+                            orderCode,
+                            customerId,
+                            shopId,
+                            sellerId,
+                            totalAmount,
+                        }),
                     }
                 });
             }
@@ -111,6 +131,15 @@ export async function handleNotificationEvent(topic: string, payload: any) {
                         type: "order.created",
                         title: "Có đơn hàng mới",
                         content: `Đơn hàng mới ${orderCode} đã được đặt tại cửa hàng của bạn từ người nhận: ${receiverName}.`,
+                        metadata: pruneMetadata({
+                            orderId,
+                            orderCode,
+                            customerId,
+                            shopId,
+                            sellerId,
+                            receiverName,
+                            totalAmount,
+                        }),
                     }
                 });
             }
@@ -118,7 +147,7 @@ export async function handleNotificationEvent(topic: string, payload: any) {
         }
 
         case "order.status.updated": {
-            const { orderCode, customerId, status } = payload;
+            const { orderId, orderCode, customerId, shopId, sellerId, status } = payload;
             if (!orderCode || !customerId) return;
 
             await prisma.notification.create({
@@ -127,13 +156,21 @@ export async function handleNotificationEvent(topic: string, payload: any) {
                     type: "order.status.updated",
                     title: "Cập nhật trạng thái đơn hàng",
                     content: `Đơn hàng ${orderCode} của bạn đã được chuyển sang trạng thái: ${status}.`,
+                    metadata: pruneMetadata({
+                        orderId,
+                        orderCode,
+                        customerId,
+                        shopId,
+                        sellerId,
+                        status,
+                    }),
                 }
             });
             break;
         }
 
         case "payment.succeeded": {
-            const { orderCode, customerId, amount, transactionRef } = payload;
+            const { orderId, orderCode, customerId, amount, transactionRef } = payload;
             if (!orderCode || !customerId) return;
 
             await prisma.notification.create({
@@ -142,13 +179,20 @@ export async function handleNotificationEvent(topic: string, payload: any) {
                     type: "payment.succeeded",
                     title: "Thanh toán thành công",
                     content: `Đơn hàng ${orderCode} đã thanh toán thành công số tiền ${Number(amount).toLocaleString()} VND. Mã giao dịch: ${transactionRef}.`,
+                    metadata: pruneMetadata({
+                        orderId,
+                        orderCode,
+                        customerId,
+                        amount,
+                        transactionRef,
+                    }),
                 }
             });
             break;
         }
 
         case "payment.failed": {
-            const { orderCode, customerId, amount } = payload;
+            const { orderId, orderCode, customerId, amount } = payload;
             if (!orderCode || !customerId) return;
 
             await prisma.notification.create({
@@ -157,6 +201,12 @@ export async function handleNotificationEvent(topic: string, payload: any) {
                     type: "payment.failed",
                     title: "Thanh toán thất bại",
                     content: `Thanh toán cho đơn hàng ${orderCode} với số tiền ${Number(amount).toLocaleString()} VND đã thất bại hoặc bị hủy.`,
+                    metadata: pruneMetadata({
+                        orderId,
+                        orderCode,
+                        customerId,
+                        amount,
+                    }),
                 }
             });
             break;

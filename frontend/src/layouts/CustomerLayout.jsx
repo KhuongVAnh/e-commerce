@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import useAuthStore from '../store/useAuthStore';
 import useCartStore from '../store/useCartStore';
 import { authService } from '../services/authService';
+import NotificationBell from '../components/NotificationBell';
 
 const CustomerLayout = () => {
   const navigate = useNavigate();
@@ -80,6 +81,8 @@ const CustomerLayout = () => {
             </nav>
             
             <div className="flex items-center gap-4">
+              <NotificationBell />
+
               {/* Nút Giỏ hàng */}
               <Link to="/cart" className="relative cursor-pointer hover:opacity-70 active:scale-95 transition-all mr-2">
                 <span className="material-symbols-outlined text-[#2b3896] text-3xl">shopping_bag</span>

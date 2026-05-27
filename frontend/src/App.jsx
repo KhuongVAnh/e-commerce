@@ -37,6 +37,8 @@ import PaymentResult from './pages/customer/PaymentResult';
 import Categories from './pages/customer/Categories';
 import ShopList from './pages/customer/ShopList';
 import ShopDetail from './pages/customer/ShopDetail';
+import Notifications from './pages/notifications/Notifications';
+import NotificationDetail from './pages/notifications/NotificationDetail';
 
 const Unauthorized = () => <div className="p-10 text-center text-red-500 font-bold text-2xl">403 - Bạn không có quyền truy cập!</div>;
 const NotFound = () => <div className="p-10 text-center text-gray-700 font-bold text-2xl">404 - Trang không tồn tại</div>;
@@ -70,6 +72,8 @@ function App() {
             <Route path="checkout" element={<Checkout />} />
             <Route path="orders" element={<OrderList />} />
             <Route path="orders/:id" element={<OrderDetail />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="notifications/:id" element={<NotificationDetail />} />
             <Route path="payment-return" element={<PaymentResult />} />
           </Route>
         </Route>
@@ -83,6 +87,8 @@ function App() {
             <Route path="categories" element={<CategoryManagement />} />
             <Route path="products" element={<ProductManagement />} />
             <Route path="orders" element={<OrderManagement />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="notifications/:id" element={<NotificationDetail />} />
           </Route>
         </Route>
 
@@ -102,6 +108,8 @@ function App() {
             {/* Quản lý Đơn hàng */}
             <Route path="orders" element={<SellerOrderList />} />
             <Route path="orders/:id" element={<SellerOrderDetail />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="notifications/:id" element={<NotificationDetail />} />
           </Route>
         </Route>
 
