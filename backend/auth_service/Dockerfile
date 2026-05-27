@@ -16,4 +16,4 @@ RUN npm run build || true
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && node prisma/seed.js && node dist/server.js"]
+CMD ["sh", "-c", "npx prisma generate && npx prisma db push && node dist/server.js"]
