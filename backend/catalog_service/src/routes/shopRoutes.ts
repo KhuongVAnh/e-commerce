@@ -6,6 +6,7 @@ import {
     getMyShopController,
     updateMyShopController,
     getShopBySellerIdController,
+    getShopByIdInternalController,
 } from "../controllers/shopController";
 import {
     adminGetShopController,

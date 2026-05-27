@@ -6,6 +6,9 @@ import { gatewayAuth } from "./middlewares/gatewayAuth";
 import uploadRoutes from "./routes/uploadRoutes";
 import { createServiceProxy } from "./utils/proxy";
 import { shouldUseGatewayAuth } from "./utils/routeMatcher";
+import { authMiddleware } from "./middlewares/auth";
+import notificationRoutes from "./routes/notificationRoutes";
+import { startKafkaConsumer } from "./services/kafkaConsumer";
 import { prisma } from "./config/prisma";
 
 const { assertDatabaseLive, assertRedisLive } = require("../../shared/startup-checks.cjs");
@@ -78,6 +81,9 @@ app.use((req, res, next) => {
   gatewayAuth(req, res, next);
 });
 
+// local notification routes (authenticates and handles routes locally)
+app.use("/api/notifications", authMiddleware, notificationRoutes);
+
 app.use("/api/auth", createServiceProxy(authServiceUrl));
 app.use("/api/catalog", createServiceProxy(catalogServiceUrl));
 app.use("/api/commerce", createServiceProxy(commerceServiceUrl));
@@ -85,23 +91,8 @@ app.use("/api/commerce", createServiceProxy(commerceServiceUrl));
 async function start() {
   await assertDatabaseLive(prisma, serviceName);
   await assertRedisLive(serviceName);
-
-  app.listen(port, () => {
-    console.log(`api_gateway listening on port ${port}`);
-  });
 }
-
-start().catch(async (error) => {
-  logStartupError(serviceName, error);
-  await prisma.$disconnect().catch(() => undefined);
-  process.exit(1);
+app.listen(port, () => {
+  console.log(`api_gateway listening on port ${port}`);
 });
 
-function logStartupError(service: string, error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(`[${service}] Startup failed: ${message}`);
-
-  if (process.env.STARTUP_DEBUG === "true" && error instanceof Error && error.stack) {
-    console.error(error.stack);
-  }
-}

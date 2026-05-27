@@ -79,12 +79,21 @@ export function isProtectedCommerceService(req: Request): boolean {
 }
 
 /**
+ * NOTIFICATION SERVICE
+ */
+export function isProtectedNotificationService(req: Request): boolean {
+    const pathname = getPathname(req);
+    return pathname.startsWith("/api/notifications");
+}
+
+/**
  * FINAL CHECK
  */
 export function shouldUseGatewayAuth(req: Request): boolean {
     return (
         isProtectedAuthService(req) ||
         isProtectedCatalogService(req) ||
-        isProtectedCommerceService(req)
+        isProtectedCommerceService(req) ||
+        isProtectedNotificationService(req)
     );
 }
