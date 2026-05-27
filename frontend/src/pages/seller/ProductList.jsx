@@ -8,32 +8,33 @@ const ProductList = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [prodRes, catRes] = await Promise.all([
-        axiosClient.get('/catalog/products'),
-        axiosClient.get('/catalog/categories')
-      ]);
-      setProducts(prodRes.data || []);
-      setCategories(catRes.data || []);
-    } catch (error) {
-      console.error("Lỗi lấy dữ liệu:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const shopRes = await axiosClient.get('/catalog/shops/my-shop');
+        const shopId = shopRes.data.shop.id;
+        const [prodRes, catRes] = await Promise.all([
+          axiosClient.get('/catalog/products', { params: { shopId } }),
+          axiosClient.get('/catalog/categories')
+        ]);
+        setProducts(Array.isArray(prodRes.data) ? prodRes.data : []);
+        setCategories(catRes.data || []);
+      } catch (error) {
+        console.error("Lỗi lấy dữ liệu:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return;
     try {
       await axiosClient.delete(`/catalog/products/${id}`);
-      alert("Xóa sản phẩm thành công!");
-      fetchData(); // Tải lại danh sách từ BE
-    } catch (error) {
-      alert("Lỗi khi xóa sản phẩm: " + (error.response?.data?.message || 'Server Error'));
+      setProducts(products.filter(p => p.id !== id));
+    } catch {
+      alert("Lỗi khi xóa sản phẩm!");
     }
   };
 

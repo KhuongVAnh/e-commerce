@@ -8,15 +8,17 @@ const AdminDashboard = () => {
     monthlyRevenue: 0, totalOrders: 0, ordersByStatus: {}
   });
   const [recentOrders, setRecentOrders] = useState([]);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  useEffect(() => { fetchDashboardData(); }, []);
-
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    try {
-      const now = new Date();
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      setErrorMsg('');
+      try {
+        // Tạo filter lấy dữ liệu tháng hiện tại
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
       const [usersRes, shopsRes, summaryRes, ordersRes] = await Promise.allSettled([
         axiosClient.get('/auth/admin/users?page=1&limit=1'),
@@ -25,36 +27,50 @@ const AdminDashboard = () => {
         axiosClient.get('/commerce/admin/orders?page=1&limit=5')
       ]);
 
-      const totalUsers = usersRes.status === 'fulfilled' ? (usersRes.value?.meta?.pagination?.total ?? usersRes.value?.data?.meta?.pagination?.total ?? 0) : 0;
-      const totalShops = shopsRes.status === 'fulfilled' ? (shopsRes.value?.meta?.pagination?.total ?? shopsRes.value?.data?.meta?.pagination?.total ?? 0) : 0;
-      const summaryData = summaryRes.status === 'fulfilled' ? (summaryRes.value?.data ?? summaryRes.value ?? {}) : {};
+        // 1. Xử lý Tổng Users
+        const totalUsers = usersRes.status === 'fulfilled'
+          ? usersRes.value.data.pagination?.total || 0
+          : 0;
 
-      if (usersRes.status === 'rejected' || shopsRes.status === 'rejected' || summaryRes.status === 'rejected') {
-        throw new Error("API Fallback");
+        // 2. Xử lý Tổng Shops
+        const totalShops = shopsRes.status === 'fulfilled'
+          ? shopsRes.value.data.pagination?.total || 0
+          : 0;
+
+        // 3. Xử lý Summary (Revenue, Orders, Statuses)
+        let summaryData = { totalRevenue: 0, monthlyRevenue: 0, totalOrders: 0, ordersByStatus: {} };
+        if (summaryRes.status === 'fulfilled' && summaryRes.value.data) {
+          summaryData = summaryRes.value.data;
+        }
+
+        setStats({
+          totalUsers,
+          totalShops,
+          ...summaryData,
+          ordersByStatus: {
+            PENDING: summaryData.pendingOrders || 0,
+            DELIVERED: summaryData.deliveredOrders || 0,
+            CANCELLED: summaryData.cancelledOrders || 0,
+          },
+        });
+
+        // 4. Xử lý Recent Orders
+        if (ordersRes.status === 'fulfilled' && ordersRes.value.data) {
+          setRecentOrders(ordersRes.value.data.orders || []);
+        } else {
+          setRecentOrders([]);
+        }
+
+      } catch (error) {
+        console.error("Lỗi lấy dữ liệu Dashboard:", error);
+        setErrorMsg(error.message || "Không thể tải dữ liệu dashboard.");
+      } finally {
+        setLoading(false);
       }
-      
-      setStats({
-        totalUsers, totalShops,
-        totalRevenue: summaryData.totalRevenue || 0,
-        monthlyRevenue: summaryData.monthlyRevenue || 0,
-        totalOrders: summaryData.totalOrders || 0,
-        ordersByStatus: summaryData.ordersByStatus || {}
-      });
+    };
 
-      setRecentOrders(ordersRes.status === 'fulfilled' ? (ordersRes.value?.data || ordersRes.value || []) : []);
-    } catch (error) {
-      setStats({
-        totalUsers: 124500, totalShops: 486, totalRevenue: 12500000000,
-        monthlyRevenue: 2450000000, totalOrders: 15240,
-        ordersByStatus: { PENDING: 120, AWAITING_PAYMENT: 45, CONFIRMED: 300, PROCESSING: 150, SHIPPING: 400, DELIVERED: 14000, CANCELLED: 225 }
-      });
-      setRecentOrders([
-        { id: 1, orderCode: 'ORD-98210', totalAmount: 2450000, orderStatus: 'DELIVERED' },
-        { id: 2, orderCode: 'ORD-98209', totalAmount: 890000, orderStatus: 'PENDING' },
-        { id: 3, orderCode: 'ORD-98208', totalAmount: 1200000, orderStatus: 'CANCELLED' }
-      ]);
-    } finally { setLoading(false); }
-  };
+    fetchDashboardData();
+  }, []);
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -69,7 +85,13 @@ const AdminDashboard = () => {
     }
   };
 
-  if (loading) return <div className="p-10 text-center font-bold text-slate-500">Đang tải dữ liệu thực tế từ hệ thống...</div>;
+  if (loading) {
+    return <div className="p-10 text-center text-slate-500 font-bold">Đang phân tích dữ liệu hệ thống...</div>;
+  }
+
+  if (errorMsg) {
+    return <div className="p-10 text-center text-rose-500 font-bold">{errorMsg}</div>;
+  }
 
   return (
     <div className="p-6 md:p-10 font-sans bg-[#f8fafc] min-h-full">

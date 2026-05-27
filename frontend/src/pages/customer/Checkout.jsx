@@ -10,8 +10,6 @@ const Checkout = () => {
   const location = useLocation();
   const { fetchCartTotal } = useCartStore();
 
-  const isBuyNowFlow = location.state?.isBuyNow || false;
-  const buyNowItems = location.state?.items || [];
   const [previewData, setPreviewData] = useState(null);
   const [cartItemIds, setCartItemIds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,33 +27,6 @@ const Checkout = () => {
       try {
         setLoading(true);
 
-        // LUỒNG 1: XỬ LÝ "MUA NGAY" TRỰC TIẾP TỪ TRANG SẢN PHẨM
-        if (isBuyNowFlow && buyNowItems.length > 0) {
-          const item = buyNowItems[0];
-          const subtotal = Number(item.price) * Number(item.quantity);
-
-          setPreviewData({
-            shopName: "Đơn hàng Mua ngay",
-            shopId: item.shopId,
-            items: [{
-              productId: item.productId,
-              productName: item.name,
-              thumbnailUrl: item.thumbnailUrl,
-              unitPrice: item.price,
-              quantity: item.quantity,
-              subtotal: subtotal
-            }],
-            pricing: {
-              subtotal: subtotal,
-              shippingFee: 0,
-              grandTotal: subtotal
-            }
-          });
-          setLoading(false);
-          return;
-        }
-
-        // LUỒNG 2: XỬ LÝ TỪ GIỎ HÀNG (Dựa vào shopIdParam)
         if (!shopIdParam) {
           alert("Không tìm thấy thông tin cần thanh toán!");
           navigate('/cart');
@@ -65,7 +36,7 @@ const Checkout = () => {
         const shopId = Number(shopIdParam);
 
         const cartRes = await axiosClient.get('/commerce/cart');
-        const cartData = cartRes.data || cartRes; 
+        const cartData = cartRes.data;
         
         if (!cartData || !cartData.shops) throw new Error("Giỏ hàng trống");
 
@@ -86,17 +57,11 @@ const Checkout = () => {
           cartItemIds: itemIds
         });
         
-        if (previewRes.data && previewRes.data.data) {
-            setPreviewData(previewRes.data.data);
-        } else if (previewRes.data) {
-            setPreviewData(previewRes.data);
-        } else {
-            setPreviewData(previewRes);
-        }
+        setPreviewData(previewRes.data);
 
       } catch (error) {
         console.error("Lỗi lấy dữ liệu checkout:", error);
-        alert(error.response?.data?.message || error.message || "Không thể tải thông tin đơn hàng. Vui lòng thử lại!");
+        alert(error.message || "Không thể tải thông tin đơn hàng. Vui lòng thử lại!");
         navigate('/cart');
       } finally {
         setLoading(false);
@@ -104,7 +69,7 @@ const Checkout = () => {
     };
 
     loadCheckoutData();
-  }, [shopIdParam, navigate, isBuyNowFlow]);
+  }, [shopIdParam, navigate, location.state]);
 
   // HÀM XỬ LÝ ĐẶT HÀNG CHUNG CHO CẢ 2 LUỒNG
   const handlePlaceOrder = async () => {
@@ -126,24 +91,14 @@ const Checkout = () => {
         note: ""
       };
 
-      if (isBuyNowFlow) {
-        payload.shopId = Number(previewData.shopId);
-        payload.isBuyNow = true;
-        payload.items = previewData.items.map(i => ({ 
-           productId: i.productId, 
-           quantity: i.quantity 
-        }));
-      } else {
-        payload.shopId = Number(shopIdParam);
-        payload.cartItemIds = cartItemIds;
-      }
+      payload.shopId = Number(shopIdParam);
+      payload.cartItemIds = cartItemIds;
 
       const orderRes = await axiosClient.post('/commerce/orders/checkout', payload);
       
-      const responseData = orderRes.data || orderRes;
-      const orderData = responseData.data || responseData;
+      const orderData = orderRes.data;
 
-      if (!isBuyNowFlow) fetchCartTotal();
+      fetchCartTotal();
 
       if (paymentMethod === 'VNPAY') {
         const vnpayUrl = orderData.paymentUrl;
@@ -164,7 +119,7 @@ const Checkout = () => {
 
     } catch (error) {
       console.error("Chi tiết lỗi đặt hàng:", error);
-      alert(error.response?.data?.message || "Có lỗi xảy ra khi tạo đơn!");
+      alert(error.message || "Có lỗi xảy ra khi tạo đơn!");
     } finally {
       setSubmitting(false);
     }

@@ -2,24 +2,20 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { useState } from 'react';
 import axiosClient from '../utils/axiosClient';
 import useAuthStore from '../store/useAuthStore';
+import NotificationBell from '../components/NotificationBell';
 
-const DashboardLayout = ({ roleTitle }) => {
-  const { user, clearAuth } = useAuthStore();
+const DashboardLayout = () => {
+  const { user, clearAuthData } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const profileName = user?.fullName || roleTitle || 'Dashboard';
   const profileAvatar = profileName.charAt(0).toUpperCase();
 
   const handleLogout = async () => {
-    try {
-      await axiosClient.post('/api/auth/logout');
-    } catch (error) {
-      console.log(error);
-    } finally {
-      if (clearAuth) clearAuth();
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('userRole');
-      window.location.href = '/';
+    try { await axiosClient.post('/auth/logout'); } catch { /* ignore logout errors */ }
+    finally {
+      clearAuthData();
+      window.location.href = "/";
     }
   };
 
@@ -132,7 +128,7 @@ const DashboardLayout = ({ roleTitle }) => {
       <div className="flex-1 flex flex-col h-screen overflow-hidden w-full">
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-end px-4 md:px-8 z-10 shrink-0">
           <div className="flex items-center gap-5">
-            <span className="material-symbols-outlined text-slate-400 cursor-pointer hover:text-indigo-600">notifications</span>
+            <NotificationBell />
             <span className="material-symbols-outlined text-slate-400 cursor-pointer hover:text-indigo-600 hidden md:block">help</span>
             <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-white text-xs font-bold uppercase cursor-pointer">
               {profileAvatar}

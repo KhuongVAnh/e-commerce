@@ -32,8 +32,8 @@ function loadServiceEnv(serviceRoot, defaultSchema = path.basename(serviceRoot))
   const backendRoot = path.resolve(serviceRoot, "..");
   const dotenv = loadDotenv(serviceRoot);
 
-  dotenv.config({ path: path.join(serviceRoot, ".env"), quiet: true });
   dotenv.config({ path: path.join(backendRoot, ".env"), quiet: true });
+  dotenv.config({ path: path.join(serviceRoot, ".env"), quiet: true });
 
   process.env.DATABASE_URL = buildDatabaseUrl({ defaultSchema });
 

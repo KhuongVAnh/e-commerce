@@ -22,20 +22,7 @@ const Categories = () => {
         const fetchCategories = async () => {
             try {
                 const res = await axiosClient.get('/catalog/categories');
-                const responseData = res.data || res;
-                
-                let cats = [];
-                if (responseData?.success && responseData?.data?.categories) {
-                    cats = responseData.data.categories;
-                } else if (responseData?.categories) {
-                    cats = responseData.categories;
-                } else if (Array.isArray(responseData)) {
-                    cats = responseData;
-                } else if (responseData?.data && Array.isArray(responseData.data)) {
-                    cats = responseData.data;
-                }
-
-                setCategories(cats.filter(c => c.status !== 'INACTIVE'));
+                setCategories((res.data || []).filter(c => c.status !== 'INACTIVE'));
             } catch (err) {
                 console.error("Lỗi tải danh mục:", err);
             } finally {

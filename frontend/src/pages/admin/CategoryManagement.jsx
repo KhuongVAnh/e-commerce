@@ -4,8 +4,7 @@ import axiosClient from '../../utils/axiosClient';
 const CategoryManagement = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6; 
+  const [errorMsg, setErrorMsg] = useState('');
   
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -16,30 +15,29 @@ const CategoryManagement = () => {
 
   const fetchCategories = async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       const res = await axiosClient.get('/catalog/categories');
       if (!res.data) throw new Error("API Fallback");
       setCategories(res.data || []);
     } catch (error) {
-      setCategories([
-        { id: 1, name: 'Textiles', slug: 'textiles', status: 'ACTIVE' },
-        { id: 2, name: 'Ceramics', slug: 'ceramics', status: 'ACTIVE' },
-        { id: 3, name: 'Fashion', slug: 'fashion', status: 'ACTIVE' }
-      ]);
+      setCategories([]);
+      setErrorMsg(error.message || "Không thể tải danh mục.");
     } finally { setLoading(false); }
   };
 
-  const totalPages = Math.ceil(categories.length / itemsPerPage);
-  const currentCategories = categories.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const handleNameChange = (e) => {
-    const name = e.target.value;
-    const slug = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-    setFormData({ ...formData, name, slug });
+  const handleCreateCategory = async (e) => {
+    e.preventDefault();
+    try {
+      await axiosClient.post('/catalog/categories', { name: newCat.name });
+      alert("Tạo danh mục thành công!");
+      setShowModal(false);
+      setNewCat({ name: '', slug: '' });
+      fetchCategories();
+    } catch (error) {
+      alert("Lỗi: " + (error.message || 'Không thể tạo danh mục.'));
+    }
   };
-
-  const openCreateModal = () => { setIsEditing(false); setFormData({ id: null, name: '', slug: '' }); setShowModal(true); };
-  const openEditModal = (cat) => { setIsEditing(true); setFormData({ id: cat.id, name: cat.name, slug: cat.slug }); setShowModal(true); };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setIsSaving(true);
@@ -57,8 +55,9 @@ const CategoryManagement = () => {
       await axiosClient.delete(`/catalog/categories/${cat.id}`);
       alert('Đã xóa danh mục thành công!');
     } catch (error) {
-      alert(`⚠️ CẢNH BÁO TỪ HỆ THỐNG:\n\n${error.response?.data?.message || 'Giả lập: Đã xóa.'}`);
-    } finally { fetchCategories(); }
+      // Bắt lỗi từ BE trả về (ví dụ BE check thấy vẫn còn product ẩn)
+      alert("Lỗi khi xóa: " + (error.message || 'Có lỗi hệ thống.'));
+    }
   };
 
   return (
@@ -83,12 +82,22 @@ const CategoryManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {loading ? <tr><td colSpan="4" className="text-center py-10 text-slate-400">Loading...</td></tr> : currentCategories.map((c, idx) => (
+              {loading ? (
+                <tr><td colSpan="6" className="text-center py-10 text-slate-400">Loading...</td></tr>
+              ) : errorMsg ? (
+                <tr><td colSpan="6" className="text-center py-10 text-rose-500">{errorMsg}</td></tr>
+              ) : categories.map((c, idx) => (
                 <tr key={c.id || idx} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-4 md:px-6 py-3 md:py-4 font-bold text-[#2e3785] text-xs md:text-sm">{c.name}</td>
                   <td className="px-4 md:px-6 py-3 md:py-4 text-[11px] md:text-xs font-mono text-slate-500">/collections/{c.slug}</td>
                   <td className="px-4 md:px-6 py-3 md:py-4">
-                    <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[9px] md:text-[10px] font-bold rounded-full">{c.status}</span>
+                    <p className="font-black text-slate-900 text-xs md:text-sm">{c.productCount ?? 0}</p>
+                    <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase">Products</p>
+                  </td>
+                  <td className="px-4 md:px-6 py-3 md:py-4">
+                    {c.status === 'ACTIVE' && (c.productCount ?? 0) > 0 && <span className="px-3 py-1 bg-emerald-50 border border-emerald-100 text-emerald-600 text-[9px] md:text-[10px] font-bold rounded-full">Active</span>}
+                    {c.status === 'INACTIVE' && <span className="px-3 py-1 bg-slate-100 border border-slate-200 text-slate-500 text-[9px] md:text-[10px] font-bold rounded-full">Hidden</span>}
+                    {(c.productCount ?? 0) === 0 && <span className="px-3 py-1 bg-rose-50 border border-rose-100 text-rose-500 text-[9px] md:text-[10px] font-bold rounded-full">Empty</span>}
                   </td>
                   <td className="px-4 md:px-6 py-3 md:py-4 text-right">
                     <button onClick={() => openEditModal(c)} className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-[#2e3785] transition"><span className="material-symbols-outlined text-[16px]">edit</span></button>

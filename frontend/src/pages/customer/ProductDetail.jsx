@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/useAuthStore';
 import useCartStore from '../../store/useCartStore';
+import axiosClient from '../../utils/axiosClient';
 
 const ProductDetail = () => {
   const { id } = useParams(); 
@@ -16,7 +17,6 @@ const ProductDetail = () => {
   const [error, setError] = useState(null);
 
   const { isAuthenticated } = useAuthStore();
-  const token = localStorage.getItem('accessToken') || '';
   const { fetchCartTotal } = useCartStore();
 
   const fallbackShopLogo = 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=150&auto=format&fit=crop';
@@ -28,28 +28,26 @@ const ProductDetail = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:3000/api/commerce/cart/items', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ productId: productData.product.id, quantity: quantity }) 
+      await axiosClient.post('/commerce/cart/items', {
+        productId: productData.product.id,
+        quantity,
       });
-      
-      const result = await res.json();
-      if (res.ok && result.success) {
-        alert(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
-      } else {
-        alert(result.message || "Không thể thêm vào giỏ hàng");
-      }
+      fetchCartTotal();
+      alert(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
     } catch (err) {
       console.error(err);
-      alert("Có lỗi xảy ra khi kết nối đến server.");
+      alert(err.message || "Không thể thêm vào giỏ hàng");
     }
   };
 
-  const handleBuyNow = () => {
+  const findCartItemId = async (productId, shopId) => {
+    const cartRes = await axiosClient.get('/commerce/cart');
+    const shop = cartRes.data.shops?.find((entry) => Number(entry.shopId) === Number(shopId));
+    const item = shop?.items?.find((entry) => Number(entry.productId) === Number(productId));
+    return item?.id;
+  };
+
+  const handleBuyNow = async () => {
     if (!isAuthenticated) {
       alert("Vui lòng đăng nhập để mua hàng!");
       return;
@@ -57,34 +55,37 @@ const ProductDetail = () => {
     
     if (!productData) return;
 
-    navigate('/checkout', {
-      state: {
-        isBuyNow: true,
-        items: [
-          {
-            productId: productData.product.id,
-            name: productData.product.name,
-            price: productData.product.price,
-            thumbnailUrl: productData.product.thumbnailUrl,
-            quantity: quantity,
-            shopId: productData.shop?.id || productData.product.shopId
-          }
-        ]
+    try {
+      const shopId = productData.shop?.id || productData.product.shopId;
+      const addRes = await axiosClient.post('/commerce/cart/items', {
+        productId: productData.product.id,
+        quantity,
+      });
+      const cartItemId = addRes.data?.id || await findCartItemId(productData.product.id, shopId);
+
+      if (!cartItemId) {
+        throw new Error('Không tìm thấy sản phẩm trong giỏ hàng sau khi thêm.');
       }
-    });
+
+      await axiosClient.patch(`/commerce/cart/items/${cartItemId}`, { quantity });
+      fetchCartTotal();
+      navigate(`/checkout?shopId=${shopId}`, {
+        state: {
+          shopId: Number(shopId),
+          cartItemIds: [cartItemId],
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Không thể tạo đơn mua ngay.");
+    }
   };
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:3000/api/catalog/products/${id}`);
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(result.error?.details?.[0] || result.message || "Không thể tải thông tin sản phẩm");
-        }
-
+        const result = await axiosClient.get(`/catalog/products/${id}`);
         setProductData(result.data);
         
         const defaultImage = result.data.product.thumbnailUrl || (result.data.images?.length > 0 ? result.data.images[0].imageUrl : '');

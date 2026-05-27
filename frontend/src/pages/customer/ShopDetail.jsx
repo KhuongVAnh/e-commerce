@@ -25,15 +25,8 @@ const ShopDetail = () => {
         const fetchShopDetail = async () => {
             try {
                 const res = await axiosClient.get(`/catalog/shops/${id}`);
-                const responseData = res.data || res;
-                
-                if (responseData?.success && responseData?.data) {
-                    setShop(responseData.data.shop);
-                    setStats(responseData.data.stats || { productCount: 0, followerCount: Math.floor(Math.random() * 500) + 100 });
-                } else if (responseData?.shop) {
-                    setShop(responseData.shop);
-                    setStats(responseData.stats || { productCount: 0, followerCount: Math.floor(Math.random() * 500) + 100 });
-                }
+                setShop(res.data.shop);
+                setStats(res.data.stats || { productCount: 0, followerCount: Math.floor(Math.random() * 500) + 100 });
             } catch (err) {
                 console.error("Lỗi khi tải thông tin shop:", err);
             } finally {
@@ -47,15 +40,7 @@ const ShopDetail = () => {
                 const res = await axiosClient.get('/catalog/products', {
                     params: { shopId: id, limit: 20 }
                 });
-                const responseData = res.data || res;
-
-                if (responseData?.success && responseData?.data?.products) {
-                    setProducts(responseData.data.products);
-                } else if (responseData?.products) {
-                    setProducts(responseData.products);
-                } else if (Array.isArray(responseData)) {
-                    setProducts(responseData);
-                }
+                setProducts(Array.isArray(res.data) ? res.data : []);
             } catch (err) {
                 console.error("Lỗi khi tải sản phẩm của shop:", err);
             } finally {
@@ -81,7 +66,7 @@ const ShopDetail = () => {
                 <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">store_off</span>
                 <h2 className="text-2xl font-bold text-gray-800 mb-2 font-['Be_Vietnam_Pro']">Không tìm thấy cửa hàng</h2>
                 <p className="text-gray-500 mb-6">Cửa hàng này có thể đã bị xóa hoặc không tồn tại.</p>
-                <Link to="/shops" className="px-6 py-3 bg-[#2b3896] text-white rounded-full font-bold">Quay lại danh sách</Link>
+                <Link to="/shop" className="px-6 py-3 bg-[#2b3896] text-white rounded-full font-bold">Quay lại danh sách</Link>
             </div>
         );
     }

@@ -41,8 +41,7 @@ app.use("/api/catalog", categoryRoutes);
 
 // Middleware xử lý lỗi chung, bắt tất cả lỗi được ném ra từ các controller hoặc middleware phía trên
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error("[catalog_service] unhandled error:", error);
-
+  
   // nếu lỗi thuộc lớp httpError đã được định nghĩa, thì trả về lỗi chuẩn cho client
   if (error instanceof HttpError) {
     sendError(res, {
@@ -58,8 +57,9 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
     });
     return;
   }
-
+  
   // nếu lỗi không phải là httpError, thì trả về lỗi 500 cho client
+  console.error("[catalog_service] unhandled error:", error);
   sendError(res, {
     requestId: res.locals.requestId,
     statusCode: 500,
