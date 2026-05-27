@@ -41,8 +41,8 @@ const Login = () => {
       // Gọi API gửi kèm role đã chọn ở Bước 1
       const res = await authService.login(formData.email, formData.password, role);
       
-      const userData = res.user;
-      const accessToken = res.tokens.accessToken;
+      const userData = res.data.user;
+      const accessToken = res.data.tokens.accessToken;
 
       setAuthData(userData, accessToken);
 

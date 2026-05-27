@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
 import CustomerLayout from './layouts/CustomerLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+import useAuthStore from './store/useAuthStore';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 // Thêm các trang quản lý của Admin
@@ -40,6 +42,12 @@ const Unauthorized = () => <div className="p-10 text-center text-red-500 font-bo
 const NotFound = () => <div className="p-10 text-center text-gray-700 font-bold text-2xl">404 - Trang không tồn tại</div>;
 
 function App() {
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
   return (
     <BrowserRouter>
       <Routes>
