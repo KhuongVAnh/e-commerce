@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import axiosClient from '../../utils/axiosClient';
 import useCartStore from '../../store/useCartStore';
 
@@ -7,9 +7,11 @@ const Checkout = () => {
   const [searchParams] = useSearchParams();
   const shopIdParam = searchParams.get('shopId');
   const navigate = useNavigate();
+  const location = useLocation();
   const { fetchCartTotal } = useCartStore();
 
-  // State quản lý dữ liệu UI
+  const isBuyNowFlow = location.state?.isBuyNow || false;
+  const buyNowItems = location.state?.items || [];
   const [previewData, setPreviewData] = useState(null);
   const [cartItemIds, setCartItemIds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,42 +23,69 @@ const Checkout = () => {
   });
   const [paymentMethod, setPaymentMethod] = useState('COD'); 
 
-  // GỌI API LẤY THÔNG TIN ĐƠN HÀNG (Sử dụng axiosClient để chuẩn hóa)
+  // XỬ LÝ LẤY DỮ LIỆU ĐỂ HIỂN THỊ
   useEffect(() => {
-    if (!shopIdParam) {
-      alert("Không tìm thấy thông tin Shop cần thanh toán!");
-      navigate('/cart');
-      return;
-    }
-
-    const shopId = Number(shopIdParam);
-
     const loadCheckoutData = async () => {
       try {
         setLoading(true);
-        
-        // 1. Tự động lấy lại giỏ hàng để chống lỗi F5 mất state
+
+        // LUỒNG 1: XỬ LÝ "MUA NGAY" TRỰC TIẾP TỪ TRANG SẢN PHẨM
+        if (isBuyNowFlow && buyNowItems.length > 0) {
+          const item = buyNowItems[0];
+          const subtotal = Number(item.price) * Number(item.quantity);
+
+          setPreviewData({
+            shopName: "Đơn hàng Mua ngay",
+            shopId: item.shopId,
+            items: [{
+              productId: item.productId,
+              productName: item.name,
+              thumbnailUrl: item.thumbnailUrl,
+              unitPrice: item.price,
+              quantity: item.quantity,
+              subtotal: subtotal
+            }],
+            pricing: {
+              subtotal: subtotal,
+              shippingFee: 0,
+              grandTotal: subtotal
+            }
+          });
+          setLoading(false);
+          return;
+        }
+
+        // LUỒNG 2: XỬ LÝ TỪ GIỎ HÀNG (Dựa vào shopIdParam)
+        if (!shopIdParam) {
+          alert("Không tìm thấy thông tin cần thanh toán!");
+          navigate('/cart');
+          return;
+        }
+
+        const shopId = Number(shopIdParam);
+
         const cartRes = await axiosClient.get('/commerce/cart');
         const cartData = cartRes.data || cartRes; 
         
         if (!cartData || !cartData.shops) throw new Error("Giỏ hàng trống");
 
-        // Tìm shop người dùng muốn thanh toán
         const shopData = cartData.shops.find(s => Number(s.shopId) === shopId);
         if (!shopData || shopData.items.length === 0) {
           throw new Error("Không có sản phẩm nào của Shop này trong giỏ hàng");
         }
 
-        const itemIds = shopData.items.map(item => item.id);
+        const selectedItemIdsFromCart = location.state?.cartItemIds || [];
+        const itemIds = selectedItemIdsFromCart.length > 0 
+          ? selectedItemIdsFromCart 
+          : shopData.items.map(item => item.id);
+          
         setCartItemIds(itemIds);
 
-        // 2. Gọi API Preview tính tiền (Ép kiểu Number chuẩn xác)
         const previewRes = await axiosClient.post('/commerce/cart/checkout-preview', {
           shopId: shopId,
           cartItemIds: itemIds
         });
         
-        // Bóc tách lớp vỏ data (tuỳ thuộc cấu hình axiosClient)
         if (previewRes.data && previewRes.data.data) {
             setPreviewData(previewRes.data.data);
         } else if (previewRes.data) {
@@ -75,9 +104,9 @@ const Checkout = () => {
     };
 
     loadCheckoutData();
-  }, [shopIdParam, navigate]);
+  }, [shopIdParam, navigate, isBuyNowFlow]);
 
-  // HÀM XỬ LÝ ĐẶT HÀNG
+  // HÀM XỬ LÝ ĐẶT HÀNG CHUNG CHO CẢ 2 LUỒNG
   const handlePlaceOrder = async () => {
     if (!formData.fullName || !formData.phone || !formData.street || !formData.district || !formData.city) {
       alert("Vui lòng điền đầy đủ địa chỉ giao hàng!");
@@ -88,10 +117,8 @@ const Checkout = () => {
 
     try {
       setSubmitting(true);
-      
+
       const payload = {
-        shopId: Number(shopIdParam),
-        cartItemIds: cartItemIds,
         paymentMethod: paymentMethod,
         receiverName: formData.fullName,
         receiverPhone: formData.phone,
@@ -99,12 +126,24 @@ const Checkout = () => {
         note: ""
       };
 
+      if (isBuyNowFlow) {
+        payload.shopId = Number(previewData.shopId);
+        payload.isBuyNow = true;
+        payload.items = previewData.items.map(i => ({ 
+           productId: i.productId, 
+           quantity: i.quantity 
+        }));
+      } else {
+        payload.shopId = Number(shopIdParam);
+        payload.cartItemIds = cartItemIds;
+      }
+
       const orderRes = await axiosClient.post('/commerce/orders/checkout', payload);
       
       const responseData = orderRes.data || orderRes;
       const orderData = responseData.data || responseData;
 
-      fetchCartTotal();
+      if (!isBuyNowFlow) fetchCartTotal();
 
       if (paymentMethod === 'VNPAY') {
         const vnpayUrl = orderData.paymentUrl;
@@ -135,7 +174,6 @@ const Checkout = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // UI LOADING
   if (loading) {
     return (
       <div className="pt-32 pb-24 text-center min-h-screen">
@@ -210,7 +248,7 @@ const Checkout = () => {
           <div className="bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgba(43,56,150,0.04)] border border-gray-100">
             <div className="mb-6 pb-4 border-b border-gray-100">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Giao hàng từ Shop</p>
-              <h3 className="font-black text-lg text-[#2b3896]">{previewData.shopName || `Shop #${shopIdParam}`}</h3> 
+              <h3 className="font-black text-lg text-[#2b3896]">{previewData.shopName || `Shop #${previewData.shopId || shopIdParam}`}</h3> 
             </div>
             
             <div className="space-y-6">

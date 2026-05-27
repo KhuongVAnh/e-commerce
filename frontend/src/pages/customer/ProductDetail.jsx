@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/useAuthStore';
 import useCartStore from '../../store/useCartStore';
 
 const ProductDetail = () => {
   const { id } = useParams(); 
+  const navigate = useNavigate();
   
   const [productData, setProductData] = useState(null);
   const [activeImage, setActiveImage] = useState('');
@@ -17,6 +18,8 @@ const ProductDetail = () => {
   const { isAuthenticated } = useAuthStore();
   const token = localStorage.getItem('accessToken') || '';
   const { fetchCartTotal } = useCartStore();
+
+  const fallbackShopLogo = 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=150&auto=format&fit=crop';
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
@@ -31,7 +34,7 @@ const ProductDetail = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ productId: product.id, quantity: quantity }) // Gửi kèm số lượng khách chọn
+        body: JSON.stringify({ productId: productData.product.id, quantity: quantity }) 
       });
       
       const result = await res.json();
@@ -44,6 +47,31 @@ const ProductDetail = () => {
       console.error(err);
       alert("Có lỗi xảy ra khi kết nối đến server.");
     }
+  };
+
+  const handleBuyNow = () => {
+    if (!isAuthenticated) {
+      alert("Vui lòng đăng nhập để mua hàng!");
+      return;
+    }
+    
+    if (!productData) return;
+
+    navigate('/checkout', {
+      state: {
+        isBuyNow: true,
+        items: [
+          {
+            productId: productData.product.id,
+            name: productData.product.name,
+            price: productData.product.price,
+            thumbnailUrl: productData.product.thumbnailUrl,
+            quantity: quantity,
+            shopId: productData.shop?.id || productData.product.shopId
+          }
+        ]
+      }
+    });
   };
 
   useEffect(() => {
@@ -197,13 +225,14 @@ const ProductDetail = () => {
           {/* Nút hành động */}
           <div className="flex flex-col sm:flex-row gap-4 mb-10">
             <button 
-              onClick={handleAddToCart} // GẮN HÀM VÀO ĐÂY
+              onClick={handleAddToCart}
               disabled={product.stockQuantity === 0}
               className="flex-1 py-4 px-8 border-2 border-[#2b3896] text-[#2b3896] font-bold tracking-wide rounded-full hover:bg-[#2b3896]/5 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Thêm vào giỏ
             </button>
             <button 
+              onClick={handleBuyNow}
               disabled={product.stockQuantity === 0}
               className="flex-1 py-4 px-8 bg-gradient-to-br from-[#2b3896] to-[#4551af] text-white font-bold tracking-wide rounded-full hover:shadow-lg hover:shadow-[#2b3896]/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -211,22 +240,31 @@ const ProductDetail = () => {
             </button>
           </div>
 
-          {/* Thông tin Cửa hàng từ API */}
+          {/* Cập nhật UI Thông tin Cửa hàng */}
           <div className="bg-white p-6 rounded-2xl shadow-[0px_8px_24px_rgba(43,56,150,0.05)] border border-gray-100 mb-8 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-[#2b3896]/10 bg-gray-100 flex items-center justify-center">
-                <span className="material-symbols-outlined text-3xl text-gray-400">storefront</span>
-              </div>
+              <Link to={`/shop/${shop?.id}`} className="w-14 h-14 rounded-full overflow-hidden border-2 border-[#2b3896]/10 bg-gray-100 flex items-center justify-center shrink-0">
+                <img 
+                  src={shop?.logoUrl || fallbackShopLogo} 
+                  alt={shop?.name || 'Shop Logo'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = fallbackShopLogo;
+                  }}
+                />
+              </Link>
               <div>
-                <h3 className="font-extrabold text-gray-900">{shop?.name || 'Tên Shop'}</h3>
-                {/* Đánh giá shop có thể bổ sung API sau này, hiện tại để tĩnh */}
+                <Link to={`/shop/${shop?.id}`}>
+                  <h3 className="font-extrabold text-gray-900 hover:text-[#2b3896] transition-colors">{shop?.name || 'Gian hàng'}</h3>
+                </Link>
                 <div className="flex items-center gap-1 text-xs font-bold text-gray-500 mt-0.5">
                   <span className="material-symbols-outlined text-[14px] text-yellow-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                   <span>4.9 (Chưa có số liệu thực tế)</span>
                 </div>
               </div>
             </div>
-            <Link to={`/shops/${shop?.id}`} className="text-sm font-bold text-[#2b3896] px-5 py-2 rounded-full border border-[#2b3896]/20 hover:bg-[#2b3896] hover:text-white transition-all">
+            <Link to={`/shop/${shop?.id}`} className="shrink-0 text-sm font-bold text-[#2b3896] px-5 py-2 rounded-full border border-[#2b3896]/20 hover:bg-[#2b3896] hover:text-white transition-all">
               Xem Shop
             </Link>
           </div>
