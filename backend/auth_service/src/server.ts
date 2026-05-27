@@ -39,8 +39,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/auth/admin", adminRoutes);
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error("[auth_service] unhandled error:", error);
-
+  
   if (error instanceof HttpError) {
     sendError(res, {
       requestId: res.locals.requestId,
@@ -55,7 +54,8 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
     });
     return;
   }
-
+  
+  console.error("[auth_service] unhandled error:", error);
   sendError(res, {
     requestId: res.locals.requestId,
     statusCode: 500,
