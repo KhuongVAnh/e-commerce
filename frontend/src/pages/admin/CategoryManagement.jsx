@@ -4,6 +4,7 @@ import axiosClient from '../../utils/axiosClient';
 const CategoryManagement = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
   
   // State quản lý Modal thêm mới
   const [showModal, setShowModal] = useState(false);
@@ -15,20 +16,14 @@ const CategoryManagement = () => {
 
   const fetchCategories = async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       // API chuẩn: GET /api/catalog/categories
       const res = await axiosClient.get('/catalog/categories');
       setCategories(res.data || []);
     } catch (error) {
-      // Mock data y hệt Figma
-      setCategories([
-        { id: 1, name: 'Textiles', slug: '/collections/textiles', productCount: 142, status: 'ACTIVE' },
-        { id: 2, name: 'Ceramics', slug: '/collections/ceramics', productCount: 86, status: 'ACTIVE' },
-        { id: 3, name: 'Fashion', slug: '/collections/fashion', productCount: 210, status: 'ACTIVE' },
-        { id: 4, name: 'Home Decor', slug: '/collections/home-decor', productCount: 45, status: 'INACTIVE' }, // INACTIVE thay cho Hidden
-        { id: 5, name: 'Fragrance', slug: '/collections/fragrance', productCount: 12, status: 'ACTIVE' },
-        { id: 6, name: 'Jewelry', slug: '/collections/jewelry', productCount: 0, status: 'ACTIVE' }, // Product count = 0 -> Empty
-      ]);
+      setCategories([]);
+      setErrorMsg(error.message || "Không thể tải danh mục.");
     } finally { setLoading(false); }
   };
 
@@ -41,7 +36,7 @@ const CategoryManagement = () => {
       setNewCat({ name: '', slug: '' });
       fetchCategories();
     } catch (error) {
-      alert("Lỗi: " + (error.response?.data?.message || 'Không thể tạo danh mục.'));
+      alert("Lỗi: " + (error.message || 'Không thể tạo danh mục.'));
     }
   };
 
@@ -60,7 +55,7 @@ const CategoryManagement = () => {
       fetchCategories();
     } catch (error) {
       // Bắt lỗi từ BE trả về (ví dụ BE check thấy vẫn còn product ẩn)
-      alert("Lỗi khi xóa: " + (error.response?.data?.message || 'Có lỗi hệ thống.'));
+      alert("Lỗi khi xóa: " + (error.message || 'Có lỗi hệ thống.'));
     }
   };
 
@@ -133,6 +128,8 @@ const CategoryManagement = () => {
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr><td colSpan="6" className="text-center py-10 text-slate-400">Loading...</td></tr>
+              ) : errorMsg ? (
+                <tr><td colSpan="6" className="text-center py-10 text-rose-500">{errorMsg}</td></tr>
               ) : categories.map((c, idx) => (
                 <tr key={c.id || idx} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-4 md:px-6 py-3 md:py-4">
@@ -143,13 +140,13 @@ const CategoryManagement = () => {
                   <td className="px-4 md:px-6 py-3 md:py-4 font-bold text-[#2e3785] text-xs md:text-sm">{c.name}</td>
                   <td className="px-4 md:px-6 py-3 md:py-4 text-[11px] md:text-xs font-mono text-slate-500">{c.slug}</td>
                   <td className="px-4 md:px-6 py-3 md:py-4">
-                    <p className="font-black text-slate-900 text-xs md:text-sm">{c.productCount}</p>
+                    <p className="font-black text-slate-900 text-xs md:text-sm">{c.productCount ?? 0}</p>
                     <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase">Products</p>
                   </td>
                   <td className="px-4 md:px-6 py-3 md:py-4">
-                    {c.status === 'ACTIVE' && c.productCount > 0 && <span className="px-3 py-1 bg-emerald-50 border border-emerald-100 text-emerald-600 text-[9px] md:text-[10px] font-bold rounded-full">Active</span>}
+                    {c.status === 'ACTIVE' && (c.productCount ?? 0) > 0 && <span className="px-3 py-1 bg-emerald-50 border border-emerald-100 text-emerald-600 text-[9px] md:text-[10px] font-bold rounded-full">Active</span>}
                     {c.status === 'INACTIVE' && <span className="px-3 py-1 bg-slate-100 border border-slate-200 text-slate-500 text-[9px] md:text-[10px] font-bold rounded-full">Hidden</span>}
-                    {c.productCount === 0 && <span className="px-3 py-1 bg-rose-50 border border-rose-100 text-rose-500 text-[9px] md:text-[10px] font-bold rounded-full">Empty</span>}
+                    {(c.productCount ?? 0) === 0 && <span className="px-3 py-1 bg-rose-50 border border-rose-100 text-rose-500 text-[9px] md:text-[10px] font-bold rounded-full">Empty</span>}
                   </td>
                   <td className="px-4 md:px-6 py-3 md:py-4 text-right">
                     <div className="flex justify-end gap-1 md:gap-2">

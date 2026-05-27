@@ -1,28 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import axiosClient from '../../utils/axiosClient';
 
 const PaymentResult = () => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const [status, setStatus] = useState('loading');
-  const [orderCode, setOrderCode] = useState(null);
+  const [status, setStatus] = useState(() => location.search ? 'loading' : 'failed');
+  const [orderCode] = useState(() => sessionStorage.getItem('currentOrderCode'));
 
   useEffect(() => {
     const searchParams = location.search;
-    const storedOrderCode = sessionStorage.getItem('currentOrderCode');
-    setOrderCode(storedOrderCode);
 
     if (!searchParams) {
-        setStatus('failed');
         return;
     }
 
     const checkPayment = async () => {
       try {
         const res = await axiosClient.get(`/commerce/payments/check-result${searchParams}`);
-        const responseData = res.data || res;
-        const resultData = responseData.data || responseData;
+        const resultData = res.data;
 
         if (resultData?.result) {
           const { isPaid, isFailed, isPending } = resultData.result;

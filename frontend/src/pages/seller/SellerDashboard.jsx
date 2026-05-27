@@ -11,24 +11,25 @@ const chartData = [
 const SellerDashboard = () => {
   const { user } = useAuthStore();
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState(null);
 
   useEffect(() => {
-    const getOrders = async () => {
+    const getDashboardData = async () => {
       try {
-        // LƯU Ý: Chỗ này báo BE viết API lấy đơn của Seller
-        const res = await axiosClient.get('/orders/my'); 
-        setOrders(res || []);
+        const [summaryRes, ordersRes] = await Promise.all([
+          axiosClient.get('/commerce/seller/revenue-summary'),
+          axiosClient.get('/commerce/seller/orders', { params: { limit: 5 } }),
+        ]);
+        setSummary(summaryRes.data);
+        setOrders(ordersRes.data.orders || []);
       } catch (err) {
-        console.error("Lỗi lấy đơn hàng");
-      } finally {
-        setLoading(false);
+        console.error("Lỗi lấy dữ liệu dashboard seller", err);
       }
     };
-    getOrders();
+    getDashboardData();
   }, []);
 
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.grandTotal || 0), 0);
+  const totalRevenue = summary?.totalRevenue || orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
   const pendingCount = orders.filter(o => o.orderStatus === 'PENDING').length;
 
   return (
@@ -45,7 +46,7 @@ const SellerDashboard = () => {
         {[
           { label: 'Orders', val: orders.length, color: 'text-indigo-600' },
           { label: 'Revenue', val: `${totalRevenue.toLocaleString()} ₫`, color: 'text-slate-800' },
-          { label: 'Products', val: '18', color: 'text-slate-800' },
+          { label: 'Products', val: summary?.productCount || 'N/A', color: 'text-slate-800' },
           { label: 'Pending', val: pendingCount, color: 'text-rose-600', border: 'border-l-4 border-indigo-500' },
         ].map((kpi, i) => (
           <div key={i} className={`bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 ${kpi.border || ''}`}>
@@ -97,7 +98,7 @@ const SellerDashboard = () => {
                 <tr key={o.id} className="border-t border-slate-50 hover:bg-slate-50/50">
                   <td className="px-6 py-4 text-indigo-600">#{o.orderCode}</td>
                   <td className="px-6 py-4">{o.receiverName || 'N/A'}</td>
-                  <td className="px-6 py-4 font-black text-slate-900">{o.grandTotal?.toLocaleString()} ₫</td>
+                  <td className="px-6 py-4 font-black text-slate-900">{o.totalAmount?.toLocaleString()} ₫</td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[9px] uppercase font-black">{o.orderStatus}</span>
                   </td>

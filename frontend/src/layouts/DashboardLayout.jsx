@@ -4,7 +4,7 @@ import axiosClient from '../utils/axiosClient';
 import useAuthStore from '../store/useAuthStore';
 
 const DashboardLayout = () => {
-  const { user, clearAuth } = useAuthStore();
+  const { user, clearAuthData } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Hiển thị tên thật và lấy chữ cái đầu làm Avatar
@@ -12,11 +12,9 @@ const DashboardLayout = () => {
   const profileAvatar = profileName.charAt(0).toUpperCase();
 
   const handleLogout = async () => {
-    try { await axiosClient.post('/api/auth/logout'); } catch (error) {} 
+    try { await axiosClient.post('/auth/logout'); } catch { /* ignore logout errors */ }
     finally {
-      if(clearAuth) clearAuth();
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('userRole');
+      clearAuthData();
       window.location.href = "/";
     }
   };

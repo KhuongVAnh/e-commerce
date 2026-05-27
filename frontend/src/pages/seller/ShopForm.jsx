@@ -8,6 +8,7 @@ const ShopForm = () => {
   const [formData, setFormData] = useState({ 
     name: '', description: '', phone: '', address: '', logoUrl: '', coverUrl: '' 
   });
+  const [logoFile, setLogoFile] = useState(null);
   const [status, setStatus] = useState({ type: '', msg: '' });
   const [lastUpdated, setLastUpdated] = useState('Today at 09:42 AM');
 
@@ -17,18 +18,18 @@ const ShopForm = () => {
   useEffect(() => {
     const loadShopInfo = async () => {
       try {
-        const res = await axiosClient.get('/shops/my-shop');
-        if (res && res.shop) {
+        const res = await axiosClient.get('/catalog/shops/my-shop');
+        if (res.data?.shop) {
           const fetchedData = {
-            name: res.shop.name || '', description: res.shop.description || '',
-            address: res.shop.address || '', logoUrl: res.shop.logoUrl || '',
-            phone: res.shop.phone || '', coverUrl: res.shop.coverUrl || '',
+            name: res.data.shop.name || '', description: res.data.shop.description || '',
+            address: res.data.shop.address || '', logoUrl: res.data.shop.logoUrl || '',
+            phone: res.data.shop.phone || '', coverUrl: res.data.shop.coverUrl || '',
           };
           setFormData(fetchedData);
           setInitialData(fetchedData);
           setIsUpdate(true);
         }
-      } catch (err) {
+      } catch {
         console.log("Chưa có shop");
       }
     };
@@ -40,32 +41,46 @@ const ShopForm = () => {
     if (file) {
       const previewUrl = URL.createObjectURL(file);
       setFormData({ ...formData, [type]: previewUrl });
+      if (type === 'logoUrl') setLogoFile(file);
     }
   };
 
   const handleDiscard = () => {
     if (initialData) setFormData(initialData);
     else setFormData({ name: '', description: '', phone: '', address: '', logoUrl: '', coverUrl: '' });
+    setLogoFile(null);
+  };
+
+  const uploadImage = async (file) => {
+    const uploadData = new FormData();
+    uploadData.append('image', file);
+    const res = await axiosClient.post('/uploads/images', uploadData);
+    return res.data.url;
   };
 
   const handleSave = async () => {
     setLoading(true);
-    const payload = {
-      name: formData.name, description: formData.description,
-      address: formData.address, logoUrl: formData.logoUrl || 'https://via.placeholder.com/150'
-    };
     try {
+      const uploadedLogoUrl = logoFile ? await uploadImage(logoFile) : formData.logoUrl;
+      const payload = {
+        name: formData.name, description: formData.description,
+        address: formData.address, logoUrl: uploadedLogoUrl || 'https://via.placeholder.com/150'
+      };
+
       if (isUpdate) {
-        await axiosClient.put('/shops/my-shop', payload);
+        await axiosClient.put('/catalog/shops/my-shop', payload);
         setStatus({ type: 'success', msg: 'Saved!' });
       } else {
-        await axiosClient.post('/shops', payload);
+        await axiosClient.post('/catalog/shops', payload);
         setStatus({ type: 'success', msg: 'Created!' });
         setIsUpdate(true);
       }
-      setInitialData(formData);
+      const savedData = { ...formData, logoUrl: uploadedLogoUrl };
+      setFormData(savedData);
+      setInitialData(savedData);
+      setLogoFile(null);
       setLastUpdated(`Today at ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`);
-    } catch (err) {
+    } catch {
       setStatus({ type: 'error', msg: 'Error!' });
     } finally {
       setLoading(false);

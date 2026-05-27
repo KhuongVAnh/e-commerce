@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { orderService } from '../../services/orderService';
 
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
 export default function OrderDetail() {
     const { id } = useParams(); 
-    const navigate = useNavigate();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isCancelling, setIsCancelling] = useState(false);
@@ -18,20 +17,14 @@ export default function OrderDetail() {
         const fetchDetail = async () => {
             try {
                 const res = await orderService.getOrderDetail(id); 
-                const responseData = res.data || res;
-
-                if (responseData?.success && responseData?.data?.order) {
-                    setOrder(responseData.data.order);
-                } else if (responseData?.success && responseData?.order) {
-                    setOrder(responseData.order);
-                } else if (responseData?.order) {
-                    setOrder(responseData.order);
+                if (res.data?.order) {
+                    setOrder(res.data.order);
                 } else {
                     setPopup({ isOpen: true, message: 'Không thể tải dữ liệu đơn hàng. Cấu trúc dữ liệu không khớp.', type: 'error' });
                 }
             } catch (error) {
                 console.error("Lỗi lấy chi tiết đơn hàng:", error);
-                setPopup({ isOpen: true, message: error.response?.data?.message || 'Có lỗi xảy ra khi lấy thông tin đơn hàng.', type: 'error' });
+                setPopup({ isOpen: true, message: error.message || 'Có lỗi xảy ra khi lấy thông tin đơn hàng.', type: 'error' });
             } finally {
                 setLoading(false);
             }
@@ -48,17 +41,16 @@ export default function OrderDetail() {
         setIsCancelling(true);
         try {
             const res = await orderService.cancelOrder(order.orderCode);
-            const responseData = res.data || res;
 
-            if (responseData?.success) {
+            if (res.success) {
                 setOrder(prev => ({ ...prev, orderStatus: 'CANCELLED' }));
                 setPopup({ isOpen: true, message: 'Đã hủy đơn hàng thành công!', type: 'success' });
             } else {
-                setPopup({ isOpen: true, message: responseData?.message || 'Không thể hủy đơn hàng.', type: 'error' });
+                setPopup({ isOpen: true, message: res.message || 'Không thể hủy đơn hàng.', type: 'error' });
             }
         } catch (error) {
             console.error("Lỗi khi hủy đơn:", error);
-            setPopup({ isOpen: true, message: error.response?.data?.message || 'Có lỗi xảy ra khi hủy đơn hàng.', type: 'error' });
+            setPopup({ isOpen: true, message: error.message || 'Có lỗi xảy ra khi hủy đơn hàng.', type: 'error' });
         } finally {
             setIsCancelling(false);
         }

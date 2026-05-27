@@ -21,20 +21,7 @@ const ShopList = () => {
                 const res = await axiosClient.get('/catalog/shops', {
                     params: { status: 'ACTIVE', limit: 50 }
                 });
-                const responseData = res.data || res;
-
-                let shopData = [];
-                if (responseData?.success && responseData?.data?.shops) {
-                    shopData = responseData.data.shops;
-                } else if (responseData?.shops) {
-                    shopData = responseData.shops;
-                } else if (Array.isArray(responseData)) {
-                    shopData = responseData;
-                } else if (responseData?.data && Array.isArray(responseData.data)) {
-                    shopData = responseData.data;
-                }
-
-                setShops(shopData);
+                setShops(res.data.shops || []);
             } catch (error) {
                 console.error("Lỗi khi tải danh sách shop:", error);
             } finally {

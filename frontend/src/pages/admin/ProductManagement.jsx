@@ -1,34 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axiosClient from '../../utils/axiosClient';
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ q: '', status: '', shopId: '', categoryId: '' });
+  const [errorMsg, setErrorMsg] = useState('');
+  const [filters] = useState({ q: '', status: '', shopId: '', categoryId: '' });
 
-  useEffect(() => {
-    fetchProducts();
-  }, [filters]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       // Gọi API chuẩn theo tài liệu: GET /api/catalog/admin/products
       const queryParams = new URLSearchParams(filters).toString();
       const res = await axiosClient.get(`/catalog/admin/products?${queryParams}&limit=10`);
-      setProducts(res.data || []);
+      setProducts(res.data.products || []);
     } catch (error) {
-      // Mock data khớp 100% Figma
-      setProducts([
-        { id: 1, name: 'Hmong Indigo Silk Scarf', sku: 'VN-SC-042', shopName: 'Sapa Ethos', category: 'TEXTILES', price: 1250000, stock: 142, status: 'ACTIVE' },
-        { id: 2, name: 'Bat Trang Celadon Set', sku: 'VN-CE-992', shopName: 'Hanoi Heritage', category: 'CERAMICS', price: 3480000, stock: 12, status: 'OUT_OF_STOCK' },
-        { id: 3, name: 'Imperial Mahogany Chest', sku: 'VN-WD-005', shopName: 'Hue Artisans', category: 'HOME DECOR', price: 45000000, stock: 0, status: 'BANNED' },
-        { id: 4, name: 'Crimson Lacquer Tray', sku: 'VN-LQ-734', shopName: 'Hanoi Heritage', category: 'FINE ART', price: 2100000, stock: 88, status: 'ACTIVE' },
-      ]);
+      setProducts([]);
+      setErrorMsg(error.message || "Không thể tải danh sách sản phẩm.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   return (
     <div className="p-4 md:p-6 lg:p-10 font-sans bg-[#f8fafc] min-h-full flex flex-col">
@@ -100,37 +97,40 @@ const ProductManagement = () => {
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr><td colSpan="6" className="text-center py-10 text-slate-400">Loading products...</td></tr>
+              ) : errorMsg ? (
+                <tr><td colSpan="6" className="text-center py-10 text-rose-500">{errorMsg}</td></tr>
               ) : products.map((p, idx) => (
                 <tr key={p.id || idx} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-4 md:px-6 py-4">
                     <div className="flex items-center gap-3 md:gap-4">
                       <div className="w-12 h-12 md:w-14 md:h-14 bg-slate-100 rounded-xl overflow-hidden shrink-0 border border-slate-200">
-                        <img src={`https://picsum.photos/seed/${p.sku}/150`} alt="" className="w-full h-full object-cover" />
+                        <img src={p.thumbnailUrl || `https://picsum.photos/seed/${p.id}/150`} alt="" className="w-full h-full object-cover" />
                       </div>
                       <div>
                         <p className="font-bold text-slate-900 text-xs md:text-sm mb-0.5">{p.name}</p>
-                        <p className="text-[10px] md:text-[11px] font-medium text-slate-400 uppercase">SKU: {p.sku}</p>
+                        <p className="text-[10px] md:text-[11px] font-medium text-slate-400 uppercase">SKU: PROD-{p.id}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 md:px-6 py-4 font-bold text-[#2e3785] text-xs md:text-sm">{p.shopName}</td>
+                  <td className="px-4 md:px-6 py-4 font-bold text-[#2e3785] text-xs md:text-sm">{p.shop?.name || `Shop #${p.shopId}`}</td>
                   <td className="px-4 md:px-6 py-4">
                     <span className={`px-2 md:px-3 py-1 font-black text-[9px] md:text-[10px] uppercase tracking-wider rounded-full ${
                       idx % 3 === 0 ? 'bg-indigo-50 text-indigo-700' : idx % 2 === 0 ? 'bg-orange-50 text-orange-700' : 'bg-blue-50 text-blue-700'
-                    }`}>{p.category}</span>
+                    }`}>{p.category?.name || p.categoryId}</span>
                   </td>
                   <td className="px-4 md:px-6 py-4">
                     <p className="font-black text-slate-900 text-xs md:text-sm">{p.price?.toLocaleString()} ₫</p>
-                    {p.status === 'BANNED' ? (
-                      <p className="text-[9px] md:text-[10px] font-bold text-rose-500 uppercase tracking-widest mt-0.5">Banned Content</p>
+                    {p.status === 'DELETED' ? (
+                      <p className="text-[9px] md:text-[10px] font-bold text-rose-500 uppercase tracking-widest mt-0.5">Deleted</p>
                     ) : (
-                      <p className="text-[10px] md:text-[11px] font-medium text-slate-500 mt-0.5">{p.stock} in stock</p>
+                      <p className="text-[10px] md:text-[11px] font-medium text-slate-500 mt-0.5">{p.stockQuantity} in stock</p>
                     )}
                   </td>
                   <td className="px-4 md:px-6 py-4">
                     {p.status === 'ACTIVE' && <span className="px-2 md:px-3 py-1 bg-emerald-50 text-emerald-700 font-bold text-[10px] md:text-xs rounded-full flex items-center gap-1 w-fit"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> ACTIVE</span>}
                     {p.status === 'OUT_OF_STOCK' && <span className="px-2 md:px-3 py-1 bg-slate-100 text-slate-500 font-bold text-[10px] md:text-xs rounded-full flex items-center gap-1 w-fit"><div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div> OUT OF STOCK</span>}
-                    {p.status === 'BANNED' && <span className="px-2 md:px-3 py-1 bg-rose-50 text-rose-700 font-bold text-[10px] md:text-xs rounded-full flex items-center gap-1 w-fit"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div> BANNED</span>}
+                    {p.status === 'DELETED' && <span className="px-2 md:px-3 py-1 bg-rose-50 text-rose-700 font-bold text-[10px] md:text-xs rounded-full flex items-center gap-1 w-fit"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div> DELETED</span>}
+                    {p.status === 'INACTIVE' && <span className="px-2 md:px-3 py-1 bg-orange-50 text-orange-700 font-bold text-[10px] md:text-xs rounded-full flex items-center gap-1 w-fit"><div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div> INACTIVE</span>}
                   </td>
                   <td className="px-4 md:px-6 py-4 text-right">
                     <button className="w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 transition"><span className="material-symbols-outlined text-[18px] md:text-[20px]">more_vert</span></button>

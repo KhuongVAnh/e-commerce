@@ -12,10 +12,12 @@ const AdminDashboard = () => {
     ordersByStatus: {}
   });
   const [recentOrders, setRecentOrders] = useState([]);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       setLoading(true);
+      setErrorMsg('');
       try {
         // Tạo filter lấy dữ liệu tháng hiện tại
         const now = new Date();
@@ -31,17 +33,17 @@ const AdminDashboard = () => {
         ]);
 
         // 1. Xử lý Tổng Users
-        const totalUsers = usersRes.status === 'fulfilled' && usersRes.value.meta?.pagination?.total 
-          ? usersRes.value.meta.pagination.total 
-          : 1240; // Fallback mock
+        const totalUsers = usersRes.status === 'fulfilled'
+          ? usersRes.value.data.pagination?.total || 0
+          : 0;
 
         // 2. Xử lý Tổng Shops
-        const totalShops = shopsRes.status === 'fulfilled' && shopsRes.value.meta?.pagination?.total 
-          ? shopsRes.value.meta.pagination.total 
-          : 486; // Fallback mock
+        const totalShops = shopsRes.status === 'fulfilled'
+          ? shopsRes.value.data.pagination?.total || 0
+          : 0;
 
         // 3. Xử lý Summary (Revenue, Orders, Statuses)
-        let summaryData = { totalRevenue: 15420000000, monthlyRevenue: 2450000000, totalOrders: 12480, ordersByStatus: { PENDING: 120, CONFIRMED: 450, PROCESSING: 200, SHIPPING: 300, DELIVERED: 11000, CANCELLED: 410 } }; // Fallback mock
+        let summaryData = { totalRevenue: 0, monthlyRevenue: 0, totalOrders: 0, ordersByStatus: {} };
         if (summaryRes.status === 'fulfilled' && summaryRes.value.data) {
           summaryData = summaryRes.value.data;
         }
@@ -49,25 +51,24 @@ const AdminDashboard = () => {
         setStats({
           totalUsers,
           totalShops,
-          ...summaryData
+          ...summaryData,
+          ordersByStatus: {
+            PENDING: summaryData.pendingOrders || 0,
+            DELIVERED: summaryData.deliveredOrders || 0,
+            CANCELLED: summaryData.cancelledOrders || 0,
+          },
         });
 
         // 4. Xử lý Recent Orders
         if (ordersRes.status === 'fulfilled' && ordersRes.value.data) {
-          setRecentOrders(ordersRes.value.data);
+          setRecentOrders(ordersRes.value.data.orders || []);
         } else {
-          // Fallback mock
-          setRecentOrders([
-            { id: '1', orderCode: 'ORD-98210', receiverName: 'Nguyen Van A', totalAmount: 2450000, orderStatus: 'PAID', createdAt: new Date().toISOString() },
-            { id: '2', orderCode: 'ORD-98209', receiverName: 'Le Thi B', totalAmount: 890000, orderStatus: 'PENDING', createdAt: new Date(Date.now() - 86400000).toISOString() },
-            { id: '3', orderCode: 'ORD-98208', receiverName: 'Tran Duy C', totalAmount: 1200000, orderStatus: 'CANCELLED', createdAt: new Date(Date.now() - 172800000).toISOString() },
-            { id: '4', orderCode: 'ORD-98207', receiverName: 'Pham Hoang D', totalAmount: 3100000, orderStatus: 'SHIPPING', createdAt: new Date(Date.now() - 259200000).toISOString() },
-            { id: '5', orderCode: 'ORD-98206', receiverName: 'Vu Duc E', totalAmount: 560000, orderStatus: 'DELIVERED', createdAt: new Date(Date.now() - 345600000).toISOString() },
-          ]);
+          setRecentOrders([]);
         }
 
       } catch (error) {
         console.error("Lỗi lấy dữ liệu Dashboard:", error);
+        setErrorMsg(error.message || "Không thể tải dữ liệu dashboard.");
       } finally {
         setLoading(false);
       }
@@ -91,6 +92,10 @@ const AdminDashboard = () => {
 
   if (loading) {
     return <div className="p-10 text-center text-slate-500 font-bold">Đang phân tích dữ liệu hệ thống...</div>;
+  }
+
+  if (errorMsg) {
+    return <div className="p-10 text-center text-rose-500 font-bold">{errorMsg}</div>;
   }
 
   return (

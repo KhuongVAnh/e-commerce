@@ -11,11 +11,13 @@ const ProductList = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const shopRes = await axiosClient.get('/catalog/shops/my-shop');
+        const shopId = shopRes.data.shop.id;
         const [prodRes, catRes] = await Promise.all([
-          axiosClient.get('/catalog/products'),
+          axiosClient.get('/catalog/products', { params: { shopId } }),
           axiosClient.get('/catalog/categories')
         ]);
-        setProducts(prodRes.data || []);
+        setProducts(Array.isArray(prodRes.data) ? prodRes.data : []);
         setCategories(catRes.data || []);
       } catch (error) {
         console.error("Lỗi lấy dữ liệu:", error);
@@ -31,7 +33,7 @@ const ProductList = () => {
     try {
       await axiosClient.delete(`/catalog/products/${id}`);
       setProducts(products.filter(p => p.id !== id));
-    } catch (error) {
+    } catch {
       alert("Lỗi khi xóa sản phẩm!");
     }
   };

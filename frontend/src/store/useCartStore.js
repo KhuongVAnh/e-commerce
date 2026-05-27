@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import axiosClient from '../utils/axiosClient';
 
 const useCartStore = create((set) => ({
   totalQuantity: 0,
@@ -11,14 +12,8 @@ const useCartStore = create((set) => ({
     }
 
     try {
-      const res = await fetch('http://localhost:3000/api/commerce/cart', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await res.json();
-      
-      if (res.ok && result.success && result.data) {
-        set({ totalQuantity: result.data.totalQuantity || 0 });
-      }
+      const res = await axiosClient.get('/commerce/cart');
+      set({ totalQuantity: res.data.totalQuantity || 0 });
     } catch (error) {
       console.error("Lỗi lấy tổng giỏ hàng:", error);
     }

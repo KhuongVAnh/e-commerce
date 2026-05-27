@@ -4,6 +4,7 @@ import axiosClient from '../../utils/axiosClient';
 const OrderManagement = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
   const [activeTab, setActiveTab] = useState('All Orders');
 
   useEffect(() => {
@@ -12,19 +13,15 @@ const OrderManagement = () => {
 
   const fetchOrders = async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       // Gọi API chuẩn: GET /api/commerce/admin/orders
       // Tuỳ biến filter status dựa vào activeTab
       const res = await axiosClient.get(`/commerce/admin/orders?limit=10`);
-      setOrders(res.data || []);
+      setOrders(res.data.orders || []);
     } catch (error) {
-      // Mock data chuẩn xác theo Figma
-      setOrders([
-        { id: '#ORD-98210', customerName: 'Nguyen Van A.', shop: 'Hanoi Heritage Silks', method: 'VNPay', date: 'Oct 24, 2026', amount: 2450000, status: 'PAID' },
-        { id: '#ORD-98209', customerName: 'Le Thi B.', shop: 'Saigon Ceramics', method: 'COD', date: 'Oct 23, 2026', amount: 890000, status: 'PENDING' },
-        { id: '#ORD-98208', customerName: 'Tran Duy C.', shop: 'Da Lat Flora', method: 'VNPay', date: 'Oct 22, 2026', amount: 1200000, status: 'CANCELLED' },
-        { id: '#ORD-98207', customerName: 'Pham Hoang D.', shop: 'Lacquer Artistry', method: 'VNPay', date: 'Oct 21, 2026', amount: 3100000, status: 'PAID' },
-      ]);
+      setOrders([]);
+      setErrorMsg(error.message || "Không thể tải danh sách đơn hàng.");
     } finally {
       setLoading(false);
     }
@@ -79,29 +76,32 @@ const OrderManagement = () => {
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr><td colSpan="8" className="text-center py-10 text-slate-400">Loading orders...</td></tr>
+              ) : errorMsg ? (
+                <tr><td colSpan="8" className="text-center py-10 text-rose-500">{errorMsg}</td></tr>
               ) : orders.map((o, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-4 md:px-6 py-4 font-bold text-[#2e3785] text-xs md:text-sm">{o.id}</td>
+                  <td className="px-4 md:px-6 py-4 font-bold text-[#2e3785] text-xs md:text-sm">#{o.orderCode}</td>
                   <td className="px-4 md:px-6 py-4">
                     <div className="flex items-center gap-2 md:gap-3">
                       <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-slate-200 overflow-hidden text-slate-500 font-bold text-[10px] md:text-xs flex items-center justify-center shrink-0 border border-slate-100">
                         {idx % 2 === 0 ? <img src={`https://i.pravatar.cc/150?u=${idx}`} alt="" className="w-full h-full object-cover" /> : 'TD'}
                       </div>
-                      <span className="font-bold text-slate-900 text-xs md:text-sm">{o.customerName}</span>
+                      <span className="font-bold text-slate-900 text-xs md:text-sm">{o.receiverName}</span>
                     </div>
                   </td>
-                  <td className="px-4 md:px-6 py-4"><span className="px-2 md:px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[9px] md:text-[10px] font-black">{o.shop}</span></td>
+                  <td className="px-4 md:px-6 py-4"><span className="px-2 md:px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[9px] md:text-[10px] font-black">Shop #{o.shopId}</span></td>
                   <td className="px-4 md:px-6 py-4">
                     <div className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm font-bold text-[#2e3785]">
-                      <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${o.method === 'VNPay' ? 'bg-[#2e3785]' : 'bg-orange-500'}`}></div> {o.method}
+                      <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${o.paymentMethod === 'VNPAY' ? 'bg-[#2e3785]' : 'bg-orange-500'}`}></div> {o.paymentMethod}
                     </div>
                   </td>
-                  <td className="px-4 md:px-6 py-4 text-xs md:text-sm font-medium text-slate-500">{o.date}</td>
-                  <td className="px-4 md:px-6 py-4 font-black text-[#2e3785] text-xs md:text-sm">{o.amount.toLocaleString()} ₫</td>
+                  <td className="px-4 md:px-6 py-4 text-xs md:text-sm font-medium text-slate-500">{new Date(o.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 md:px-6 py-4 font-black text-[#2e3785] text-xs md:text-sm">{o.totalAmount.toLocaleString()} ₫</td>
                   <td className="px-4 md:px-6 py-4">
-                    {o.status === 'PAID' && <span className="px-2 md:px-3 py-1 bg-emerald-50 text-emerald-600 font-black text-[9px] md:text-[10px] uppercase rounded-md tracking-wider">PAID</span>}
-                    {o.status === 'PENDING' && <span className="px-2 md:px-3 py-1 bg-orange-50 text-orange-600 font-black text-[9px] md:text-[10px] uppercase rounded-md tracking-wider">PENDING</span>}
-                    {o.status === 'CANCELLED' && <span className="px-2 md:px-3 py-1 bg-rose-50 text-rose-600 font-black text-[9px] md:text-[10px] uppercase rounded-md tracking-wider">CANCELLED</span>}
+                    {o.orderStatus === 'DELIVERED' && <span className="px-2 md:px-3 py-1 bg-emerald-50 text-emerald-600 font-black text-[9px] md:text-[10px] uppercase rounded-md tracking-wider">DELIVERED</span>}
+                    {o.orderStatus === 'PENDING' && <span className="px-2 md:px-3 py-1 bg-orange-50 text-orange-600 font-black text-[9px] md:text-[10px] uppercase rounded-md tracking-wider">PENDING</span>}
+                    {o.orderStatus === 'CANCELLED' && <span className="px-2 md:px-3 py-1 bg-rose-50 text-rose-600 font-black text-[9px] md:text-[10px] uppercase rounded-md tracking-wider">CANCELLED</span>}
+                    {!['DELIVERED', 'PENDING', 'CANCELLED'].includes(o.orderStatus) && <span className="px-2 md:px-3 py-1 bg-indigo-50 text-indigo-600 font-black text-[9px] md:text-[10px] uppercase rounded-md tracking-wider">{o.orderStatus}</span>}
                   </td>
                   <td className="px-4 md:px-6 py-4 text-right"><button className="text-slate-400 hover:text-slate-600 transition"><span className="material-symbols-outlined text-[18px] md:text-[20px]">more_vert</span></button></td>
                 </tr>

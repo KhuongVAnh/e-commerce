@@ -1,37 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axiosClient from '../../utils/axiosClient';
 
 const ShopManagement = () => {
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ q: '', status: '' });
+  const [errorMsg, setErrorMsg] = useState('');
+  const [filters] = useState({ q: '', status: '' });
   
   // Stats mô phỏng theo Figma (Bạn có thể cập nhật gọi API sau)
   const stats = { total: '1,248', pending: 42, products: '84,209' };
 
-  useEffect(() => {
-    fetchShops();
-  }, [filters]);
-
-  const fetchShops = async () => {
+  const fetchShops = useCallback(async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       // API chuẩn: GET /api/catalog/admin/shops
       const queryParams = new URLSearchParams(filters).toString();
       const res = await axiosClient.get(`/catalog/admin/shops?${queryParams}`);
-      setShops(res.data || []);
+      setShops(res.data.shops || []);
     } catch (error) {
-      // Mock data khớp 100% Figma để test UI
-      setShops([
-        { id: 1, name: 'An Ceramics Studio', sub: 'Handcrafted Pottery', sellerId: 'Nguyen Van An', products: 312, createdAt: '2023-10-12', status: 'ACTIVE' },
-        { id: 2, name: 'Silk & Saffron', sub: 'Premium Textiles', sellerId: 'Le Thi Mai', products: 45, createdAt: '2024-01-05', status: 'PENDING' },
-        { id: 3, name: 'Hanoi Tech Hub', sub: 'Electronics', sellerId: 'Tran Minh Hoang', products: 1102, createdAt: '2022-03-15', status: 'INACTIVE' }, // INACTIVE thay cho SUSPENDED theo Enum
-        { id: 4, name: 'Phố Coffee Co.', sub: 'Gourmet Beverages', sellerId: 'Pham Thuy Duong', products: 88, createdAt: '2023-12-20', status: 'ACTIVE' },
-      ]);
+      setShops([]);
+      setErrorMsg(error.message || "Không thể tải danh sách shop.");
     } finally { 
       setLoading(false); 
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    fetchShops();
+  }, [fetchShops]);
 
   const handleUpdateStatus = async (shopId, newStatus) => {
     if(!window.confirm(`Bạn có chắc muốn chuyển shop này sang trạng thái ${newStatus}?`)) return;
@@ -40,7 +37,7 @@ const ShopManagement = () => {
       alert('Cập nhật trạng thái thành công!');
       fetchShops();
     } catch (error) {
-      alert("Lỗi: " + (error.response?.data?.message || 'Không thể cập nhật.'));
+      alert("Lỗi: " + (error.message || 'Không thể cập nhật.'));
     }
   };
 
@@ -107,6 +104,8 @@ const ShopManagement = () => {
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr><td colSpan="6" className="text-center py-10 text-slate-400">Loading...</td></tr>
+              ) : errorMsg ? (
+                <tr><td colSpan="6" className="text-center py-10 text-rose-500">{errorMsg}</td></tr>
               ) : shops.map((s, idx) => (
                 <tr key={s.id || idx} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-4 md:px-6 py-4 md:py-5">

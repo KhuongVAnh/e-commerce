@@ -83,21 +83,7 @@ export default function OrderHistory() {
         
         console.log("=== CHECK DATA ORDER LIST ===", res);
 
-        if (res.data?.success && res.data?.data?.orders) {
-            setOrders(res.data.data.orders);
-        } 
-        else if (res.success && res.data?.orders) {
-            setOrders(res.data.orders);
-        }
-        else if (res.orders) {
-            setOrders(res.orders);
-        }
-        else if (Array.isArray(res)) {
-            setOrders(res);
-        }
-        else {
-            setOrders([]);
-        }
+        setOrders(res.data?.orders || []);
     } catch (error) {
         console.error("Lỗi khi tải lịch sử đơn hàng:", error);
     } finally {
