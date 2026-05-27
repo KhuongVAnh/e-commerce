@@ -3,7 +3,7 @@ import {
     createShop,
     getMyShop,
     updateMyShop,
-    getShopBySellerId,
+    getShopBySellerId, 
     getPublicShopDetail,
     listPublicShops,
 } from "../services/shopService";

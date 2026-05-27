@@ -159,3 +159,23 @@ export async function incrementProductsStock(items: Array<{ productId: bigint; q
     }
 }
 
+// hàm lấy sellerId (chủ shop) của shop, dùng để phục vụ thông báo
+export async function getSellerIdByShopId(shopId: bigint): Promise<string | null> {
+    try {
+        const response = await fetch(`${catalogApiBaseUrl}/shops/internal/${shopId.toString()}`);
+
+        if (!response.ok) {
+            console.error(`[commerce_service] Catalog Service error: ${response.status}`);
+            return null;
+        }
+
+        const body = await response.json();
+        const shop = body.data?.shop ?? body.data ?? body;
+        
+        return shop?.sellerId ? shop.sellerId.toString() : null;
+    } catch (error) {
+        console.error("[commerce_service] Failed to call Catalog Service to get sellerId:", error);
+        return null;
+    }
+}
+

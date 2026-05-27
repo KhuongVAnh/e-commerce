@@ -4,7 +4,8 @@ import { prisma } from "../config/prisma";
 import { HttpError } from "../utils/http";
 import { buildCheckoutPreview } from "./checkoutPreview";
 import { createVNPayCheckoutSession } from "./paymentService";
-import { decrementProductsStock, getShopIdBySellerId, incrementProductsStock } from "./catalogClient";
+import { decrementProductsStock, getShopIdBySellerId, incrementProductsStock, getSellerIdByShopId } from "./catalogClient";
+import { publishEvent } from "../config/kafka";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -179,6 +180,23 @@ export async function createOrder(
         throw error;
     }
 
+    // Publish order.created event to Kafka (async)
+    getSellerIdByShopId(shopId)
+        .then((sellerId) => {
+            publishEvent("order.created", {
+                orderId: result.order.id.toString(),
+                orderCode: result.order.orderCode,
+                customerId: customerId.toString(),
+                shopId: shopId.toString(),
+                totalAmount: Number(result.order.totalAmount),
+                receiverName,
+                sellerId: sellerId ?? undefined,
+            });
+        })
+        .catch((err) => {
+            console.error("[commerce_service] Failed to publish order.created event:", err);
+        });
+
     return {
         orderId: result.order.id,
         orderCode: result.order.orderCode,
@@ -308,6 +326,22 @@ export async function cancelOrder(customerId: bigint, orderCode: string) {
 
         return updated;
     });
+
+    // Publish order.status.updated event to Kafka (async)
+    getSellerIdByShopId(updatedOrder.shopId)
+        .then((sellerId) => {
+            publishEvent("order.status.updated", {
+                orderId: updatedOrder.id.toString(),
+                orderCode: updatedOrder.orderCode,
+                customerId: updatedOrder.customerId.toString(),
+                shopId: updatedOrder.shopId.toString(),
+                status: updatedOrder.orderStatus,
+                sellerId: sellerId ?? undefined,
+            });
+        })
+        .catch((err) => {
+            console.error("[commerce_service] Failed to publish order.status.updated event for cancelOrder:", err);
+        });
 
     return updatedOrder;
 }
@@ -488,6 +522,8 @@ export async function sellerUpdateOrderStatus(shopId: bigint, orderId: bigint, n
             id: true,
             orderCode: true,
             orderStatus: true,
+            customerId: true,
+            shopId: true,
         },
     });
 
@@ -499,7 +535,7 @@ export async function sellerUpdateOrderStatus(shopId: bigint, orderId: bigint, n
 
     assertValidSellerStatusTransition(order.orderStatus, nextStatus);
 
-    return prisma.order.update({
+    const updated = await prisma.order.update({
         where: { id: order.id },
         data: { orderStatus: nextStatus },
         select: {
@@ -509,4 +545,18 @@ export async function sellerUpdateOrderStatus(shopId: bigint, orderId: bigint, n
             updatedAt: true,
         },
     });
+
+    // Publish order.status.updated event to Kafka (async)
+    publishEvent("order.status.updated", {
+        orderId: updated.id.toString(),
+        orderCode: updated.orderCode,
+        customerId: order.customerId.toString(),
+        shopId: order.shopId.toString(),
+        status: updated.orderStatus,
+        sellerId: shopId.toString(),
+    }).catch((err) => {
+        console.error("[commerce_service] Failed to publish order.status.updated event for sellerUpdateOrderStatus:", err);
+    });
+
+    return updated;
 }
