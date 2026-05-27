@@ -2,119 +2,211 @@ import React, { useState, useEffect } from 'react';
 import axiosClient from '../../utils/axiosClient';
 
 const AdminDashboard = () => {
-  const [pendingShops, setPendingShops] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalShops: 0,
+    totalRevenue: 0,
+    monthlyRevenue: 0,
+    totalOrders: 0,
+    ordersByStatus: {}
+  });
+  const [recentOrders, setRecentOrders] = useState([]);
 
   useEffect(() => {
-    const fetchPendingShops = async () => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
       try {
-        // Chỉ lấy các shop chưa duyệt (status=INACTIVE)
-        const res = await axiosClient.get('/catalog/admin/shops?status=INACTIVE');
-        setPendingShops(res.data || []);
-      } catch (error) {
-        setPendingShops([
-          { id: 1, name: 'Luxe Homeware', sellerId: 'Nguyễn Minh Anh', category: 'Home & Living', date: 'Oct 24, 2026' },
-          { id: 2, name: 'Saigon Spices', sellerId: 'Trần Hoàng Nam', category: 'Food & Beverage', date: 'Oct 22, 2026' },
+        // Tạo filter lấy dữ liệu tháng hiện tại
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+
+        // Gọi đồng thời 4 API theo đúng thiết kế
+        const [usersRes, shopsRes, summaryRes, ordersRes] = await Promise.allSettled([
+          axiosClient.get('/auth/admin/users?page=1&limit=1'),
+          axiosClient.get('/catalog/admin/shops?page=1&limit=1'),
+          axiosClient.get(`/commerce/admin/dashboard-summary?from=${firstDay}&to=${lastDay}`),
+          axiosClient.get('/commerce/admin/orders?page=1&limit=5&sortBy=latest')
         ]);
+
+        // 1. Xử lý Tổng Users
+        const totalUsers = usersRes.status === 'fulfilled' && usersRes.value.meta?.pagination?.total 
+          ? usersRes.value.meta.pagination.total 
+          : 1240; // Fallback mock
+
+        // 2. Xử lý Tổng Shops
+        const totalShops = shopsRes.status === 'fulfilled' && shopsRes.value.meta?.pagination?.total 
+          ? shopsRes.value.meta.pagination.total 
+          : 486; // Fallback mock
+
+        // 3. Xử lý Summary (Revenue, Orders, Statuses)
+        let summaryData = { totalRevenue: 15420000000, monthlyRevenue: 2450000000, totalOrders: 12480, ordersByStatus: { PENDING: 120, CONFIRMED: 450, PROCESSING: 200, SHIPPING: 300, DELIVERED: 11000, CANCELLED: 410 } }; // Fallback mock
+        if (summaryRes.status === 'fulfilled' && summaryRes.value.data) {
+          summaryData = summaryRes.value.data;
+        }
+
+        setStats({
+          totalUsers,
+          totalShops,
+          ...summaryData
+        });
+
+        // 4. Xử lý Recent Orders
+        if (ordersRes.status === 'fulfilled' && ordersRes.value.data) {
+          setRecentOrders(ordersRes.value.data);
+        } else {
+          // Fallback mock
+          setRecentOrders([
+            { id: '1', orderCode: 'ORD-98210', receiverName: 'Nguyen Van A', totalAmount: 2450000, orderStatus: 'PAID', createdAt: new Date().toISOString() },
+            { id: '2', orderCode: 'ORD-98209', receiverName: 'Le Thi B', totalAmount: 890000, orderStatus: 'PENDING', createdAt: new Date(Date.now() - 86400000).toISOString() },
+            { id: '3', orderCode: 'ORD-98208', receiverName: 'Tran Duy C', totalAmount: 1200000, orderStatus: 'CANCELLED', createdAt: new Date(Date.now() - 172800000).toISOString() },
+            { id: '4', orderCode: 'ORD-98207', receiverName: 'Pham Hoang D', totalAmount: 3100000, orderStatus: 'SHIPPING', createdAt: new Date(Date.now() - 259200000).toISOString() },
+            { id: '5', orderCode: 'ORD-98206', receiverName: 'Vu Duc E', totalAmount: 560000, orderStatus: 'DELIVERED', createdAt: new Date(Date.now() - 345600000).toISOString() },
+          ]);
+        }
+
+      } catch (error) {
+        console.error("Lỗi lấy dữ liệu Dashboard:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchPendingShops();
+
+    fetchDashboardData();
   }, []);
 
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'PENDING': return <span className="px-2.5 py-1 bg-orange-50 text-orange-600 rounded-md text-[10px] font-black uppercase">Pending</span>;
+      case 'CONFIRMED': return <span className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-md text-[10px] font-black uppercase">Confirmed</span>;
+      case 'PROCESSING': return <span className="px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-black uppercase">Processing</span>;
+      case 'SHIPPING': return <span className="px-2.5 py-1 bg-purple-50 text-purple-600 rounded-md text-[10px] font-black uppercase">Shipping</span>;
+      case 'DELIVERED': return <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-black uppercase">Delivered</span>;
+      case 'CANCELLED': return <span className="px-2.5 py-1 bg-rose-50 text-rose-600 rounded-md text-[10px] font-black uppercase">Cancelled</span>;
+      case 'PAID': return <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-black uppercase">Paid</span>; // Ghi chú: PAID không thuộc OrderStatus nhưng nằm trong bản vẽ, có thể linh động
+      default: return <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md text-[10px] font-black uppercase">{status}</span>;
+    }
+  };
+
+  if (loading) {
+    return <div className="p-10 text-center text-slate-500 font-bold">Đang phân tích dữ liệu hệ thống...</div>;
+  }
+
   return (
-    <div className="p-6 md:p-10 font-sans bg-[#f8fafc] min-h-full">
-      <header className="mb-10">
-        <h1 className="text-3xl md:text-4xl font-black text-[#2e3785] tracking-tight mb-2">Network Overview</h1>
-        <p className="text-slate-500 font-medium max-w-2xl text-sm leading-relaxed">
-          A curated snapshot of your marketplace performance across the Vietnamese digital landscape. Tracking growth, scale, and economic movement in real-time.
+    <div className="p-4 md:p-6 lg:p-10 font-sans bg-[#f8fafc] min-h-full">
+      <header className="mb-8 md:mb-10">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#2e3785] tracking-tight mb-2">Network Overview</h1>
+        <p className="text-slate-500 font-medium max-w-2xl text-xs md:text-sm leading-relaxed">
+          Báo cáo hiệu suất toàn sàn thời gian thực.
         </p>
       </header>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group">
-          <div className="flex justify-between items-start mb-6">
-            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><span className="material-symbols-outlined">group</span></div>
-            <span className="text-emerald-600 font-bold text-xs bg-emerald-50 px-3 py-1 rounded-full">+12%</span>
-          </div>
-          <h3 className="text-slate-500 font-bold text-xs uppercase tracking-widest mb-1">Total Users</h3>
-          <div className="text-4xl font-black text-slate-900 tracking-tighter">1.2M</div>
+      {/* 4 Thẻ KPIs chính */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-10">
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl w-fit mb-4"><span className="material-symbols-outlined">group</span></div>
+          <h3 className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mb-1">Total Users</h3>
+          <div className="text-3xl font-black text-slate-900 tracking-tighter">{stats.totalUsers.toLocaleString()}</div>
+          <span className="material-symbols-outlined absolute right-[-10px] bottom-[-10px] text-[80px] text-slate-50 opacity-50 pointer-events-none">group</span>
         </div>
-        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group">
-          <div className="flex justify-between items-start mb-6">
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><span className="material-symbols-outlined">storefront</span></div>
-            <span className="text-emerald-600 font-bold text-xs bg-emerald-50 px-3 py-1 rounded-full">+4.2k</span>
-          </div>
-          <h3 className="text-slate-500 font-bold text-xs uppercase tracking-widest mb-1">Total Sellers</h3>
-          <div className="text-4xl font-black text-slate-900 tracking-tighter">45k</div>
+
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl w-fit mb-4"><span className="material-symbols-outlined">storefront</span></div>
+          <h3 className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mb-1">Total Sellers</h3>
+          <div className="text-3xl font-black text-slate-900 tracking-tighter">{stats.totalShops.toLocaleString()}</div>
+          <span className="material-symbols-outlined absolute right-[-10px] bottom-[-10px] text-[80px] text-slate-50 opacity-50 pointer-events-none">store</span>
         </div>
-        <div className="bg-gradient-to-br from-[#2b3896] to-[#4551af] p-8 rounded-3xl shadow-lg relative overflow-hidden">
-          <div className="flex justify-between items-start mb-6">
-            <div className="p-3 bg-white/20 text-white rounded-xl"><span className="material-symbols-outlined">payments</span></div>
+
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+          <div className="p-3 bg-orange-50 text-orange-600 rounded-xl w-fit mb-4"><span className="material-symbols-outlined">local_mall</span></div>
+          <h3 className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mb-1">Total Orders</h3>
+          <div className="text-3xl font-black text-slate-900 tracking-tighter">{stats.totalOrders.toLocaleString()}</div>
+          <span className="material-symbols-outlined absolute right-[-10px] bottom-[-10px] text-[80px] text-slate-50 opacity-50 pointer-events-none">shopping_cart</span>
+        </div>
+
+        <div className="bg-[#2e3785] p-6 rounded-3xl shadow-lg relative overflow-hidden text-white">
+          <div className="p-3 bg-white/20 rounded-xl w-fit mb-4"><span className="material-symbols-outlined">payments</span></div>
+          <h3 className="text-indigo-200 font-bold text-[10px] uppercase tracking-widest mb-1">Monthly Revenue</h3>
+          <div className="flex items-baseline space-x-1 z-10 relative">
+            <span className="text-3xl font-black tracking-tighter">{(stats.monthlyRevenue / 1000000).toFixed(1)}M</span>
+            <span className="text-base font-medium text-indigo-300">₫</span>
           </div>
-          <h3 className="text-indigo-100 font-bold text-xs uppercase tracking-widest mb-1">Monthly Revenue</h3>
-          <div className="flex items-baseline space-x-1">
-            <span className="text-4xl font-black text-white tracking-tighter">2.4B</span><span className="text-lg font-medium text-white/70">₫</span>
-          </div>
+          <span className="material-symbols-outlined absolute right-[-10px] bottom-[-10px] text-[100px] text-white opacity-10 pointer-events-none">trending_up</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Bảng Pending Shops */}
-        <div className="lg:col-span-3 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="p-6 md:p-8 flex justify-between items-end">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        {/* ĐƠN HÀNG GẦN ĐÂY */}
+        <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-5 md:p-6 border-b border-slate-50 flex justify-between items-center">
             <div>
-              <h2 className="text-xl font-black text-slate-900 mb-1">Newly Registered Shops</h2>
-              <p className="text-sm text-slate-500 font-medium">Review and verify incoming vendor applications.</p>
+              <h2 className="text-lg font-black text-slate-900 mb-1">Recent Transactions</h2>
+              <p className="text-xs text-slate-500 font-medium">Các đơn hàng mới nhất trên toàn hệ thống.</p>
             </div>
+            <button className="text-[#2e3785] font-bold text-xs hover:underline whitespace-nowrap">View All</button>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto w-full">
             <table className="w-full text-left whitespace-nowrap">
               <thead className="bg-slate-50/50">
                 <tr>
-                  <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Shop Name</th>
-                  <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Owner</th>
-                  <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Category</th>
-                  <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Date</th>
-                  <th className="px-6 py-4 text-right"></th>
+                  <th className="px-5 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Order ID</th>
+                  <th className="px-5 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Customer</th>
+                  <th className="px-5 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Amount</th>
+                  <th className="px-5 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Date</th>
+                  <th className="px-5 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {loading ? (
-                  <tr><td colSpan="5" className="p-6 text-center text-slate-400">Loading...</td></tr>
-                ) : (
-                  pendingShops.map((shop) => (
-                    <tr key={shop.id}>
-                      <td className="px-6 py-4 font-bold text-slate-900">{shop.name}</td>
-                      <td className="px-6 py-4 text-slate-600">{shop.sellerId}</td>
-                      <td className="px-6 py-4"><span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-black uppercase">{shop.category || 'General'}</span></td>
-                      <td className="px-6 py-4 text-slate-500 text-sm">{shop.date || 'New'}</td>
-                      <td className="px-6 py-4 text-right">
-                        <button className="px-4 py-2 bg-[#2e3785] text-white text-xs font-bold rounded-lg hover:bg-[#252d70]">Approve</button>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                {recentOrders.length === 0 ? (
+                  <tr><td colSpan="5" className="p-6 text-center text-slate-400">Không có đơn hàng nào</td></tr>
+                ) : recentOrders.map((order) => (
+                  <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-5 py-4 font-bold text-[#2e3785] text-xs md:text-sm">#{order.orderCode}</td>
+                    <td className="px-5 py-4 font-medium text-slate-900 text-xs md:text-sm">{order.receiverName}</td>
+                    <td className="px-5 py-4 font-black text-slate-900 text-xs md:text-sm">{order.totalAmount?.toLocaleString()} ₫</td>
+                    <td className="px-5 py-4 text-slate-500 text-[11px] md:text-xs">{new Date(order.createdAt).toLocaleDateString()}</td>
+                    <td className="px-5 py-4">{getStatusBadge(order.orderStatus)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Health */}
+        {/* THỐNG KÊ TRẠNG THÁI ĐƠN HÀNG */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-            <h3 className="text-base font-black mb-6 text-slate-900">Marketplace Health</h3>
-            <div className="space-y-6">
-              <div>
-                <div className="flex justify-between mb-2"><span className="text-xs font-bold text-slate-500">Uptime</span><span className="text-xs font-black text-[#2e3785]">99.98%</span></div>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full"><div className="bg-[#2e3785] h-full w-[99.98%]"></div></div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-2"><span className="text-xs font-bold text-slate-500">Active Sessions</span><span className="text-xs font-black text-indigo-400">12,402</span></div>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full"><div className="bg-indigo-400 h-full w-[75%]"></div></div>
-              </div>
+          <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm">
+            <h3 className="text-base font-black mb-6 text-slate-900">Order Status Breakdown</h3>
+            <div className="space-y-5">
+              
+              {/* Cấu trúc thanh Progress cho từng trạng thái */}
+              {Object.entries(stats.ordersByStatus).map(([status, count]) => {
+                const total = stats.totalOrders || 1; 
+                const percentage = Math.round((count / total) * 100);
+                
+                let colorClass = 'bg-slate-400';
+                if (status === 'DELIVERED') colorClass = 'bg-emerald-500';
+                if (status === 'PENDING') colorClass = 'bg-orange-500';
+                if (status === 'SHIPPING' || status === 'PROCESSING') colorClass = 'bg-[#2e3785]';
+                if (status === 'CANCELLED') colorClass = 'bg-rose-500';
+
+                return (
+                  <div key={status}>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-widest">{status}</span>
+                      <div className="flex gap-2 items-center">
+                         <span className="text-[10px] md:text-xs font-black text-slate-900">{count.toLocaleString()}</span>
+                         <span className="text-[10px] text-slate-400">({percentage}%)</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div className={`${colorClass} h-full rounded-full`} style={{ width: `${percentage}%` }}></div>
+                    </div>
+                  </div>
+                );
+              })}
+              
             </div>
           </div>
         </div>
