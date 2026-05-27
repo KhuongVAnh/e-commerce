@@ -1,7 +1,9 @@
 import { kafka } from "../config/kafka";
+import type { EachMessagePayload } from "kafkajs";
 import { prisma } from "../config/prisma";
 
 const consumer = kafka.consumer({ groupId: "api-gateway-notification-group" });
+let isConsumerStarted = false;
 
 const TOPICS = [
     "user.registered",
@@ -12,6 +14,10 @@ const TOPICS = [
 ];
 
 export async function startKafkaConsumer() {
+    if (isConsumerStarted) {
+        return;
+    }
+
     try {
         await consumer.connect();
         console.log("[Kafka Consumer] Connected successfully.");
@@ -23,7 +29,7 @@ export async function startKafkaConsumer() {
         }
 
         await consumer.run({
-            eachMessage: async ({ topic, partition, message }) => {
+            eachMessage: async ({ topic, partition, message }: EachMessagePayload) => {
                 if (!message.value) return;
                 
                 const rawPayload = message.value.toString();
@@ -37,7 +43,9 @@ export async function startKafkaConsumer() {
                 }
             }
         });
+        isConsumerStarted = true;
     } catch (error) {
+        isConsumerStarted = false;
         console.error("[Kafka Consumer] Failed to connect or run consumer:", error);
     }
 }
