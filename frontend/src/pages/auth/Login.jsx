@@ -38,7 +38,6 @@ const Login = () => {
     setErrorMsg('');
 
     try {
-      // Gọi API gửi kèm role đã chọn ở Bước 1
       const res = await authService.login(formData.email, formData.password, role);
       
       const userData = res.user;
@@ -46,7 +45,6 @@ const Login = () => {
 
       setAuthData(userData, accessToken);
 
-      // Điều hướng theo Role
       if (userData.role === 'ADMIN') {
         navigate('/admin');
       } else if (userData.role === 'SELLER') {
