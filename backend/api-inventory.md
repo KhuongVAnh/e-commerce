@@ -24,8 +24,9 @@
  |---|---|---|---|
  | `POST /api/auth/register` | Đăng ký tài khoản customer hoặc seller | `email: string`<br>`password: string`<br>`fullName: string`<br>`role?: CUSTOMER, SELLER` | `user: { id, email, fullName, role, status, createdAt }` |
  | `POST /api/auth/login` | Đăng nhập và lấy access token | `email: string`<br>`password: string` | `user: { id, email, fullName, role }`<br>`tokens: { accessToken, accessExpiresAt, refreshExpiresAt }` |
- | `POST /api/auth/refresh` | Làm mới access token bằng cookie refresh token | Không có body | `tokens: { accessToken, accessExpiresAt, refreshExpiresAt }` |
- | `POST /api/uploads/images` | Upload ảnh lên Cloudinary | `multipart/form-data`<br>Field file: `image` | `url: string`<br>`publicId: string`<br>`width: number`<br>`height: number`<br>`format: string`<br>`bytes: number` |
+| `POST /api/auth/refresh` | Làm mới access token bằng cookie refresh token | Không có body | `tokens: { accessToken, accessExpiresAt, refreshExpiresAt }` |
+| `GET /api/wake` | Đánh thức API Gateway và kiểm tra 3 service backend phía sau khi deploy trên Render | Không có body | `gateway: { ok, service }`<br>`services: [ { name, url, ok, status?, error? } ]` |
+| `POST /api/uploads/images` | Upload ảnh lên Cloudinary | `multipart/form-data`<br>Field file: `image` | `url: string`<br>`publicId: string`<br>`width: number`<br>`height: number`<br>`format: string`<br>`bytes: number` |
  | `GET /api/catalog/shops?page&limit&q&status` | Xem danh sách shop public; mặc định chỉ lấy shop `ACTIVE` | Không có body | `shops: [ { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt } ]`<br>`pagination: { page, limit, total, totalPages }` |
  | `GET /api/catalog/shops/:id` | Xem chi tiết shop public | Không có body | `shop: { id, sellerId, name, slug, logoUrl, description, address, status, createdAt, updatedAt }`<br>`stats: { productCount }` |
  | `GET /api/catalog/categories?q&status` | Xem danh sách category public | Không có body | `[ { id, name, slug, status } ]` |
@@ -195,7 +196,7 @@
 
  | Nhóm | Số dòng API trong tài liệu | Ghi chú |
  |---|---:|---|
- | Public API | 12 | Không cần bearer token |
+| Public API | 13 | Không cần bearer token |
  | Customer | 19 | Có tính cả API dùng chung với user đăng nhập |
  | Seller | 19 | Có tính cả API dùng chung với user đăng nhập |
  | Admin | 27 | Có tính cả API dùng chung với user đăng nhập |

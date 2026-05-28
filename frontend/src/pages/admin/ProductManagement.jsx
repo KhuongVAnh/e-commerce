@@ -1,127 +1,281 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import axiosClient from '../../utils/axiosClient';
+import { buildQueryString, DEFAULT_PAGINATION, formatCurrency, formatDate, getErrorMessage, getPagination } from '../../utils/adminApi';
+import {
+  AdminConfirmDialog,
+  AdminDataTable,
+  AdminModal,
+  AdminPageHeader,
+  AdminPagination,
+  AdminSearchInput,
+  AdminSelect,
+  AdminStatCard,
+  AdminStatusBadge,
+  AdminToolbar,
+} from '../../components/admin/AdminComponents';
+
+const productStatuses = ['ACTIVE', 'INACTIVE', 'OUT_OF_STOCK', 'DELETED'];
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
+  const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
+  const [filters, setFilters] = useState({ q: '', status: '', shopId: '', categoryId: '' });
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
-  const [filters, setFilters] = useState({ q: '', status: '', shopId: '', categoryId: '' });
-  const [stats, setStats] = useState({ total: 0, active: 0, outOfStock: 0, deleted: 0 });
-
-  // Dữ liệu cho Filter Dropdown
   const [filterShops, setFilterShops] = useState([]);
-  const [filterCats, setFilterCats] = useState([]);
+  const [filterCategories, setFilterCategories] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
-    // Tải danh sách shops và categories để đổ vào Dropdown
-    axiosClient.get('/catalog/admin/shops?limit=100').then(res => setFilterShops(res?.data?.shops || []));
-    axiosClient.get('/catalog/categories').then(res => setFilterCats(res?.data || []));
+    // Dropdown filter cần danh sách shop/category phụ trợ, tách khỏi API list product chính.
+    const fetchFilters = async () => {
+      try {
+        const [shopsRes, categoriesRes] = await Promise.allSettled([
+          axiosClient.get('/catalog/admin/shops?limit=100'),
+          axiosClient.get('/catalog/categories'),
+        ]);
+        if (shopsRes.status === 'fulfilled') {
+          setFilterShops(Array.isArray(shopsRes.value?.data?.shops) ? shopsRes.value.data.shops : []);
+        }
+        if (categoriesRes.status === 'fulfilled') {
+          setFilterCategories(Array.isArray(categoriesRes.value?.data) ? categoriesRes.value.data : []);
+        }
+      } catch {
+        setFilterShops([]);
+        setFilterCategories([]);
+      }
+    };
+    fetchFilters();
   }, []);
 
   const fetchProducts = useCallback(async () => {
+    // Product admin API hỗ trợ filter + pagination thật, nên query được build từ state UI.
     setLoading(true);
     setErrorMsg('');
     try {
-      const queryParams = new URLSearchParams();
-      Object.entries(filters).forEach(([key, val]) => { if (val) queryParams.append(key, val); });
-
-      const res = await axiosClient.get(`/catalog/admin/products?${queryParams.toString()}`);
-      const data = res?.data?.products || res?.products || res?.data || [];
-      const safeData = Array.isArray(data) ? data : [];
-      setProducts(safeData);
-      
-      setStats({
-        total: res?.data?.pagination?.total || safeData.length,
-        active: safeData.filter(p => p.status === 'ACTIVE').length,
-        outOfStock: safeData.filter(p => p.status === 'OUT_OF_STOCK').length,
-        deleted: safeData.filter(p => p.status === 'DELETED').length
-      });
+      const query = buildQueryString({ ...filters, page: pagination.page, limit: pagination.limit });
+      const res = await axiosClient.get(`/catalog/admin/products?${query}`);
+      setProducts(Array.isArray(res?.data?.products) ? res.data.products : []);
+      setPagination(getPagination(res));
     } catch (error) {
       setProducts([]);
-      setErrorMsg(error.message || "Không thể tải danh sách sản phẩm.");
-    } finally { setLoading(false); }
-  }, [filters]);
+      setErrorMsg(getErrorMessage(error, 'Không thể tải danh sách sản phẩm.'));
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, pagination.page, pagination.limit]);
 
-  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const updateFilter = (key, value) => {
+    // Reset page để kết quả filter mới luôn bắt đầu từ đầu danh sách.
+    setFilters((current) => ({ ...current, [key]: value }));
+    setPagination((current) => ({ ...current, page: 1 }));
+  };
+
+  const openProductDetail = async (product) => {
+    // Hiển thị tạm row đang có trước, sau đó thay bằng detail đầy đủ từ API.
+    setSelectedProduct(product);
+    setDetailLoading(true);
+    try {
+      const res = await axiosClient.get(`/catalog/admin/products/${product.id}`);
+      setSelectedProduct(res?.data?.product || product);
+    } catch {
+      setSelectedProduct(product);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const requestStatusChange = (product, nextStatus) => {
+    // Đổi status qua PUT admin product; DELETED dùng endpoint delete mềm riêng.
+    setConfirmAction({
+      type: 'status',
+      product,
+      nextStatus,
+      danger: nextStatus !== 'ACTIVE',
+      title: 'Cập nhật trạng thái sản phẩm?',
+      description: `${product.name} sẽ được chuyển sang trạng thái ${nextStatus}.`,
+    });
+  };
+
+  const requestDelete = (product) => {
+    // Delete trong catalog là soft delete, không xóa record vật lý.
+    setConfirmAction({
+      type: 'delete',
+      product,
+      danger: true,
+      title: 'Xóa mềm sản phẩm?',
+      description: `${product.name} sẽ chuyển sang trạng thái DELETED và không hiển thị với khách hàng.`,
+    });
+  };
+
+  const confirmProductAction = async () => {
+    if (!confirmAction) return;
+    setActionLoading(true);
+    try {
+      if (confirmAction.type === 'delete') {
+        await axiosClient.delete(`/catalog/admin/products/${confirmAction.product.id}`);
+      } else {
+        await axiosClient.put(`/catalog/admin/products/${confirmAction.product.id}`, { status: confirmAction.nextStatus });
+      }
+      setConfirmAction(null);
+      setSelectedProduct(null);
+      fetchProducts();
+    } catch (error) {
+      alert(getErrorMessage(error, 'Không thể cập nhật sản phẩm.'));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const stats = {
+    // Total lấy từ server, status count là snapshot trên page hiện tại.
+    total: pagination.total,
+    active: products.filter((product) => product.status === 'ACTIVE').length,
+    outOfStock: products.filter((product) => product.status === 'OUT_OF_STOCK').length,
+    deleted: products.filter((product) => product.status === 'DELETED').length,
+  };
 
   return (
-    <div className="p-4 md:p-6 lg:p-10 font-sans bg-[#f8fafc] min-h-full flex flex-col">
-      <header className="mb-6 md:mb-10 flex flex-col lg:flex-row justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#2e3785] tracking-tight mb-2">Global Product Directory</h1>
-          <p className="text-slate-500 font-medium text-xs md:text-sm">Active listings across shops</p>
-        </div>
-      </header>
+    <div className="min-h-full bg-[#f8fafc] p-4 font-sans md:p-6 lg:p-8">
+      <AdminPageHeader
+        title="Product Management"
+        description="Kiểm duyệt và quản lý danh sách sản phẩm toàn hệ thống."
+      />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-        <div className="bg-white p-5 md:p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-1">Total Products</h3><div className="text-3xl font-black text-slate-900">{stats.total}</div></div>
-        <div className="bg-white p-5 md:p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-1">Active Listings</h3><div className="text-3xl font-black text-[#2e3785]">{stats.active}</div></div>
-        <div className="bg-orange-50 p-5 md:p-6 rounded-2xl border border-orange-100 shadow-sm"><h3 className="text-orange-800 font-bold text-[10px] uppercase tracking-widest mb-1">Out Of Stock</h3><div className="text-3xl font-black text-orange-600">{stats.outOfStock}</div></div>
-        <div className="bg-rose-50 p-5 md:p-6 rounded-2xl border border-rose-100 shadow-sm"><h3 className="text-rose-800 font-bold text-[10px] uppercase tracking-widest mb-1">Deleted</h3><div className="text-3xl font-black text-rose-600">{stats.deleted}</div></div>
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <AdminStatCard icon="inventory_2" label="Total Results" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
+        <AdminStatCard icon="check_circle" label="Active On Page" value={stats.active} tone="success" />
+        <AdminStatCard icon="production_quantity_limits" label="Out Of Stock On Page" value={stats.outOfStock} tone="warning" />
+        <AdminStatCard icon="delete" label="Deleted On Page" value={stats.deleted} tone="danger" />
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col flex-1">
-        <div className="p-4 md:p-6 border-b border-slate-50 flex flex-col sm:flex-row gap-4 items-center justify-between">
-          <div className="relative w-full lg:w-96">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
-            <input type="text" placeholder="Search product..." onChange={e => setFilters({...filters, q: e.target.value})} className="w-full bg-slate-50 border-none py-3 pl-11 pr-4 rounded-xl text-sm outline-none" />
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto overflow-x-auto scrollbar-hide">
-            <select onChange={e => setFilters({...filters, shopId: e.target.value})} className="bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl font-bold text-sm outline-none text-slate-600">
-              <option value="">All Shops</option>
-              {filterShops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            <select onChange={e => setFilters({...filters, categoryId: e.target.value})} className="bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl font-bold text-sm outline-none text-slate-600">
-              <option value="">All Categories</option>
-              {filterCats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <select onChange={e => setFilters({...filters, status: e.target.value})} className="bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl font-bold text-sm outline-none text-slate-600">
-              <option value="">All Status</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="OUT_OF_STOCK">Out of Stock</option><option value="DELETED">Deleted</option>
-            </select>
-          </div>
-        </div>
+      <AdminToolbar>
+        <AdminSearchInput value={filters.q} onChange={(value) => updateFilter('q', value)} placeholder="Tìm sản phẩm..." />
+        <AdminSelect label="Shop" value={filters.shopId} onChange={(value) => updateFilter('shopId', value)}>
+          <option value="">Tất cả shop</option>
+          {filterShops.map((shop) => <option key={shop.id} value={shop.id}>{shop.name}</option>)}
+        </AdminSelect>
+        <AdminSelect label="Category" value={filters.categoryId} onChange={(value) => updateFilter('categoryId', value)}>
+          <option value="">Tất cả danh mục</option>
+          {filterCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+        </AdminSelect>
+        <AdminSelect label="Status" value={filters.status} onChange={(value) => updateFilter('status', value)}>
+          <option value="">Tất cả trạng thái</option>
+          {productStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
+        </AdminSelect>
+      </AdminToolbar>
 
-        <div className="overflow-x-auto w-full">
-          <table className="w-full text-left whitespace-nowrap min-w-[800px]">
-            <thead className="bg-white border-b border-slate-50">
-              <tr>
-                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Product Details</th>
-                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Shop / Seller</th>
-                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Category</th>
-                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Price & Stock</th>
-                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? <tr><td colSpan="5" className="text-center py-10 text-slate-400">Loading...</td></tr> : errorMsg ? <tr><td colSpan="5" className="text-center py-10 text-rose-500">{errorMsg}</td></tr> : products.length === 0 ? <tr><td colSpan="5" className="text-center py-10 text-slate-400">Không có sản phẩm.</td></tr> : products.map((p, idx) => (
-                <tr key={p.id || idx} className="hover:bg-slate-50/50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-slate-100 rounded-xl overflow-hidden flex items-center justify-center font-black text-slate-300">
-                        {p.thumbnailUrl ? <img src={p.thumbnailUrl} className="w-full h-full object-cover" /> : p.name?.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-bold text-slate-900 text-sm">{p.name}</p>
-                        <p className="text-[11px] font-medium text-slate-400 uppercase">SKU: PROD-{p.id}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 font-bold text-[#2e3785] text-sm">{p.shop?.name || `Shop #${p.shopId}`}</td>
-                  <td className="px-6 py-4"><span className="px-3 py-1 font-black text-[10px] uppercase rounded-full bg-slate-100 text-slate-600">{p.category?.name || p.categoryId || 'N/A'}</span></td>
-                  <td className="px-6 py-4">
-                    <p className="font-black text-slate-900 text-sm">{(p.price || 0).toLocaleString()} ₫</p>
-                    <p className="text-[11px] font-medium text-slate-500 mt-0.5">{p.stockQuantity || 0} in stock</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 bg-slate-100 text-slate-600 font-bold text-[10px] uppercase rounded-full">{p.status}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <AdminDataTable
+        columns={[
+          { key: 'product', label: 'Product' },
+          { key: 'shop', label: 'Shop' },
+          { key: 'category', label: 'Category' },
+          { key: 'price', label: 'Price / Stock' },
+          { key: 'status', label: 'Status' },
+          { key: 'actions', label: 'Actions' },
+        ]}
+        rows={products}
+        loading={loading}
+        error={errorMsg}
+        emptyMessage="Không có sản phẩm phù hợp."
+        renderRow={(product) => (
+          <tr key={product.id} className="hover:bg-slate-50">
+            <td className="px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100 font-black text-slate-400">
+                  {product.thumbnailUrl ? <img src={product.thumbnailUrl} alt={product.name} className="h-full w-full object-cover" /> : product.name?.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-sm font-black text-slate-900">{product.name}</p>
+                  <p className="text-xs font-medium text-slate-400">#{product.id} - {product.slug}</p>
+                </div>
+              </div>
+            </td>
+            <td className="px-5 py-4 text-sm font-bold text-[#2e3785]">{product.shop?.name || `Shop #${product.shopId}`}</td>
+            <td className="px-5 py-4 text-sm font-bold text-slate-600">{product.category?.name || product.categoryId}</td>
+            <td className="px-5 py-4">
+              <p className="text-sm font-black text-slate-900">{formatCurrency(product.price)}</p>
+              <p className="text-xs font-medium text-slate-400">{product.stockQuantity || 0} tồn kho</p>
+            </td>
+            <td className="px-5 py-4"><AdminStatusBadge status={product.status} /></td>
+            <td className="px-5 py-4">
+              <div className="flex items-center gap-2">
+                <button onClick={() => openProductDetail(product)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-100">
+                  <span className="material-symbols-outlined text-[18px]">visibility</span>
+                </button>
+                {product.status !== 'DELETED' && (
+                  <>
+                    <select
+                      value={product.status}
+                      onChange={(event) => requestStatusChange(product, event.target.value)}
+                      className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600 outline-none"
+                    >
+                      <option value="ACTIVE">ACTIVE</option>
+                      <option value="INACTIVE">INACTIVE</option>
+                      <option value="OUT_OF_STOCK">OUT_OF_STOCK</option>
+                    </select>
+                    <button onClick={() => requestDelete(product)} className="rounded-lg bg-rose-50 p-2 text-rose-700 hover:bg-rose-100">
+                      <span className="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </td>
+          </tr>
+        )}
+      />
+
+      <AdminPagination
+        pagination={pagination}
+        onPageChange={(page) => setPagination((current) => ({ ...current, page }))}
+        onLimitChange={(limit) => setPagination((current) => ({ ...current, page: 1, limit }))}
+      />
+
+      <AdminModal open={Boolean(selectedProduct)} title="Product Detail" onClose={() => setSelectedProduct(null)}>
+        {detailLoading ? (
+          <p className="text-sm font-bold text-slate-400">Đang tải chi tiết...</p>
+        ) : (
+          <div className="space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100 text-xl font-black text-slate-500">
+                {selectedProduct?.thumbnailUrl ? <img src={selectedProduct.thumbnailUrl} alt={selectedProduct.name} className="h-full w-full object-cover" /> : selectedProduct?.name?.charAt(0)}
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">{selectedProduct?.name}</h3>
+                <p className="text-sm font-medium text-slate-500">{selectedProduct?.shop?.name} - {selectedProduct?.category?.name}</p>
+                <div className="mt-2"><AdminStatusBadge status={selectedProduct?.status} /></div>
+              </div>
+            </div>
+            <div className="grid gap-4 rounded-lg bg-slate-50 p-4 md:grid-cols-2">
+              <div><p className="text-[10px] font-black uppercase text-slate-400">Price</p><p className="text-sm font-black text-slate-700">{formatCurrency(selectedProduct?.price)}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">Stock</p><p className="text-sm font-black text-slate-700">{selectedProduct?.stockQuantity || 0}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">Created</p><p className="text-sm font-bold text-slate-700">{formatDate(selectedProduct?.createdAt)}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">Updated</p><p className="text-sm font-bold text-slate-700">{formatDate(selectedProduct?.updatedAt)}</p></div>
+              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">Description</p><p className="text-sm font-medium text-slate-600">{selectedProduct?.description || 'N/A'}</p></div>
+            </div>
+          </div>
+        )}
+      </AdminModal>
+
+      <AdminConfirmDialog
+        open={Boolean(confirmAction)}
+        title={confirmAction?.title}
+        description={confirmAction?.description}
+        danger={confirmAction?.danger}
+        confirmText={confirmAction?.type === 'delete' ? 'Xóa mềm' : 'Cập nhật'}
+        loading={actionLoading}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={confirmProductAction}
+      />
     </div>
   );
 };
+
 export default ProductManagement;
