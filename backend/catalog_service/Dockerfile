@@ -9,7 +9,7 @@ COPY shared ../shared
 COPY catalog_service/prisma ./prisma
 COPY catalog_service/src ./src
 
-RUN npm ci
+RUN npm install
 RUN npx prisma generate
 RUN npm run build || true
 
