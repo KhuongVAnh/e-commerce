@@ -1,140 +1,266 @@
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import axiosClient from '../../utils/axiosClient';
+import { buildQueryString, DEFAULT_PAGINATION, getErrorMessage } from '../../utils/adminApi';
+import {
+  AdminConfirmDialog,
+  AdminDataTable,
+  AdminModal,
+  AdminPageHeader,
+  AdminPagination,
+  AdminSearchInput,
+  AdminSelect,
+  AdminStatCard,
+  AdminStatusBadge,
+  AdminToolbar,
+} from '../../components/admin/AdminComponents';
+
+const emptyForm = { id: null, name: '', status: 'ACTIVE' };
 
 const CategoryManagement = () => {
   const [categories, setCategories] = useState([]);
+  const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
+  const [filters, setFilters] = useState({ q: '', status: '' });
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
-  
-  // State Modal (Dùng chung cho Add và Edit)
-  const [showModal, setShowModal] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({ id: null, name: '', slug: '', status: 'ACTIVE' });
+  const [form, setForm] = useState(emptyForm);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  useEffect(() => { fetchCategories(); }, []);
-
-  const fetchCategories = async () => {
+  // Category API hiện chưa có page/limit, nên lấy list theo filter rồi phân trang ở client.
+  const fetchCategories = useCallback(async () => {
     setLoading(true);
     setErrorMsg('');
     try {
-      const res = await axiosClient.get('/catalog/categories');
-      const data = res?.data?.data || res?.data || res || [];
-      setCategories(Array.isArray(data) ? data : []);
+      const query = buildQueryString(filters);
+      const res = await axiosClient.get(`/catalog/categories${query ? `?${query}` : ''}`);
+      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      setCategories(list);
+      setPagination((current) => ({
+        ...current,
+        total: list.length,
+        totalPages: Math.max(1, Math.ceil(list.length / current.limit)),
+      }));
     } catch (error) {
       setCategories([]);
-      setErrorMsg(error.message || "Không thể tải danh mục.");
-    } finally { setLoading(false); }
+      setErrorMsg(getErrorMessage(error, 'Không thể tải danh mục.'));
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  const pagedCategories = useMemo(() => {
+    // Cắt dữ liệu theo page hiện tại để category vẫn có UX giống các bảng admin khác.
+    const start = (pagination.page - 1) * pagination.limit;
+    return categories.slice(start, start + pagination.limit);
+  }, [categories, pagination.page, pagination.limit]);
+
+  const updateFilter = (key, value) => {
+    // Filter mới làm thay đổi tổng list, vì vậy luôn quay về page đầu.
+    setFilters((current) => ({ ...current, [key]: value }));
+    setPagination((current) => ({ ...current, page: 1 }));
   };
 
-  const openCreateModal = () => {
-    setIsEditing(false);
-    setFormData({ id: null, name: '', slug: '', status: 'ACTIVE' });
-    setShowModal(true);
+  const openCreate = () => {
+    setForm(emptyForm);
+    setFormOpen(true);
   };
 
-  const openEditModal = (cat) => {
-    setIsEditing(true);
-    setFormData({ id: cat.id, name: cat.name, slug: cat.slug, status: cat.status });
-    setShowModal(true);
+  const openEdit = (category) => {
+    setForm({ id: category.id, name: category.name || '', status: category.status || 'ACTIVE' });
+    setFormOpen(true);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const submitForm = async (event) => {
+    event.preventDefault();
+    setFormLoading(true);
     try {
-      if (isEditing) {
-        await axiosClient.put(`/catalog/categories/${formData.id}`, { name: formData.name, status: formData.status });
-        alert("Cập nhật thành công!");
+      // Cùng một form phục vụ cả create và update; form.id quyết định HTTP method.
+      const payload = { name: form.name.trim(), status: form.status };
+      if (form.id) {
+        await axiosClient.put(`/catalog/categories/${form.id}`, payload);
       } else {
-        await axiosClient.post('/catalog/categories', { name: formData.name, status: formData.status });
-        alert("Tạo danh mục thành công!");
+        await axiosClient.post('/catalog/categories', payload);
       }
-      setShowModal(false);
+      setFormOpen(false);
+      setForm(emptyForm);
       fetchCategories();
-    } catch (error) { alert("Lỗi: " + (error.response?.data?.message || 'Không thể lưu.')); }
+    } catch (error) {
+      alert(getErrorMessage(error, 'Không thể lưu danh mục.'));
+    } finally {
+      setFormLoading(false);
+    }
   };
 
-  const handleDeleteCategory = async (catId) => {
-    if(!window.confirm('Xóa danh mục này? Backend có thể chặn nếu đang có sản phẩm!')) return;
+  const requestStatusChange = (category) => {
+    // ACTIVE/INACTIVE là toggle nhẹ, nhưng vẫn confirm vì ảnh hưởng public catalog.
+    const nextStatus = category.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    setConfirmAction({
+      type: 'status',
+      category,
+      nextStatus,
+      danger: nextStatus === 'INACTIVE',
+      title: nextStatus === 'ACTIVE' ? 'Bật danh mục?' : 'Tắt danh mục?',
+      description: `${category.name} sẽ được chuyển sang trạng thái ${nextStatus}.`,
+    });
+  };
+
+  const requestDelete = (category) => {
+    // Backend sẽ chặn xóa nếu category còn product; UI chỉ cảnh báo trước cho admin.
+    setConfirmAction({
+      type: 'delete',
+      category,
+      danger: true,
+      title: 'Xóa danh mục?',
+      description: `Danh mục ${category.name} chỉ xóa được khi không còn sản phẩm liên kết.`,
+    });
+  };
+
+  const confirmCategoryAction = async () => {
+    if (!confirmAction) return;
+    setActionLoading(true);
     try {
-      await axiosClient.delete(`/catalog/categories/${catId}`);
-      alert('Đã xóa thành công!');
+      if (confirmAction.type === 'delete') {
+        await axiosClient.delete(`/catalog/categories/${confirmAction.category.id}`);
+      } else {
+        await axiosClient.put(`/catalog/categories/${confirmAction.category.id}`, { status: confirmAction.nextStatus });
+      }
+      setConfirmAction(null);
       fetchCategories();
-    } catch (error) { alert("Lỗi khi xóa: " + (error.response?.data?.message || 'Lỗi.')); }
+    } catch (error) {
+      alert(getErrorMessage(error, 'Không thể thao tác danh mục.'));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const stats = {
+    // Vì category phân trang client-side nên thống kê lấy trên toàn bộ list đã filter.
+    total: categories.length,
+    active: categories.filter((category) => category.status === 'ACTIVE').length,
+    inactive: categories.filter((category) => category.status === 'INACTIVE').length,
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-10 font-sans bg-[#f8fafc] min-h-full flex flex-col relative">
-      <header className="mb-6 md:mb-10 flex flex-col md:flex-row justify-between md:items-end gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#2e3785] tracking-tight mb-2">Editorial Hierarchy</h1>
-          <p className="text-slate-500 font-medium text-xs md:text-sm max-w-2xl">Organize your premium offerings into curated segments.</p>
-        </div>
-        <button onClick={openCreateModal} className="px-5 py-2.5 bg-[#2e3785] hover:bg-[#252d70] text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">add</span> Add New Category
-        </button>
-      </header>
+    <div className="min-h-full bg-[#f8fafc] p-4 font-sans md:p-6 lg:p-8">
+      <AdminPageHeader
+        title="Category Management"
+        description="Tổ chức danh mục sản phẩm và trạng thái hiển thị."
+        action={(
+          <button onClick={openCreate} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2e3785] px-4 text-sm font-black text-white hover:bg-[#252d70]">
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            Thêm danh mục
+          </button>
+        )}
+      />
 
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col flex-1">
-        <div className="p-6 border-b border-slate-50">
-          <h2 className="text-base font-black text-[#2e3785]">Active Catalog Structure</h2>
-        </div>
-        <div className="overflow-x-auto w-full">
-          <table className="w-full text-left whitespace-nowrap min-w-[700px]">
-            <thead className="bg-white border-b border-slate-50">
-              <tr>
-                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Category Name</th>
-                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Slug</th>
-                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Status</th>
-                <th className="px-6 py-5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? <tr><td colSpan="4" className="text-center py-10 text-slate-400">Loading...</td></tr> : errorMsg ? <tr><td colSpan="4" className="text-center py-10 text-rose-500">{errorMsg}</td></tr> : categories.map((c, idx) => (
-                <tr key={c.id || idx} className="hover:bg-slate-50/50">
-                  <td className="px-6 py-4 font-bold text-[#2e3785] text-sm">{c.name}</td>
-                  <td className="px-6 py-4 text-xs font-mono text-slate-500">{c.slug}</td>
-                  <td className="px-6 py-4">
-                    {c.status === 'ACTIVE' ? <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-full">Active</span> : <span className="px-3 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-full">Inactive</span>}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button onClick={() => openEditModal(c)} className="w-8 h-8 rounded-full hover:bg-indigo-50 text-slate-400 hover:text-[#2e3785] flex items-center justify-center transition inline-flex"><span className="material-symbols-outlined text-[18px]">edit</span></button>
-                    <button onClick={() => handleDeleteCategory(c.id)} className="w-8 h-8 rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition inline-flex"><span className="material-symbols-outlined text-[18px]">delete</span></button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <AdminStatCard icon="category" label="Total Results" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
+        <AdminStatCard icon="visibility" label="Active" value={stats.active} tone="success" />
+        <AdminStatCard icon="visibility_off" label="Inactive" value={stats.inactive} />
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md p-8 relative">
-            <button onClick={() => setShowModal(false)} className="absolute top-6 right-6 text-slate-400"><span className="material-symbols-outlined">close</span></button>
-            <h2 className="text-2xl font-black text-slate-900 mb-6">{isEditing ? 'Edit Category' : 'Add Category'}</h2>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-[10px] font-black uppercase text-slate-500 mb-2">Category Name</label>
-                <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none" />
+      <AdminToolbar>
+        <AdminSearchInput value={filters.q} onChange={(value) => updateFilter('q', value)} placeholder="Tìm danh mục..." />
+        <AdminSelect label="Status" value={filters.status} onChange={(value) => updateFilter('status', value)}>
+          <option value="">Tất cả trạng thái</option>
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Inactive</option>
+        </AdminSelect>
+      </AdminToolbar>
+
+      <AdminDataTable
+        columns={[
+          { key: 'name', label: 'Category' },
+          { key: 'slug', label: 'Slug' },
+          { key: 'status', label: 'Status' },
+          { key: 'actions', label: 'Actions' },
+        ]}
+        rows={pagedCategories}
+        loading={loading}
+        error={errorMsg}
+        emptyMessage="Không có danh mục phù hợp."
+        renderRow={(category) => (
+          <tr key={category.id} className="hover:bg-slate-50">
+            <td className="px-5 py-4 text-sm font-black text-[#2e3785]">{category.name}</td>
+            <td className="px-5 py-4 text-xs font-bold text-slate-400">{category.slug}</td>
+            <td className="px-5 py-4"><AdminStatusBadge status={category.status} /></td>
+            <td className="px-5 py-4">
+              <div className="flex items-center gap-2">
+                <button onClick={() => openEdit(category)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-100">
+                  <span className="material-symbols-outlined text-[18px]">edit</span>
+                </button>
+                <button onClick={() => requestStatusChange(category)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-100">
+                  <span className="material-symbols-outlined text-[18px]">{category.status === 'ACTIVE' ? 'visibility_off' : 'visibility'}</span>
+                </button>
+                <button onClick={() => requestDelete(category)} className="rounded-lg bg-rose-50 p-2 text-rose-700 hover:bg-rose-100">
+                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                </button>
               </div>
-              {isEditing && (
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-500 mb-2">Status</label>
-                  <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none">
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
-                  </select>
-                </div>
-              )}
-              <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setShowModal(false)} className="px-6 py-3 text-sm font-bold text-slate-600 bg-slate-100 rounded-xl">Cancel</button>
-                <button type="submit" className="px-6 py-3 bg-[#2e3785] text-white text-sm font-bold rounded-xl">{isEditing ? 'Save' : 'Create'}</button>
-              </div>
-            </form>
+            </td>
+          </tr>
+        )}
+      />
+
+      <AdminPagination
+        pagination={pagination}
+        onPageChange={(page) => setPagination((current) => ({ ...current, page }))}
+        onLimitChange={(limit) => setPagination((current) => ({
+          ...current,
+          page: 1,
+          limit,
+          totalPages: Math.max(1, Math.ceil(categories.length / limit)),
+        }))}
+      />
+
+      <AdminModal open={formOpen} title={form.id ? 'Sửa danh mục' : 'Thêm danh mục'} onClose={() => setFormOpen(false)}>
+        <form onSubmit={submitForm} className="space-y-5">
+          <div>
+            <label className="mb-2 block text-[10px] font-black uppercase text-slate-400">Tên danh mục</label>
+            <input
+              value={form.name}
+              onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+              required
+              className="h-11 w-full rounded-lg border border-slate-200 px-4 text-sm font-bold outline-none focus:border-[#2e3785] focus:ring-2 focus:ring-indigo-100"
+            />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="mb-2 block text-[10px] font-black uppercase text-slate-400">Trạng thái</label>
+            <select
+              value={form.status}
+              onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}
+              className="h-11 w-full rounded-lg border border-slate-200 px-4 text-sm font-bold outline-none focus:border-[#2e3785] focus:ring-2 focus:ring-indigo-100"
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+          </div>
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={() => setFormOpen(false)} className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">Hủy</button>
+            <button type="submit" disabled={formLoading} className="rounded-lg bg-[#2e3785] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
+              {formLoading ? 'Đang lưu...' : 'Lưu'}
+            </button>
+          </div>
+        </form>
+      </AdminModal>
+
+      <AdminConfirmDialog
+        open={Boolean(confirmAction)}
+        title={confirmAction?.title}
+        description={confirmAction?.description}
+        danger={confirmAction?.danger}
+        confirmText={confirmAction?.type === 'delete' ? 'Xóa' : 'Cập nhật'}
+        loading={actionLoading}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={confirmCategoryAction}
+      />
     </div>
   );
 };
+
 export default CategoryManagement;

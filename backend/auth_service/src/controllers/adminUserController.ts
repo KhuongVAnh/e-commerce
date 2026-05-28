@@ -34,7 +34,10 @@ export async function adminGetUserController(req: Request, res: Response, _next:
 }
 
 export async function adminUpdateUserController(req: Request, res: Response, _next: NextFunction): Promise<void> {
-  const data = await adminUpdateUser(String(req.params.userId ?? ""), req.body);
+  // Truyền actor xuống service để service biết admin nào đang thao tác.
+  const data = await adminUpdateUser(String(req.params.userId ?? ""), req.body, {
+    userId: req.authUser?.userId,
+  });
 
   sendSuccess(res, {
     requestId: res.locals.requestId,
@@ -44,7 +47,10 @@ export async function adminUpdateUserController(req: Request, res: Response, _ne
 }
 
 export async function adminBlockUserController(req: Request, res: Response, _next: NextFunction): Promise<void> {
-  const data = await adminBlockUser(String(req.params.userId ?? ""));
+  // DELETE theo inventory là alias block user, vẫn cần actor để chặn tự khóa.
+  const data = await adminBlockUser(String(req.params.userId ?? ""), {
+    userId: req.authUser?.userId,
+  });
 
   sendSuccess(res, {
     requestId: res.locals.requestId,
