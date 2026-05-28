@@ -75,6 +75,8 @@ model CartItem {
 model Order {
   id              BigInt        @id @default(autoincrement())
   orderCode       String        @unique @map("order_code")
+  // Client gửi cùng idempotencyKey khi retry checkout để backend trả lại đơn cũ thay vì tạo đơn trùng.
+  idempotencyKey  String?       @map("idempotency_key")
   customerId      BigInt        @map("customer_id")
   shopId          BigInt        @map("shop_id")
   totalAmount     Decimal       @map("total_amount") @db.Decimal(10, 2)
@@ -93,6 +95,8 @@ model Order {
 
   @@index([customerId])
   @@index([shopId])
+  // Unique theo customer để hai khách khác nhau có thể dùng cùng key ngẫu nhiên mà không đụng nhau.
+  @@unique([customerId, idempotencyKey], name: "unique_order_idempotency_key")
   @@map("orders")
   @@schema("commerce_service")
 }
@@ -119,7 +123,7 @@ model Payment {
   method               PaymentMethod
   amount               Decimal           @db.Decimal(10, 2)
   status               TransactionStatus
-  transactionRef       String?           @map("transaction_ref") // mã giao dịch do VNPay trả về, dùng để tra cứu, đối chiếu khi xử lý IPN
+  transactionRef       String?           @unique @map("transaction_ref") // mã giao dịch do VNPay trả về, dùng để tra cứu, đối chiếu khi xử lý IPN
   providerResponse     String?           @map("provider_response") @db.Text // lưu trữ toàn bộ dữ liệu trả về từ VNPay để phục vụ việc tra cứu, xử lý sau này
   checkoutUrl          String?           @map("checkout_url") @db.Text
   checkoutUrlCreatedAt DateTime?         @map("checkout_url_created_at")

@@ -1142,6 +1142,9 @@ export async function decrementProductsStock(items: Array<{ productId: bigint; q
         const results: StockMutationResult[] = [];
 
         for (const item of items) {
+            // Stock phải được trừ bằng một câu UPDATE có điều kiện thay vì đọc stock rồi ghi lại.
+            // Khi nhiều checkout chạy cùng lúc, database sẽ chỉ cho request còn đủ stock cập nhật thành công;
+            // request thua sẽ nhận count=0 và được map thành lỗi INSUFFICIENT_STOCK bên dưới.
             const updatedCount = await tx.product.updateMany({
                 where: {
                     id: item.productId,
@@ -1155,6 +1158,8 @@ export async function decrementProductsStock(items: Array<{ productId: bigint; q
             });
 
             if (updatedCount.count === 0) {
+                // Đọc lại product chỉ để trả lỗi đúng nguyên nhân cho client.
+                // Không dùng dữ liệu đọc ở đây để quyết định trừ kho, vì quyết định đó đã nằm trong UPDATE atomic phía trên.
                 const product = await tx.product.findUnique({
                     where: { id: item.productId },
                     select: { id: true, stockQuantity: true, status: true, deletedAt: true },
