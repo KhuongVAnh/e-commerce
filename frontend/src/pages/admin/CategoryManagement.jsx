@@ -5,8 +5,11 @@ const CategoryManagement = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  // State Modal (Dùng chung cho Add và Edit)
   const [showModal, setShowModal] = useState(false);
-  const [newCat, setNewCat] = useState({ name: '', slug: '' });
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({ id: null, name: '', slug: '', status: 'ACTIVE' });
 
   useEffect(() => { fetchCategories(); }, []);
 
@@ -23,19 +26,35 @@ const CategoryManagement = () => {
     } finally { setLoading(false); }
   };
 
-  const handleCreateCategory = async (e) => {
+  const openCreateModal = () => {
+    setIsEditing(false);
+    setFormData({ id: null, name: '', slug: '', status: 'ACTIVE' });
+    setShowModal(true);
+  };
+
+  const openEditModal = (cat) => {
+    setIsEditing(true);
+    setFormData({ id: cat.id, name: cat.name, slug: cat.slug, status: cat.status });
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axiosClient.post('/catalog/categories', { name: newCat.name });
-      alert("Tạo danh mục thành công!");
+      if (isEditing) {
+        await axiosClient.put(`/catalog/categories/${formData.id}`, { name: formData.name, status: formData.status });
+        alert("Cập nhật thành công!");
+      } else {
+        await axiosClient.post('/catalog/categories', { name: formData.name, status: formData.status });
+        alert("Tạo danh mục thành công!");
+      }
       setShowModal(false);
-      setNewCat({ name: '', slug: '' });
       fetchCategories();
-    } catch (error) { alert("Lỗi: " + (error.response?.data?.message || 'Không thể tạo.')); }
+    } catch (error) { alert("Lỗi: " + (error.response?.data?.message || 'Không thể lưu.')); }
   };
 
   const handleDeleteCategory = async (catId) => {
-    if(!window.confirm('Xóa danh mục này?')) return;
+    if(!window.confirm('Xóa danh mục này? Backend có thể chặn nếu đang có sản phẩm!')) return;
     try {
       await axiosClient.delete(`/catalog/categories/${catId}`);
       alert('Đã xóa thành công!');
@@ -50,17 +69,10 @@ const CategoryManagement = () => {
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#2e3785] tracking-tight mb-2">Editorial Hierarchy</h1>
           <p className="text-slate-500 font-medium text-xs md:text-sm max-w-2xl">Organize your premium offerings into curated segments.</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="px-5 py-2.5 bg-[#2e3785] hover:bg-[#252d70] text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+        <button onClick={openCreateModal} className="px-5 py-2.5 bg-[#2e3785] hover:bg-[#252d70] text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2">
           <span className="material-symbols-outlined text-[18px]">add</span> Add New Category
         </button>
       </header>
-
-      <div className="mb-6 md:mb-10 w-full sm:w-1/3">
-        <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between">
-          <div><p className="text-xs font-bold text-slate-500 mb-1">Total Categories</p><div className="text-3xl md:text-4xl font-black text-[#2e3785]">{categories.length}</div></div>
-          <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-400"><span className="material-symbols-outlined text-[32px]">category</span></div>
-        </div>
-      </div>
 
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col flex-1">
         <div className="p-6 border-b border-slate-50">
@@ -73,7 +85,7 @@ const CategoryManagement = () => {
                 <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Category Name</th>
                 <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Slug</th>
                 <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Status</th>
-                <th className="px-6 py-5 text-right"></th>
+                <th className="px-6 py-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -82,10 +94,11 @@ const CategoryManagement = () => {
                   <td className="px-6 py-4 font-bold text-[#2e3785] text-sm">{c.name}</td>
                   <td className="px-6 py-4 text-xs font-mono text-slate-500">{c.slug}</td>
                   <td className="px-6 py-4">
-                    {c.status === 'ACTIVE' ? <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-full">Active</span> : <span className="px-3 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-full">Hidden</span>}
+                    {c.status === 'ACTIVE' ? <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-full">Active</span> : <span className="px-3 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-full">Inactive</span>}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button onClick={() => handleDeleteCategory(c.id)} className="w-8 h-8 rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition"><span className="material-symbols-outlined text-[18px]">delete</span></button>
+                    <button onClick={() => openEditModal(c)} className="w-8 h-8 rounded-full hover:bg-indigo-50 text-slate-400 hover:text-[#2e3785] flex items-center justify-center transition inline-flex"><span className="material-symbols-outlined text-[18px]">edit</span></button>
+                    <button onClick={() => handleDeleteCategory(c.id)} className="w-8 h-8 rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition inline-flex"><span className="material-symbols-outlined text-[18px]">delete</span></button>
                   </td>
                 </tr>
               ))}
@@ -98,15 +111,24 @@ const CategoryManagement = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
           <div className="bg-white rounded-3xl w-full max-w-md p-8 relative">
             <button onClick={() => setShowModal(false)} className="absolute top-6 right-6 text-slate-400"><span className="material-symbols-outlined">close</span></button>
-            <h2 className="text-2xl font-black text-slate-900 mb-6">Add Category</h2>
-            <form onSubmit={handleCreateCategory} className="space-y-6">
+            <h2 className="text-2xl font-black text-slate-900 mb-6">{isEditing ? 'Edit Category' : 'Add Category'}</h2>
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-[10px] font-black uppercase text-slate-500 mb-2">Category Name</label>
-                <input type="text" value={newCat.name} onChange={(e) => setNewCat({...newCat, name: e.target.value})} required className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none" />
+                <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none" />
               </div>
+              {isEditing && (
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-500 mb-2">Status</label>
+                  <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none">
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                  </select>
+                </div>
+              )}
               <div className="flex justify-end gap-3">
                 <button type="button" onClick={() => setShowModal(false)} className="px-6 py-3 text-sm font-bold text-slate-600 bg-slate-100 rounded-xl">Cancel</button>
-                <button type="submit" className="px-6 py-3 bg-[#2e3785] text-white text-sm font-bold rounded-xl">Create</button>
+                <button type="submit" className="px-6 py-3 bg-[#2e3785] text-white text-sm font-bold rounded-xl">{isEditing ? 'Save' : 'Create'}</button>
               </div>
             </form>
           </div>

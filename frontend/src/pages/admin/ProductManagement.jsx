@@ -8,12 +8,14 @@ const ProductManagement = () => {
   const [filters, setFilters] = useState({ q: '', status: '', shopId: '', categoryId: '' });
   const [stats, setStats] = useState({ total: 0, active: 0, outOfStock: 0, deleted: 0 });
 
-  // Dữ liệu cho Filter Dropdown
   const [filterShops, setFilterShops] = useState([]);
   const [filterCats, setFilterCats] = useState([]);
 
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
   useEffect(() => {
-    // Tải danh sách shops và categories để đổ vào Dropdown
     axiosClient.get('/catalog/admin/shops?limit=100').then(res => setFilterShops(res?.data?.shops || []));
     axiosClient.get('/catalog/categories').then(res => setFilterCats(res?.data || []));
   }, []);
@@ -43,6 +45,40 @@ const ProductManagement = () => {
   }, [filters]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Xóa sản phẩm này vĩnh viễn?")) return;
+    try {
+      await axiosClient.delete(`/catalog/admin/products/${id}`);
+      fetchProducts();
+    } catch (error) { alert("Lỗi khi xóa!"); }
+  };
+
+  const openEditModal = async (productId) => {
+    setIsModalOpen(true);
+    try {
+      const res = await axiosClient.get(`/catalog/admin/products/${productId}`);
+      setSelectedProduct(res?.data?.product || res?.product || res?.data);
+    } catch (error) {
+      alert("Lỗi tải chi tiết: " + error.message);
+      setIsModalOpen(false);
+    }
+  };
+
+  const handleUpdateProduct = async (e) => {
+    e.preventDefault();
+    try {
+      await axiosClient.put(`/catalog/admin/products/${selectedProduct.id}`, {
+        name: selectedProduct.name,
+        price: parseFloat(selectedProduct.price),
+        stockQuantity: parseInt(selectedProduct.stockQuantity),
+        status: selectedProduct.status
+      });
+      alert('Cập nhật thành công!');
+      setIsModalOpen(false);
+      fetchProducts();
+    } catch (error) { alert("Lỗi: " + (error.response?.data?.message || 'Không thể lưu.')); }
+  };
 
   return (
     <div className="p-4 md:p-6 lg:p-10 font-sans bg-[#f8fafc] min-h-full flex flex-col">
@@ -90,10 +126,11 @@ const ProductManagement = () => {
                 <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Category</th>
                 <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Price & Stock</th>
                 <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Status</th>
+                <th className="px-6 py-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {loading ? <tr><td colSpan="5" className="text-center py-10 text-slate-400">Loading...</td></tr> : errorMsg ? <tr><td colSpan="5" className="text-center py-10 text-rose-500">{errorMsg}</td></tr> : products.length === 0 ? <tr><td colSpan="5" className="text-center py-10 text-slate-400">Không có sản phẩm.</td></tr> : products.map((p, idx) => (
+              {loading ? <tr><td colSpan="6" className="text-center py-10 text-slate-400">Loading...</td></tr> : errorMsg ? <tr><td colSpan="6" className="text-center py-10 text-rose-500">{errorMsg}</td></tr> : products.length === 0 ? <tr><td colSpan="6" className="text-center py-10 text-slate-400">Không có sản phẩm.</td></tr> : products.map((p, idx) => (
                 <tr key={p.id || idx} className="hover:bg-slate-50/50">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
@@ -115,12 +152,51 @@ const ProductManagement = () => {
                   <td className="px-6 py-4">
                     <span className="px-3 py-1 bg-slate-100 text-slate-600 font-bold text-[10px] uppercase rounded-full">{p.status}</span>
                   </td>
+                  <td className="px-6 py-4 text-right">
+                    <button onClick={() => openEditModal(p.id)} className="w-8 h-8 rounded-full hover:bg-indigo-50 text-slate-400 hover:text-[#2e3785] flex items-center justify-center transition inline-flex"><span className="material-symbols-outlined text-[18px]">edit</span></button>
+                    <button onClick={() => handleDelete(p.id)} className="w-8 h-8 rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition inline-flex"><span className="material-symbols-outlined text-[18px]">delete</span></button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {isModalOpen && selectedProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-8 relative">
+            <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-slate-400"><span className="material-symbols-outlined">close</span></button>
+            <h2 className="text-2xl font-black text-slate-900 mb-6">Edit Product (Admin)</h2>
+            <form onSubmit={handleUpdateProduct} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">Product Name</label>
+                <input type="text" value={selectedProduct.name} onChange={(e) => setSelectedProduct({...selectedProduct, name: e.target.value})} required className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">Price (VND)</label>
+                  <input type="number" value={selectedProduct.price} onChange={(e) => setSelectedProduct({...selectedProduct, price: e.target.value})} required className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">Stock</label>
+                  <input type="number" value={selectedProduct.stockQuantity} onChange={(e) => setSelectedProduct({...selectedProduct, stockQuantity: e.target.value})} required className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">Status</label>
+                <select value={selectedProduct.status} onChange={(e) => setSelectedProduct({...selectedProduct, status: e.target.value})} className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none">
+                  <option value="ACTIVE">ACTIVE</option><option value="INACTIVE">INACTIVE</option><option value="OUT_OF_STOCK">OUT_OF_STOCK</option><option value="DELETED">DELETED</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-3 text-sm font-bold text-slate-600 bg-slate-100 rounded-xl">Cancel</button>
+                <button type="submit" className="px-6 py-3 bg-[#2e3785] text-white text-sm font-bold rounded-xl">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
