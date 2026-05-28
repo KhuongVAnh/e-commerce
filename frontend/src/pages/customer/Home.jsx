@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import axiosClient from '../../utils/axiosClient';
 import useAuthStore from '../../store/useAuthStore';
 import useCartStore from '../../store/useCartStore';
+import { wakeService } from '../../services/wakeService';
 
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
@@ -10,6 +11,7 @@ const Home = () => {
   // Lấy state đăng nhập và hàm cập nhật giỏ hàng từ global store
   const { isAuthenticated } = useAuthStore();
   const { fetchCartTotal } = useCartStore();
+  const [backendReady, setBackendReady] = useState(false);
 
   // States cho Sản phẩm
   const [products, setProducts] = useState([]);
@@ -23,6 +25,45 @@ const Home = () => {
   const [errorPopup, setErrorPopup] = useState({ isOpen: false, message: '' });
 
   useEffect(() => {
+    let isStopped = false;
+    let isChecking = false;
+    let intervalId;
+
+    const wakeBackendServices = async () => {
+      if (isChecking || isStopped) return;
+      isChecking = true;
+
+      try {
+        // Render có thể sleep từng service riêng. Home sẽ ping gateway, gateway ping tiếp 3 service phía sau.
+        await wakeService.wakeGatewayAndServices();
+        isStopped = true;
+        setBackendReady(true);
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+      } catch {
+        // Không hiện lỗi cho người dùng: các API trang chủ vẫn tự xử lý loading/error riêng.
+      } finally {
+        isChecking = false;
+      }
+    };
+
+    wakeBackendServices();
+    intervalId = window.setInterval(() => {
+      if (!isStopped) {
+        wakeBackendServices();
+      }
+    }, 30000);
+
+    return () => {
+      isStopped = true;
+      clearInterval(intervalId);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!backendReady) return;
+
     const fetchCategories = async () => {
       try {
         const res = await axiosClient.get('/catalog/categories');
@@ -54,7 +95,7 @@ const Home = () => {
 
     fetchCategories();
     fetchProducts();
-  }, []);
+  }, [backendReady]);
 
   // HÀM XỬ LÝ THÊM VÀO GIỎ HÀNG TRỰC TIẾP TỪ TRANG CHỦ
   const handleAddToCart = async (e, product) => {
