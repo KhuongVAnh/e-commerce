@@ -1142,37 +1142,51 @@ export async function decrementProductsStock(items: Array<{ productId: bigint; q
         const results: StockMutationResult[] = [];
 
         for (const item of items) {
-            // Kiểm tra sản phẩm có tồn tại và đủ hàng không
-            const product = await tx.product.findUnique({
-                where: { id: item.productId },
-                select: { id: true, stockQuantity: true, status: true, deletedAt: true },
+            const updatedCount = await tx.product.updateMany({
+                where: {
+                    id: item.productId,
+                    status: "ACTIVE",
+                    deletedAt: null,
+                    stockQuantity: { gte: item.quantity },
+                },
+                data: {
+                    stockQuantity: { decrement: item.quantity },
+                },
             });
 
-            if (!product) {
-                throw new HttpError(404, `Sản phẩm id=${item.productId} không tồn tại`, {
-                    code: "PRODUCT_NOT_FOUND",
+            if (updatedCount.count === 0) {
+                const product = await tx.product.findUnique({
+                    where: { id: item.productId },
+                    select: { id: true, stockQuantity: true, status: true, deletedAt: true },
                 });
-            }
 
-            if (product.status !== "ACTIVE" || product.deletedAt) {
-                throw new HttpError(400, `Sản phẩm id=${item.productId} không khả dụng`, {
-                    code: "PRODUCT_NOT_AVAILABLE",
-                });
-            }
+                if (!product) {
+                    throw new HttpError(404, `Sản phẩm id=${item.productId} không tồn tại`, {
+                        code: "PRODUCT_NOT_FOUND",
+                    });
+                }
 
-            if (product.stockQuantity < item.quantity) {
+                if (product.status !== "ACTIVE" || product.deletedAt) {
+                    throw new HttpError(400, `Sản phẩm id=${item.productId} không khả dụng`, {
+                        code: "PRODUCT_NOT_AVAILABLE",
+                    });
+                }
+
                 throw new HttpError(400, `Sản phẩm id=${item.productId} không đủ tồn kho`, {
                     code: "INSUFFICIENT_STOCK",
                 });
             }
 
-            const newStock = product.stockQuantity - item.quantity;
-            const newStatus = deriveStatusByStock(product.status as SellerEditableStatus, newStock);
+            const product = await tx.product.findUniqueOrThrow({
+                where: { id: item.productId },
+                select: { id: true, stockQuantity: true, status: true, deletedAt: true },
+            });
+
+            const newStatus = deriveStatusByStock(product.status as SellerEditableStatus, product.stockQuantity);
 
             const updated = await tx.product.update({
                 where: { id: item.productId },
                 data: {
-                    stockQuantity: newStock,
                     status: newStatus,
                 },
                 select: {
