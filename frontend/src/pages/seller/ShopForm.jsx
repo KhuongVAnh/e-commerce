@@ -3,11 +3,11 @@ import axiosClient from '../../utils/axiosClient';
 
 const ShopForm = () => {
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [isUpdate, setIsUpdate] = useState(false);
-  const [initialData, setInitialData] = useState(null);
-  const [formData, setFormData] = useState({ 
-    name: '', description: '', phone: '', address: '', logoUrl: '', coverUrl: '' 
-  });
+  const [shopStatus, setShopStatus] = useState('');
+  
+  const [formData, setFormData] = useState({ name: '', description: '', address: '', logoUrl: '' });
   const [logoFile, setLogoFile] = useState(null);
   const [status, setStatus] = useState({ type: '', msg: '' });
 
@@ -15,151 +15,181 @@ const ShopForm = () => {
 
   useEffect(() => {
     const loadShopInfo = async () => {
+      setInitialLoading(true);
       try {
         const res = await axiosClient.get('/catalog/shops/my-shop');
-        if (res.data?.shop) {
-          const fetchedData = {
-            name: res.data.shop.name || '', description: res.data.shop.description || '',
-            address: res.data.shop.address || '', logoUrl: res.data.shop.logoUrl || '',
-            phone: res.data.shop.phone || '', coverUrl: res.data.shop.coverUrl || '',
-          };
-          setFormData(fetchedData);
-          setInitialData(fetchedData);
+        const shop = res?.data?.shop || res?.shop || res?.data;
+        if (shop && shop.id) {
+          setFormData({
+            name: shop.name || '', description: shop.description || '',
+            address: shop.address || '', logoUrl: shop.logoUrl || ''
+          });
+          setShopStatus(shop.status || '');
           setIsUpdate(true);
         }
-      } catch {
-        console.log("Chưa có shop");
+      } catch (error) {
+        console.log("Seller chưa có gian hàng. Sẵn sàng tạo mới.");
+      } finally {
+        setInitialLoading(false);
       }
     };
     loadShopInfo();
   }, []);
 
-  const handleLogoUpload = async (e) => {
+  const handleLogoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      setFormData({ ...formData, [type]: previewUrl });
-      if (type === 'logoUrl') setLogoFile(file);
+      setFormData({ ...formData, logoUrl: URL.createObjectURL(file) });
+      setLogoFile(file);
     }
-  };
-
-  const handleDiscard = () => {
-    if (initialData) setFormData(initialData);
-    else setFormData({ name: '', description: '', phone: '', address: '', logoUrl: '', coverUrl: '' });
-    setLogoFile(null);
   };
 
   const uploadImage = async (file) => {
     const uploadData = new FormData();
     uploadData.append('image', file);
     const res = await axiosClient.post('/uploads/images', uploadData);
-    return res.data.url;
+    return res.data?.url || res.url;
   };
 
-  const handleSave = async () => {
+  const handleSave = async (e) => {
+    e.preventDefault();
     setLoading(true);
+    setStatus({ type: '', msg: '' });
+
     try {
       const uploadedLogoUrl = logoFile ? await uploadImage(logoFile) : formData.logoUrl;
       const payload = {
         name: formData.name, description: formData.description,
-        address: formData.address, logoUrl: uploadedLogoUrl || 'https://via.placeholder.com/150'
+        address: formData.address, logoUrl: uploadedLogoUrl || ''
       };
 
       if (isUpdate) {
-        await axiosClient.put('/catalog/shops/my-shop', payload);
-        setStatus({ type: 'success', msg: 'Saved!' });
+        const res = await axiosClient.put('/catalog/shops/my-shop', payload);
+        setStatus({ type: 'success', msg: 'Đã cập nhật gian hàng!' });
+        setShopStatus(res.data?.shop?.status || res.data?.status || shopStatus);
       } else {
         await axiosClient.post('/catalog/shops', payload);
-        setStatus({ type: 'success', msg: 'Created!' });
+        setStatus({ type: 'success', msg: 'Tạo gian hàng thành công!' });
         setIsUpdate(true);
+        setShopStatus('PENDING'); 
       }
-      const savedData = { ...formData, logoUrl: uploadedLogoUrl };
-      setFormData(savedData);
-      setInitialData(savedData);
+      
+      setFormData(prev => ({ ...prev, logoUrl: uploadedLogoUrl }));
       setLogoFile(null);
-      setLastUpdated(`Today at ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`);
-    } catch {
-      setStatus({ type: 'error', msg: 'Error!' });
+    } catch (error) {
+      setStatus({ type: 'error', msg: error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại!' });
     } finally {
       setLoading(false);
-      setTimeout(() => setStatus({ type: '', msg: '' }), 3000);
+      setTimeout(() => setStatus({ type: '', msg: '' }), 4000);
     }
   };
+
+  if (initialLoading) return <div className="p-10 text-center font-bold text-slate-500">Đang kiểm tra thông tin gian hàng...</div>;
 
   return (
     <div className="font-sans bg-[#f8fafc] min-h-full flex flex-col relative pb-32 md:pb-24"> 
       <input type="file" accept="image/*" hidden ref={logoInputRef} onChange={handleLogoUpload} />
-
-      <div className="flex-1 max-w-4xl p-4 md:p-8 lg:p-12 space-y-8 md:space-y-10 mt-8 md:mt-0">
+      <div className="flex-1 max-w-4xl mx-auto w-full p-4 md:p-8 lg:p-12 space-y-8 md:space-y-10 mt-8 md:mt-0">
         
-        {shopStatus === 'PENDING' && (
-          <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-lg flex items-center gap-3">
-            <span className="material-symbols-outlined text-orange-600">hourglass_empty</span>
-            <p className="text-sm text-orange-800 font-bold">Gian hàng của bạn đang ở trạng thái CHỜ DUYỆT. Sản phẩm sẽ chưa được public.</p>
+        {isUpdate && shopStatus === 'PENDING' && (
+          <div className="bg-orange-50 border border-orange-200 p-4 rounded-2xl flex items-start gap-4 shadow-sm">
+            <span className="material-symbols-outlined text-orange-600 text-[24px]">hourglass_empty</span>
+            <div>
+              <p className="text-sm text-orange-900 font-bold mb-1">Gian hàng đang chờ duyệt</p>
+              <p className="text-xs text-orange-800 font-medium">Hồ sơ của bạn đang được quản trị viên xem xét. Sản phẩm của bạn sẽ chưa được hiển thị công khai cho đến khi được duyệt.</p>
+            </div>
           </div>
         )}
-        {shopStatus === 'INACTIVE' && (
-          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-lg flex items-center gap-3">
-            <span className="material-symbols-outlined text-rose-600">block</span>
-            <p className="text-sm text-rose-800 font-bold">Gian hàng của bạn ĐÃ BỊ KHÓA. Liên hệ Admin để xử lý.</p>
+        {isUpdate && shopStatus === 'INACTIVE' && (
+          <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex items-start gap-4 shadow-sm">
+            <span className="material-symbols-outlined text-rose-600 text-[24px]">block</span>
+            <div>
+              <p className="text-sm text-rose-900 font-bold mb-1">Gian hàng đã bị khóa tạm thời</p>
+              <p className="text-xs text-rose-800 font-medium">Bạn không thể bán sản phẩm hiện tại. Vui lòng liên hệ bộ phận hỗ trợ để biết thêm chi tiết.</p>
+            </div>
           </div>
         )}
 
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">Store Settings</h1>
-          <p className="text-slate-500 text-xs md:text-sm font-medium">Configure your brand assets and merchant identity.</p>
+        <div className="text-center md:text-left mb-10">
+          <h1 className="text-2xl md:text-4xl font-black text-[#2e3785] mb-2 tracking-tight">
+            {isUpdate ? 'Store Settings' : 'Share your craft with the world.'}
+          </h1>
+          <p className="text-slate-500 text-sm font-medium">
+            {isUpdate ? 'Cập nhật thông tin nhận diện thương hiệu của bạn.' : 'Join a community of elite merchants and reach customers who appreciate the finer details.'}
+          </p>
         </div>
 
-        <section>
-          <h2 className="text-[13px] md:text-[15px] font-bold text-[#2e3785] mb-4">Brand Assets</h2>
-          <div className="relative mt-2">
-            <div className="h-40 md:h-56 bg-slate-200 rounded-2xl w-full relative flex items-center justify-center border border-slate-200 overflow-hidden cursor-not-allowed opacity-60">
-              <span className="text-slate-400 font-bold flex flex-col items-center gap-2"><span className="material-symbols-outlined text-3xl">hide_image</span>Cover Photo (API chưa hỗ trợ)</span>
-            </div>
-            <div className="absolute -bottom-6 left-4 md:-bottom-8 md:left-8 flex items-end gap-3 md:gap-4">
-              <div className="w-20 h-20 md:w-24 md:h-24 bg-[#1e293b] rounded-2xl border-4 border-[#f8fafc] shadow-sm flex flex-col items-center justify-center text-white overflow-hidden">
-                {formData.logoUrl ? <img src={formData.logoUrl} className="w-full h-full object-cover" /> : <><span className="material-symbols-outlined text-2xl md:text-3xl text-[#fde047]">store</span><span className="text-[8px] md:text-[10px] font-black tracking-widest mt-1">SHOP</span></>}
-              </div>
-              <button onClick={() => logoInputRef.current.click()} className="bg-white border border-slate-200 text-slate-700 text-[10px] md:text-[11px] font-bold px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg shadow-sm hover:bg-slate-50 mb-1 md:mb-2">Update Logo</button>
-            </div>
-          </div>
-        </section>
-
-        <section className="pt-10 md:pt-8">
-          <div className="flex items-center gap-2 mb-4"><span className="material-symbols-outlined text-[#2e3785] text-[18px] md:text-[20px]">branding_watermark</span><h2 className="text-[13px] md:text-[15px] font-bold text-slate-900">Store Identity</h2></div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-2">Shop Name</label>
-                <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="Tên gian hàng" className="w-full bg-[#f1f5f9] border-none p-3.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-2">Shop Bio</label>
-                <textarea rows="4" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Mô tả gian hàng" className="w-full bg-[#f1f5f9] border-none p-3.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none resize-none"></textarea>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="pt-4 border-t border-slate-200">
-          <div className="flex items-center gap-2 mb-4"><span className="material-symbols-outlined text-[#2e3785] text-[18px] md:text-[20px]">location_on</span><h2 className="text-[13px] md:text-[15px] font-bold text-slate-900">Business Address</h2></div>
-          <div className="max-w-2xl space-y-6">
-            <div>
-              <label className="flex justify-between text-xs font-bold text-slate-700 mb-2">Contact Phone <span className="text-orange-500 font-normal">API chưa hỗ trợ</span></label>
-              <input type="text" disabled placeholder="Không hỗ trợ lưu SĐT" className="w-full bg-slate-200 border-none p-3.5 rounded-xl text-sm font-medium cursor-not-allowed opacity-60" />
+        <form onSubmit={handleSave} className="bg-white p-6 md:p-10 rounded-[2rem] border border-slate-100 shadow-sm space-y-10">
+          <section>
+            <div className="flex items-center gap-2 mb-6 border-b border-slate-50 pb-4">
+              <span className="material-symbols-outlined text-[#2e3785] text-[20px]">cloud_upload</span>
+              <h2 className="text-[15px] font-black text-slate-900">Visual Brand</h2>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">Business Address</label>
-              <textarea rows="3" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} placeholder="Địa chỉ kho" className="w-full bg-[#f1f5f9] border-none p-3.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none resize-none"></textarea>
+              <label className="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-3">Shop Logo</label>
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-50 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-slate-400 overflow-hidden shrink-0">
+                  {formData.logoUrl ? <img src={formData.logoUrl} className="w-full h-full object-cover" alt="Shop Logo" /> : <span className="material-symbols-outlined text-4xl">store</span>}
+                </div>
+                <div className="flex-1 text-center sm:text-left w-full border-2 border-dashed border-slate-200 rounded-2xl p-6 hover:bg-slate-50 transition cursor-pointer" onClick={() => logoInputRef.current.click()}>
+                  <span className="material-symbols-outlined text-slate-400 mb-2">add_photo_alternate</span>
+                  <p className="text-sm font-bold text-slate-700 mb-1">Click or drag to upload new logo</p>
+                  <p className="text-xs text-slate-400 font-medium">SVG, PNG or JPG (Min. 400x400px)</p>
+                </div>
+              </div>
             </div>
+          </section>
+
+          <section>
+            <div className="flex items-center gap-2 mb-6 border-b border-slate-50 pb-4">
+              <span className="material-symbols-outlined text-[#2e3785] text-[20px]">storefront</span>
+              <h2 className="text-[15px] font-black text-slate-900">Shop Identity</h2>
+            </div>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-2">Shop Name</label>
+                <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="e.g. The Indigo Atelier" className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-[#2e3785]/20 outline-none transition" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-2">Shop Description</label>
+                <textarea required rows="4" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Tell the story of your brand and what makes your products unique..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-[#2e3785]/20 outline-none resize-none transition"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <div className="flex items-center gap-2 mb-6 border-b border-slate-50 pb-4">
+              <span className="material-symbols-outlined text-[#2e3785] text-[20px]">location_on</span>
+              <h2 className="text-[15px] font-black text-slate-900">Business Details</h2>
+            </div>
+            <div>
+              <label className="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-2">Full Legal Business Address</label>
+              <textarea required rows="2" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} placeholder="Địa chỉ đăng ký kinh doanh/kho hàng..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-[#2e3785]/20 outline-none resize-none transition"></textarea>
+            </div>
+          </section>
+
+          <div className="pt-6">
+            {!isUpdate && (
+              <div className="flex items-start gap-3 mb-6">
+                <input type="checkbox" required className="mt-1 border-slate-300 text-[#2e3785] focus:ring-[#2e3785] rounded" />
+                <p className="text-xs text-slate-500 font-medium">I agree to the <a href="#" className="text-[#2e3785] font-bold hover:underline">Seller Handbook</a> and the privacy guidelines of the marketplace.</p>
+              </div>
+            )}
+            <button type="submit" disabled={loading} className="w-full py-4 bg-[#2e3785] hover:bg-[#252d70] text-white text-sm font-black rounded-xl shadow-lg shadow-indigo-200 transition-all disabled:opacity-70 flex justify-center items-center gap-2">
+              {loading ? 'Processing...' : (isUpdate ? 'Save Changes' : 'Create My Shop')}
+            </button>
           </div>
-        </section>
+        </form>
       </div>
 
-      <div className="fixed bottom-0 left-0 md:left-64 w-full md:w-[calc(100%-16rem)] bg-[#f8fafc]/95 backdrop-blur-xl border-t border-slate-200 p-3 md:p-4 px-4 md:px-8 flex items-center justify-between z-50">
-        <div>{status.msg && <span className={`text-xs font-bold px-3 py-1.5 rounded ${status.type === 'success' ? 'bg-emerald-100 text-emerald-700' : status.type === 'loading' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>{status.msg}</span>}</div>
-        <button onClick={handleSave} disabled={loading} className="px-6 py-2.5 text-sm font-bold bg-[#313b8e] hover:bg-[#252d70] text-white rounded-lg transition flex items-center gap-2">{loading ? 'Saving...' : 'Save'}</button>
-      </div>
+      {status.msg && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5">
+          <div className={`px-6 py-3 rounded-xl shadow-xl flex items-center gap-3 font-bold text-sm ${status.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
+            <span className="material-symbols-outlined">{status.type === 'success' ? 'check_circle' : 'error'}</span>
+            {status.msg}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
