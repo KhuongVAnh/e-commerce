@@ -78,7 +78,10 @@ export async function adminListProducts(query: ListAdminProductsQuery) {
         category: { select: { id: true, name: true, slug: true, status: true } },
         images: { select: { id: true, imageUrl: true, sortOrder: true }, orderBy: { sortOrder: "asc" } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [
+        { createdAt: "desc" },
+        { id: "asc" }
+      ],
       skip: (page - 1) * limit,
       take: limit,
     }),

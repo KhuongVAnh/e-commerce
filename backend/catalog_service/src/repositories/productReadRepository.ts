@@ -55,16 +55,16 @@ function buildPublicProductWhere(params: listPublicProductsParams): Prisma.Produ
     };
 }
 
-function buildPublicProductOrderBy(sortBy: PublicProductSortBy): Prisma.ProductOrderByWithRelationInput {
+function buildPublicProductOrderBy(sortBy: PublicProductSortBy): Prisma.ProductOrderByWithRelationInput | Prisma.ProductOrderByWithRelationInput[] {
     switch (sortBy) {
         case "price_asc":
-            return { price: "asc" };
+            return [{ price: "asc" }, { id: "asc" }];
         case "price_desc":
-            return { price: "desc" };
+            return [{ price: "desc" }, { id: "asc" }];
         case "oldest":
-            return { createdAt: "asc" };
+            return [{ createdAt: "asc" }, { id: "asc" }];
         default:
-            return { createdAt: "desc" };
+            return [{ createdAt: "desc" }, { id: "asc" }];
     }
 }
 
