@@ -1,6 +1,8 @@
 import "./config/env";
 import cors from "cors";
 import express from "express";
+import swaggerUi from "swagger-ui-express";
+import openApiDocument from "./docs/openapi";
 import { requestContextMiddleware } from "./middlewares/requestContext";
 import { gatewayAuth } from "./middlewares/gatewayAuth";
 import uploadRoutes from "./routes/uploadRoutes";
@@ -62,6 +64,10 @@ app.use(express.json());
 // gắn id cho mỗi req đi vào, để dễ dàng trace log sau này
 app.use(requestContextMiddleware);
 app.use("/api/uploads", uploadRoutes);
+
+// Swagger Documentation for Notifications
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
+app.use("/api/notifications/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
 app.get("/", (_req, res) => {
   res.json({
