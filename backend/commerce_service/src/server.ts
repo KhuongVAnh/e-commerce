@@ -14,6 +14,13 @@ const serviceName = "commerce_service";
 
 const app = express();
 const port = Number(process.env.PORT) || 3003;
+const trustProxy = process.env.TRUST_PROXY;
+
+if (trustProxy) {
+  // Chỉ bật trust proxy khi deploy sau gateway/reverse proxy đáng tin.
+  // Khi chưa bật, Express sẽ bỏ qua x-forwarded-for do client tự gửi và req.ip lấy từ socket thật.
+  app.set("trust proxy", trustProxy === "true" ? true : trustProxy);
+}
 
 app.use(express.json());
 app.use(requestContextMiddleware);

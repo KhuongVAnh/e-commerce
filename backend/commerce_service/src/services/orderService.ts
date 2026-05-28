@@ -15,11 +15,22 @@ export type CreateOrderInput = {
     shopId: bigint;
     cartItemIds: bigint[];
     paymentMethod: PaymentMethod;
+    idempotencyKey?: string;
     receiverName: string;
     receiverPhone: string;
     receiverAddress: string;
     note?: string;
     ipAddr?: string;
+};
+
+type CreateOrderResult = {
+    orderId: bigint;
+    orderCode: string;
+    orderStatus: OrderStatus;
+    paymentStatus: PaymentStatus;
+    totalAmount: number;
+    paymentUrl?: string;
+    paymentUrlExpiresAt?: Date;
 };
 
 export type RefreshPaymentUrlResult = {
@@ -68,6 +79,45 @@ function resolveInitialStatuses(paymentMethod: PaymentMethod): {
     };
 }
 
+async function findExistingOrderByIdempotencyKey(
+    customerId: bigint,
+    idempotencyKey?: string,
+): Promise<CreateOrderResult | null> {
+    if (!idempotencyKey) {
+        return null;
+    }
+
+    // Đây là fast path cho retry từ FE: nếu request trước đã tạo đơn thành công,
+    // trả lại đúng đơn đó để người dùng không bị tạo nhiều order vì double-click hoặc network retry.
+    const order = await prisma.order.findFirst({
+        where: {
+            customerId,
+            idempotencyKey,
+        },
+        include: {
+            payments: {
+                orderBy: { createdAt: "desc" },
+                take: 1,
+            },
+        },
+    });
+
+    if (!order) {
+        return null;
+    }
+
+    const payment = order.payments[0];
+    return {
+        orderId: order.id,
+        orderCode: order.orderCode,
+        orderStatus: order.orderStatus,
+        paymentStatus: order.paymentStatus,
+        totalAmount: Number(order.totalAmount),
+        paymentUrl: payment?.checkoutUrl ?? undefined,
+        paymentUrlExpiresAt: payment?.checkoutUrlExpiresAt ?? undefined,
+    };
+}
+
 // ─────────────────────────────────────────────────────────────
 // Service functions
 // ─────────────────────────────────────────────────────────────
@@ -78,8 +128,15 @@ function resolveInitialStatuses(paymentMethod: PaymentMethod): {
 export async function createOrder(
     customerId: bigint,
     input: CreateOrderInput,
-): Promise<{ orderId: bigint; orderCode: string; orderStatus: OrderStatus; paymentStatus: PaymentStatus; totalAmount: number; paymentUrl?: string; paymentUrlExpiresAt?: Date }> {
-    const { shopId, cartItemIds, paymentMethod, receiverName, receiverPhone, receiverAddress, note, ipAddr } = input;
+): Promise<CreateOrderResult> {
+    const { shopId, cartItemIds, paymentMethod, idempotencyKey, receiverName, receiverPhone, receiverAddress, note, ipAddr } = input;
+
+    // Kiểm tra idempotency trước mọi side effect, đặc biệt trước khi gọi Catalog trừ stock.
+    // Nếu key đã được xử lý, response cũ là kết quả đúng nhất và không làm thay đổi tồn kho lần nữa.
+    const existingOrder = await findExistingOrderByIdempotencyKey(customerId, idempotencyKey);
+    if (existingOrder) {
+        return existingOrder;
+    }
 
     // Bước 1: Xây dựng preview để tính toán tổng tiền và validate các cart item
     const preview = await buildCheckoutPreview(customerId, shopId, cartItemIds);
@@ -113,7 +170,8 @@ export async function createOrder(
         })
         : undefined;
 
-    // Bước 3: Trừ tồn kho bên Catalog Service (Giữ chỗ)
+    // Bước 3: Trừ tồn kho bên Catalog Service (giữ chỗ).
+    // Đây là side effect ngoài DB của Commerce, nên nếu transaction tạo order bên dưới lỗi thì phải gọi bù lại stock.
     const stockItems = preview.items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
@@ -127,6 +185,7 @@ export async function createOrder(
             const order = await tx.order.create({
                 data: {
                     orderCode,
+                    idempotencyKey,
                     customerId,
                     shopId,
                     totalAmount,
@@ -171,10 +230,19 @@ export async function createOrder(
             return { order };
         });
     } catch (error) {
+        // Vì stock đã được giữ chỗ ở Catalog trước khi order được ghi vào Commerce,
+        // mọi lỗi sau điểm đó phải hoàn stock để tránh mất hàng ảo.
         try {
             await incrementProductsStock(stockItems);
         } catch (rollbackError) {
             console.error("[commerce_service] Failed to rollback stock after order creation error:", rollbackError);
+        }
+
+        // Hai request cùng idempotencyKey có thể cùng qua fast path khi chưa có order.
+        // Unique constraint trong DB sẽ cho một request thắng; request thua trả lại order của request thắng.
+        const existingOrder = await findExistingOrderByIdempotencyKey(customerId, idempotencyKey);
+        if (existingOrder && typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
+            return existingOrder;
         }
 
         throw error;
@@ -310,22 +378,55 @@ export async function cancelOrder(customerId: bigint, orderCode: string) {
         throw new HttpError(400, "Không thể hủy đơn hàng ở trạng thái này", { code: "CANCEL_NOT_ALLOWED" });
     }
 
-    const updatedOrder = await prisma.$transaction(async (tx) => {
-        const updated = await tx.order.update({
+    // Hủy đơn cũng phải là conditional update. Nếu hai request cancel chạy song song,
+    // chỉ request đổi trạng thái từ cancellable -> CANCELLED mới được hoàn kho.
+    const updatedCount = await prisma.order.updateMany({
+        where: {
+            id: order.id,
+            customerId,
+            orderStatus: { in: cancellableStatuses },
+        },
+        data: { orderStatus: OrderStatus.CANCELLED },
+    });
+
+    if (updatedCount.count === 0) {
+        // Trường hợp request khác đã hủy trước đó: trả về trạng thái mới nhất và không hoàn kho thêm lần nữa.
+        const latestOrder = await prisma.order.findUnique({
             where: { id: order.id },
-            data: { orderStatus: OrderStatus.CANCELLED },
+            include: { items: true },
         });
 
-        // Hoàn tồn kho
+        if (latestOrder?.orderStatus === OrderStatus.CANCELLED) {
+            return latestOrder;
+        }
+
+        throw new HttpError(400, "Không thể hủy đơn hàng ở trạng thái này", { code: "CANCEL_NOT_ALLOWED" });
+    }
+
+    const updatedOrder = await prisma.order.findUniqueOrThrow({
+        where: { id: order.id },
+        include: { items: true },
+    });
+
+    try {
+        // Catalog là service ngoài transaction DB của Commerce; gọi hoàn kho sau khi đã claim quyền hủy.
+        // Nếu hoàn kho lỗi, rollback orderStatus để hệ thống không ghi nhận đã hủy khi stock chưa được trả.
         await incrementProductsStock(
-            order.items.map((item) => ({
+            updatedOrder.items.map((item) => ({
                 productId: item.productId,
                 quantity: item.quantity,
             })),
         );
+    } catch (error) {
+        await prisma.order.update({
+            where: { id: order.id },
+            data: { orderStatus: order.orderStatus },
+        }).catch((rollbackError) => {
+            console.error("[commerce_service] Failed to rollback order status after stock restore error:", rollbackError);
+        });
 
-        return updated;
-    });
+        throw error;
+    }
 
     // Publish order.status.updated event to Kafka (async)
     getSellerIdByShopId(updatedOrder.shopId)

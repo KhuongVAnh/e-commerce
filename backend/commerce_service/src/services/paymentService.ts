@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { OrderStatus, PaymentStatus, TransactionStatus } from "@prisma/client";
+import { OrderStatus, PaymentStatus, Prisma, TransactionStatus } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { HttpError } from "../utils/http";
 import { getShopIdBySellerId } from "./catalogClient";
@@ -91,6 +91,10 @@ function normalizeVnpParams(vnpParams: Record<string, any>): Record<string, stri
         }
         return [key, String(value ?? "")];
     }));
+}
+
+function isPrismaUniqueConstraintError(error: unknown): boolean {
+    return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -284,28 +288,51 @@ export async function processIpn(vnpParams: Record<string, any>): Promise<{ code
     const newOrderStatus = isSuccess ? OrderStatus.PROCESSING : order.orderStatus;
     const newPaymentStatus = isSuccess ? PaymentStatus.PAID : PaymentStatus.FAILED;
 
-    // cập nhật payment record với transactionRef và providerResponse để lưu lại thông tin giao dịch từ VNPay, phục vụ việc tra cứu, xử lý sau này
-    // sử dụng transaction để đảm bảo tính nhất quán giữa payment và order
-    await prisma.$transaction(async (tx) => {
-        // Cập nhật Payment record
-        await tx.payment.update({
-            where: { id: payment.id },
-            data: {
-                status: newTransactionStatus,
-                transactionRef: normalizedParams["vnp_TransactionNo"],
-                providerResponse: JSON.stringify(normalizedParams), // Lưu lại toàn bộ response để debug
-            },
-        });
+    let didApplyIpn = false;
 
-        // Cập nhật Order record
-        await tx.order.update({
-            where: { id: order.id },
-            data: {
-                orderStatus: newOrderStatus,
-                paymentStatus: newPaymentStatus as any, // "PAID" / "FAILED"
-            },
+    try {
+        // IPN có thể được VNPay retry hoặc có thể đến song song.
+        // updateMany có điều kiện status=PENDING đóng vai trò "claim": chỉ request đầu tiên đổi được trạng thái payment.
+        await prisma.$transaction(async (tx) => {
+            const updatedPayment = await tx.payment.updateMany({
+                where: {
+                    id: payment.id,
+                    status: TransactionStatus.PENDING,
+                },
+                data: {
+                    status: newTransactionStatus,
+                    transactionRef: normalizedParams["vnp_TransactionNo"],
+                    providerResponse: JSON.stringify(normalizedParams), // Lưu response đã normalize để đối soát/debug khi cần.
+                },
+            });
+
+            if (updatedPayment.count === 0) {
+                return;
+            }
+
+            await tx.order.update({
+                where: { id: order.id },
+                data: {
+                    orderStatus: newOrderStatus,
+                    paymentStatus: newPaymentStatus,
+                },
+            });
+
+            didApplyIpn = true;
         });
-    });
+    } catch (error) {
+        // Unique transactionRef bảo vệ trường hợp cùng một mã giao dịch bị replay vào nhiều payment.
+        // Với VNPay retry hợp lệ, coi như đơn đã được xử lý để tránh publish event lần hai.
+        if (isPrismaUniqueConstraintError(error)) {
+            return { code: "02", message: "Order already confirmed" };
+        }
+
+        throw error;
+    }
+
+    if (!didApplyIpn) {
+        return { code: "02", message: "Order already confirmed" };
+    }
 
     // Publish payment event to Kafka (async)
     if (isSuccess) {
@@ -333,7 +360,7 @@ export async function processIpn(vnpParams: Record<string, any>): Promise<{ code
     return { code: "00", message: "Confirm Success" };
 }
 
-export async function checkPaymentFromOrderCode(orderCode: string) {
+export async function checkPaymentFromOrderCode(orderCode: string, customerId?: bigint) {
     const normalizedOrderCode = String(orderCode ?? "").trim();
     if (!normalizedOrderCode) {
         throw new HttpError(400, "Thiếu mã đơn hàng", {
@@ -363,6 +390,11 @@ export async function checkPaymentFromOrderCode(orderCode: string) {
         });
 
         if (!order) {
+            throw new HttpError(404, "Không tìm thấy đơn hàng", {
+                code: "ORDER_NOT_FOUND",
+            });
+        }
+        if (customerId && order.customerId !== customerId) {
             throw new HttpError(404, "Không tìm thấy đơn hàng", {
                 code: "ORDER_NOT_FOUND",
             });
