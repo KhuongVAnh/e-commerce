@@ -201,7 +201,7 @@ const ProductList = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
               {products.map((product) => (
                 <Link 
-                  to={`/product/${product.id}`} 
+                  to={`/product/${product.slug ? `${product.slug}-id${product.id}` : product.id}`} 
                   key={product.id} 
                   className="group flex flex-col h-full cursor-pointer"
                 >

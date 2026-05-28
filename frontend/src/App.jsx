@@ -53,10 +53,10 @@ function App() {
           <Route index element={<Home />} />
           <Route path="unauthorized" element={<Unauthorized />} />
           <Route path="products" element={<ProductList />} />
-          <Route path="product/:id" element={<ProductDetail />} />
+          <Route path="product/:slug" element={<ProductDetail />} />
           <Route path="categories" element={<Categories />} />
           <Route path="shop" element={<ShopList />} />
-          <Route path="shop/:id" element={<ShopDetail />} />
+          <Route path="shop/:slug" element={<ShopDetail />} />
           <Route element={<ProtectedRoute />}>
             <Route path="cart" element={<Cart />} />
             <Route path="checkout" element={<Checkout />} />

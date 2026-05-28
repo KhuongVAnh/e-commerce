@@ -136,7 +136,7 @@ const ShopList = () => {
                                 </p>
                                 
                                 <Link 
-                                    to={`/shop/${shop.id}`}
+                                    to={`/shop/${shop.slug ? `${shop.slug}-id${shop.id}` : shop.id}`}
                                     className="mt-auto flex items-center justify-center px-8 py-3.5 bg-indigo-700 text-white font-bold rounded-full w-full shadow-md hover:bg-indigo-800 hover:shadow-lg active:scale-95 transition-all"
                                 >
                                     Tham quan gian hàng
