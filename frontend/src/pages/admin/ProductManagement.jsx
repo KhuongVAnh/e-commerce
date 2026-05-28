@@ -5,111 +5,120 @@ const ProductManagement = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
-  const [filters] = useState({ q: '', status: '', shopId: '', categoryId: '' });
+  const [filters, setFilters] = useState({ q: '', status: '', shopId: '', categoryId: '' });
+  const [stats, setStats] = useState({ total: 0, active: 0, outOfStock: 0, deleted: 0 });
+
+  // Dữ liệu cho Filter Dropdown
+  const [filterShops, setFilterShops] = useState([]);
+  const [filterCats, setFilterCats] = useState([]);
+
+  useEffect(() => {
+    // Tải danh sách shops và categories để đổ vào Dropdown
+    axiosClient.get('/catalog/admin/shops?limit=100').then(res => setFilterShops(res?.data?.shops || []));
+    axiosClient.get('/catalog/categories').then(res => setFilterCats(res?.data || []));
+  }, []);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     setErrorMsg('');
     try {
-      const queryParams = new URLSearchParams(filters).toString();
-      const res = await axiosClient.get(`/catalog/admin/products?${queryParams}&limit=10`);
-      setProducts(res.data.products || []);
+      const queryParams = new URLSearchParams();
+      Object.entries(filters).forEach(([key, val]) => { if (val) queryParams.append(key, val); });
+
+      const res = await axiosClient.get(`/catalog/admin/products?${queryParams.toString()}`);
+      const data = res?.data?.products || res?.products || res?.data || [];
+      const safeData = Array.isArray(data) ? data : [];
+      setProducts(safeData);
+      
+      setStats({
+        total: res?.data?.pagination?.total || safeData.length,
+        active: safeData.filter(p => p.status === 'ACTIVE').length,
+        outOfStock: safeData.filter(p => p.status === 'OUT_OF_STOCK').length,
+        deleted: safeData.filter(p => p.status === 'DELETED').length
+      });
     } catch (error) {
       setProducts([]);
       setErrorMsg(error.message || "Không thể tải danh sách sản phẩm.");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, [filters]);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   return (
     <div className="p-4 md:p-6 lg:p-10 font-sans bg-[#f8fafc] min-h-full flex flex-col">
-      <header className="mb-6 md:mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+      <header className="mb-6 md:mb-10 flex flex-col lg:flex-row justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#2e3785] tracking-tight mb-2">Global Product Directory</h1>
-          <p className="text-slate-500 font-medium text-xs md:text-sm flex items-center gap-2">Quản lý toàn bộ sản phẩm.</p>
+          <p className="text-slate-500 font-medium text-xs md:text-sm">Active listings across shops</p>
         </div>
       </header>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+        <div className="bg-white p-5 md:p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-1">Total Products</h3><div className="text-3xl font-black text-slate-900">{stats.total}</div></div>
+        <div className="bg-white p-5 md:p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-1">Active Listings</h3><div className="text-3xl font-black text-[#2e3785]">{stats.active}</div></div>
+        <div className="bg-orange-50 p-5 md:p-6 rounded-2xl border border-orange-100 shadow-sm"><h3 className="text-orange-800 font-bold text-[10px] uppercase tracking-widest mb-1">Out Of Stock</h3><div className="text-3xl font-black text-orange-600">{stats.outOfStock}</div></div>
+        <div className="bg-rose-50 p-5 md:p-6 rounded-2xl border border-rose-100 shadow-sm"><h3 className="text-rose-800 font-bold text-[10px] uppercase tracking-widest mb-1">Deleted</h3><div className="text-3xl font-black text-rose-600">{stats.deleted}</div></div>
+      </div>
 
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col flex-1">
         <div className="p-4 md:p-6 border-b border-slate-50 flex flex-col sm:flex-row gap-4 items-center justify-between">
           <div className="relative w-full lg:w-96">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
-            <input type="text" placeholder="Search by Product Name..." onChange={(e) => setFilters({...filters, q: e.target.value, page: 1})} className="w-full bg-slate-50 border-none py-2.5 md:py-3 pl-11 pr-4 rounded-xl text-xs md:text-sm focus:outline-none" />
+            <input type="text" placeholder="Search product..." onChange={e => setFilters({...filters, q: e.target.value})} className="w-full bg-slate-50 border-none py-3 pl-11 pr-4 rounded-xl text-sm outline-none" />
           </div>
-          <select onChange={(e) => setFilters({...filters, status: e.target.value, page: 1})} className="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-xs md:text-sm font-bold rounded-xl outline-none">
-            <option value="">All Status</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="OUT_OF_STOCK">Out of Stock</option><option value="DELETED">Deleted</option>
-          </select>
+          <div className="flex gap-2 w-full sm:w-auto overflow-x-auto scrollbar-hide">
+            <select onChange={e => setFilters({...filters, shopId: e.target.value})} className="bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl font-bold text-sm outline-none text-slate-600">
+              <option value="">All Shops</option>
+              {filterShops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <select onChange={e => setFilters({...filters, categoryId: e.target.value})} className="bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl font-bold text-sm outline-none text-slate-600">
+              <option value="">All Categories</option>
+              {filterCats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <select onChange={e => setFilters({...filters, status: e.target.value})} className="bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl font-bold text-sm outline-none text-slate-600">
+              <option value="">All Status</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="OUT_OF_STOCK">Out of Stock</option><option value="DELETED">Deleted</option>
+            </select>
+          </div>
         </div>
 
         <div className="overflow-x-auto w-full">
           <table className="w-full text-left whitespace-nowrap min-w-[800px]">
             <thead className="bg-white border-b border-slate-50">
               <tr>
-                <th className="px-4 md:px-6 py-4 md:py-5 font-black text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400">Product Details</th>
-                <th className="px-4 md:px-6 py-4 md:py-5 font-black text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400">Shop ID / Name</th>
-                <th className="px-4 md:px-6 py-4 md:py-5 font-black text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400">Category</th>
-                <th className="px-4 md:px-6 py-4 md:py-5 font-black text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400">Price & Stock</th>
-                <th className="px-4 md:px-6 py-4 md:py-5 font-black text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400">Status</th>
-                <th className="px-4 md:px-6 py-4 md:py-5 font-black text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400 text-right">Actions</th>
+                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Product Details</th>
+                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Shop / Seller</th>
+                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Category</th>
+                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Price & Stock</th>
+                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {loading ? (
-                <tr><td colSpan="6" className="text-center py-10 text-slate-400">Loading products...</td></tr>
-              ) : errorMsg ? (
-                <tr><td colSpan="6" className="text-center py-10 text-rose-500">{errorMsg}</td></tr>
-              ) : products.map((p, idx) => (
-                <tr key={p.id || idx} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-4 md:px-6 py-4">
-                    <div className="flex items-center gap-3 md:gap-4">
-                      <div className="w-12 h-12 md:w-14 md:h-14 bg-slate-100 rounded-xl overflow-hidden shrink-0 border border-slate-200">
-                        <img src={p.thumbnailUrl || `https://picsum.photos/seed/${p.id}/150`} alt="" className="w-full h-full object-cover" />
+              {loading ? <tr><td colSpan="5" className="text-center py-10 text-slate-400">Loading...</td></tr> : errorMsg ? <tr><td colSpan="5" className="text-center py-10 text-rose-500">{errorMsg}</td></tr> : products.length === 0 ? <tr><td colSpan="5" className="text-center py-10 text-slate-400">Không có sản phẩm.</td></tr> : products.map((p, idx) => (
+                <tr key={p.id || idx} className="hover:bg-slate-50/50">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-slate-100 rounded-xl overflow-hidden flex items-center justify-center font-black text-slate-300">
+                        {p.thumbnailUrl ? <img src={p.thumbnailUrl} className="w-full h-full object-cover" /> : p.name?.charAt(0)}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 text-xs md:text-sm mb-0.5">{p.name}</p>
-                        <p className="text-[10px] md:text-[11px] font-medium text-slate-400 uppercase">SKU: PROD-{p.id}</p>
+                        <p className="font-bold text-slate-900 text-sm">{p.name}</p>
+                        <p className="text-[11px] font-medium text-slate-400 uppercase">SKU: PROD-{p.id}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 md:px-6 py-4 font-bold text-[#2e3785] text-xs md:text-sm">{p.shop?.name || `Shop #${p.shopId}`}</td>
-                  <td className="px-4 md:px-6 py-4">
-                    <span className={`px-2 md:px-3 py-1 font-black text-[9px] md:text-[10px] uppercase tracking-wider rounded-full ${
-                      idx % 3 === 0 ? 'bg-indigo-50 text-indigo-700' : idx % 2 === 0 ? 'bg-orange-50 text-orange-700' : 'bg-blue-50 text-blue-700'
-                    }`}>{p.category?.name || p.categoryId}</span>
+                  <td className="px-6 py-4 font-bold text-[#2e3785] text-sm">{p.shop?.name || `Shop #${p.shopId}`}</td>
+                  <td className="px-6 py-4"><span className="px-3 py-1 font-black text-[10px] uppercase rounded-full bg-slate-100 text-slate-600">{p.category?.name || p.categoryId || 'N/A'}</span></td>
+                  <td className="px-6 py-4">
+                    <p className="font-black text-slate-900 text-sm">{(p.price || 0).toLocaleString()} ₫</p>
+                    <p className="text-[11px] font-medium text-slate-500 mt-0.5">{p.stockQuantity || 0} in stock</p>
                   </td>
-                  <td className="px-4 md:px-6 py-4">
-                    <p className="font-black text-slate-900 text-xs md:text-sm">{p.price?.toLocaleString()} ₫</p>
-                    {p.status === 'DELETED' ? (
-                      <p className="text-[9px] md:text-[10px] font-bold text-rose-500 uppercase tracking-widest mt-0.5">Deleted</p>
-                    ) : (
-                      <p className="text-[10px] md:text-[11px] font-medium text-slate-500 mt-0.5">{p.stockQuantity} in stock</p>
-                    )}
-                  </td>
-                  <td className="px-4 md:px-6 py-4">
-                    {p.status === 'ACTIVE' && <span className="px-2 md:px-3 py-1 bg-emerald-50 text-emerald-700 font-bold text-[10px] md:text-xs rounded-full flex items-center gap-1 w-fit"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> ACTIVE</span>}
-                    {p.status === 'OUT_OF_STOCK' && <span className="px-2 md:px-3 py-1 bg-slate-100 text-slate-500 font-bold text-[10px] md:text-xs rounded-full flex items-center gap-1 w-fit"><div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div> OUT OF STOCK</span>}
-                    {p.status === 'DELETED' && <span className="px-2 md:px-3 py-1 bg-rose-50 text-rose-700 font-bold text-[10px] md:text-xs rounded-full flex items-center gap-1 w-fit"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div> DELETED</span>}
-                    {p.status === 'INACTIVE' && <span className="px-2 md:px-3 py-1 bg-orange-50 text-orange-700 font-bold text-[10px] md:text-xs rounded-full flex items-center gap-1 w-fit"><div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div> INACTIVE</span>}
-                  </td>
-                  <td className="px-4 md:px-6 py-4 text-right">
-                    <button className="w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 transition"><span className="material-symbols-outlined text-[18px] md:text-[20px]">more_vert</span></button>
+                  <td className="px-6 py-4">
+                    <span className="px-3 py-1 bg-slate-100 text-slate-600 font-bold text-[10px] uppercase rounded-full">{p.status}</span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-        <div className="p-4 border-t border-slate-50 flex justify-between items-center bg-white mt-auto">
-          <span className="text-[10px] md:text-[11px] font-bold text-slate-400">Page {filters.page} of {pagination.totalPages}</span>
-          <div className="flex gap-1">
-            <button disabled={filters.page <= 1} onClick={() => setFilters({ ...filters, page: filters.page - 1 })} className="px-3 py-1.5 rounded bg-slate-100 disabled:opacity-50 text-sm font-bold text-slate-600">Prev</button>
-            <button disabled={filters.page >= pagination.totalPages} onClick={() => setFilters({ ...filters, page: filters.page + 1 })} className="px-3 py-1.5 rounded bg-slate-100 disabled:opacity-50 text-sm font-bold text-slate-600">Next</button>
-          </div>
         </div>
       </div>
     </div>
