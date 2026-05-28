@@ -2,6 +2,18 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/useAuthStore';
 
+const createSlug = (str) => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+};
+
 const Cart = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -269,7 +281,10 @@ const Cart = () => {
                         
                         <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 w-full pl-2">
                           <div>
-                            <Link to={`/product/${item.productId}`} className="text-lg font-bold text-gray-900 mb-1 hover:text-[#2b3896] transition-colors line-clamp-2">
+                            <Link 
+                              to={`/product/${createSlug(item.productName)}-id${item.productId}`} 
+                              className="text-lg font-bold text-gray-900 mb-1 hover:text-[#2b3896] transition-colors line-clamp-2"
+                            >
                               {item.productName}
                             </Link>
                             <button 

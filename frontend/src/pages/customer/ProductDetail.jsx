@@ -4,7 +4,8 @@ import useAuthStore from '../../store/useAuthStore';
 import useCartStore from '../../store/useCartStore';
 
 const ProductDetail = () => {
-  const { id } = useParams(); 
+  const { slug } = useParams(); 
+  const id = slug?.includes('-id') ? slug.split('-id').pop() : slug;
   const navigate = useNavigate();
   
   const [productData, setProductData] = useState(null);
@@ -243,7 +244,7 @@ const ProductDetail = () => {
           {/* Cập nhật UI Thông tin Cửa hàng */}
           <div className="bg-white p-6 rounded-2xl shadow-[0px_8px_24px_rgba(43,56,150,0.05)] border border-gray-100 mb-8 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link to={`/shop/${shop?.id}`} className="w-14 h-14 rounded-full overflow-hidden border-2 border-[#2b3896]/10 bg-gray-100 flex items-center justify-center shrink-0">
+              <Link to={`/shop/${shop?.slug ? `${shop.slug}-id${shop.id}` : shop?.id}`} className="w-14 h-14 rounded-full overflow-hidden border-2 border-[#2b3896]/10 bg-gray-100 flex items-center justify-center shrink-0">
                 <img 
                   src={shop?.logoUrl || fallbackShopLogo} 
                   alt={shop?.name || 'Shop Logo'}
@@ -255,7 +256,7 @@ const ProductDetail = () => {
                 />
               </Link>
               <div>
-                <Link to={`/shop/${shop?.id}`}>
+                <Link to={`/shop/${shop?.slug ? `${shop.slug}-id${shop.id}` : shop?.id}`}>
                   <h3 className="font-extrabold text-gray-900 hover:text-[#2b3896] transition-colors">{shop?.name || 'Gian hàng'}</h3>
                 </Link>
                 <div className="flex items-center gap-1 text-xs font-bold text-gray-500 mt-0.5">
@@ -264,7 +265,7 @@ const ProductDetail = () => {
                 </div>
               </div>
             </div>
-            <Link to={`/shop/${shop?.id}`} className="shrink-0 text-sm font-bold text-[#2b3896] px-5 py-2 rounded-full border border-[#2b3896]/20 hover:bg-[#2b3896] hover:text-white transition-all">
+            <Link to={`/shop/${shop?.slug ? `${shop.slug}-id${shop.id}` : shop?.id}`} className="shrink-0 text-sm font-bold text-[#2b3896] px-5 py-2 rounded-full border border-[#2b3896]/20 hover:bg-[#2b3896] hover:text-white transition-all">
               Xem Shop
             </Link>
           </div>
