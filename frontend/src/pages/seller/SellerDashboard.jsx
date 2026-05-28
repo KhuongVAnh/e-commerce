@@ -3,11 +3,6 @@ import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } f
 import axiosClient from '../../utils/axiosClient';
 import useAuthStore from '../../store/useAuthStore';
 
-const chartData = [
-  { name: 'Mon', total: 1200000 }, { name: 'Tue', total: 2100000 }, { name: 'Wed', total: 800000 },
-  { name: 'Thu', total: 4500000 }, { name: 'Fri', total: 3200000 }, { name: 'Sat', total: 5100000 }, { name: 'Sun', total: 3800000 },
-];
-
 const SellerDashboard = () => {
   const { user } = useAuthStore();
   const [orders, setOrders] = useState([]);
@@ -34,14 +29,19 @@ const SellerDashboard = () => {
 
   return (
     <div className="p-4 md:p-8 space-y-6 bg-[#f8fafc] min-h-screen">
-      <header className="flex justify-between items-center mt-8 md:mt-0">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mt-8 md:mt-0 gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-800">Dashboard</h1>
           <p className="text-sm text-slate-400 font-bold uppercase tracking-tighter">Chào mừng, {user?.fullName || 'Seller'}</p>
         </div>
+        <div className="flex gap-2 items-center bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">Lọc:</span>
+          <input type="date" name="from" value={dateRange.from} onChange={handleDateChange} className="px-3 py-1.5 text-sm font-bold text-slate-600 rounded-lg outline-none bg-slate-50 cursor-pointer" />
+          <span className="text-slate-300">-</span>
+          <input type="date" name="to" value={dateRange.to} onChange={handleDateChange} className="px-3 py-1.5 text-sm font-bold text-slate-600 rounded-lg outline-none bg-slate-50 cursor-pointer" />
+        </div>
       </header>
 
-      {/* Grid đổi thành 2 cột trên điện thoại, 4 cột trên PC */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Orders', val: orders.length, color: 'text-indigo-600' },
@@ -57,26 +57,29 @@ const SellerDashboard = () => {
       </div>
 
       <div className="bg-white p-4 md:p-6 rounded-3xl shadow-sm border border-slate-100">
-        <h2 className="text-sm font-black text-slate-800 mb-6 uppercase tracking-widest">Weekly Sales</h2>
+        <h2 className="text-sm font-black text-slate-800 mb-6 uppercase tracking-widest">Revenue Chart</h2>
         <div className="h-[200px] md:h-[250px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
-                  <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-              <Tooltip contentStyle={{borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
-              <Area type="monotone" dataKey="total" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorVal)" />
-            </AreaChart>
-          </ResponsiveContainer>
+          {summary.chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={summary.chartData}>
+                <defs>
+                  <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/><stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/></linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+                <Tooltip contentStyle={{borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                <Area type="monotone" dataKey="total" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorVal)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+             <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+               <span className="material-symbols-outlined text-4xl mb-2 opacity-50">analytics</span>
+               <span className="text-sm font-bold">Chưa có dữ liệu giao dịch</span>
+             </div>
+          )}
         </div>
       </div>
 
-      {/* Fix bảng: Thêm overflow-x-auto để cuộn ngang trên điện thoại */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden w-full">
         <div className="p-4 md:p-6 border-b border-slate-50 flex justify-between items-center">
           <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">Recent Orders</h2>
@@ -92,15 +95,17 @@ const SellerDashboard = () => {
               </tr>
             </thead>
             <tbody className="text-xs font-bold text-slate-600">
-              {orders.length === 0 ? (
+              {loading ? (
+                <tr><td colSpan="4" className="p-10 text-center text-slate-400">Đang tải...</td></tr>
+              ) : recentOrders.length === 0 ? (
                 <tr><td colSpan="4" className="p-10 text-center text-slate-300">Chưa có đơn hàng nào</td></tr>
-              ) : orders.map(o => (
+              ) : recentOrders.map(o => (
                 <tr key={o.id} className="border-t border-slate-50 hover:bg-slate-50/50">
                   <td className="px-6 py-4 text-indigo-600">#{o.orderCode}</td>
                   <td className="px-6 py-4">{o.receiverName || 'N/A'}</td>
                   <td className="px-6 py-4 font-black text-slate-900">{o.totalAmount?.toLocaleString()} ₫</td>
                   <td className="px-6 py-4">
-                    <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[9px] uppercase font-black">{o.orderStatus}</span>
+                    <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-[9px] uppercase font-black">{o.orderStatus}</span>
                   </td>
                 </tr>
               ))}
@@ -111,5 +116,4 @@ const SellerDashboard = () => {
     </div>
   );
 };
-
 export default SellerDashboard;

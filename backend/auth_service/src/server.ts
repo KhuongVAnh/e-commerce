@@ -34,6 +34,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
+app.use("/api/auth/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/auth/admin", adminRoutes);

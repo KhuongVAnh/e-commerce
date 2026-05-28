@@ -1,6 +1,8 @@
 import "./config/env";
 import cors from "cors";
 import express from "express";
+import swaggerUi from "swagger-ui-express";
+import openApiDocument from "./docs/openapi";
 import { requestContextMiddleware } from "./middlewares/requestContext";
 import { gatewayAuth } from "./middlewares/gatewayAuth";
 import uploadRoutes from "./routes/uploadRoutes";
@@ -25,6 +27,10 @@ const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || "http://localhost:51
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+// Tự động cho phép chính API Gateway để tránh lỗi CORS khi chạy Swagger tại port 3000
+allowedOrigins.push(`http://localhost:${port}`);
+allowedOrigins.push(`http://127.0.0.1:${port}`);
 
 const corsOptions = corsEnabled
   ? {
@@ -59,6 +65,10 @@ app.use(express.json());
 app.use(requestContextMiddleware);
 app.use("/api/uploads", uploadRoutes);
 
+// Swagger Documentation for Notifications
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
+app.use("/api/notifications/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
+
 app.get("/", (_req, res) => {
   res.json({
     service: "api_gateway",
@@ -89,6 +99,27 @@ app.use("/api/notifications", authMiddleware, notificationRoutes);
 app.use("/api/auth", createServiceProxy(authServiceUrl));
 app.use("/api/catalog", createServiceProxy(catalogServiceUrl));
 app.use("/api/commerce", createServiceProxy(commerceServiceUrl));
+
+// Middleware xử lý lỗi chung cho api_gateway (tránh trả về trang HTML 500 kèm stack trace)
+app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("[api_gateway] unhandled error:", error);
+
+  const message = error instanceof Error ? error.message : "Có lỗi xảy ra từ hệ thống";
+  const isCorsError = error instanceof Error && error.message.includes("allowed by CORS");
+
+  res.status(isCorsError ? 400 : 500).json({
+    success: false,
+    message,
+    error: {
+      code: isCorsError ? "CORS_ERROR" : "INTERNAL_SERVER_ERROR",
+    },
+    meta: {
+      requestId: res.locals.requestId,
+      timestamp: new Date().toISOString(),
+      version: "v1",
+    },
+  });
+});
 
 async function start() {
   await assertDatabaseLive(prisma, serviceName);
