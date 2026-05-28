@@ -9,7 +9,7 @@ COPY shared ../shared
 COPY api_gateway/prisma ./prisma
 COPY api_gateway/src ./src
 
-RUN npm ci
+RUN npm install
 RUN npx prisma generate
 RUN npm run build || true
 
