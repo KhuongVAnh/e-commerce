@@ -15,6 +15,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    restart: always
 
   redis:
     image: redis:7-alpine
@@ -26,6 +27,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    restart: always
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -33,6 +35,12 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
@@ -40,7 +48,8 @@ services:
     ports:
       - "9092:9092"
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -49,15 +58,19 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 6000
+      KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000
+    restart: always
 
   auth_service:
     build:
       context: .
       dockerfile: auth_service/Dockerfile
     container_name: auth_service
+    env_file:
+      - auth_service/.env
     environment:
       PORT: "3001"
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/ecommerce?schema=auth_service
       JWT_ACCESS_SECRET: access-secret-dev
       JWT_REFRESH_SECRET: refresh-secret-dev
       JWT_ACCESS_EXPIRES_IN: 1h
@@ -72,15 +85,17 @@ services:
         condition: service_started
     ports:
       - "3001:3001"
+    restart: always
 
   catalog_service:
     build:
       context: .
       dockerfile: catalog_service/Dockerfile
     container_name: catalog_service
+    env_file:
+      - catalog_service/.env
     environment:
       PORT: "3002"
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/ecommerce?schema=catalog_service
       JWT_ACCESS_SECRET: access-secret-dev
       REDIS_URL: redis://redis:6379
       CACHE_ENABLED: "false"
@@ -92,15 +107,17 @@ services:
         condition: service_healthy
     ports:
       - "3002:3002"
+    restart: always
 
   commerce_service:
     build:
       context: .
       dockerfile: commerce_service/Dockerfile
     container_name: commerce_service
+    env_file:
+      - commerce_service/.env
     environment:
       PORT: "3003"
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/ecommerce?schema=commerce_service
       JWT_ACCESS_SECRET: access-secret-dev
       CATALOG_SERVICE_URL: http://catalog_service:3002
       CORS_ENABLED: "false"
@@ -120,15 +137,17 @@ services:
         condition: service_started
     ports:
       - "3003:3003"
+    restart: always
 
   api_gateway:
     build:
       context: .
       dockerfile: api_gateway/Dockerfile
     container_name: api_gateway
+    env_file:
+      - api_gateway/.env
     environment:
       PORT: "3000"
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/ecommerce?schema=notification_service
       JWT_ACCESS_SECRET: access-secret-dev
       AUTH_SERVICE_URL: http://auth_service:3001
       CATALOG_SERVICE_URL: http://catalog_service:3002
@@ -150,6 +169,7 @@ services:
         condition: service_started
     ports:
       - "3000:3000"
+    restart: always
 
   smoke_tests:
     image: node:20-alpine
