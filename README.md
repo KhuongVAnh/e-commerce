@@ -27,6 +27,16 @@ backend/
 frontend/
 ```
 
+## Chạy backend
+
+Từ thư mục gốc project:
+
+```bash
+npm run dev:backend
+```
+
+Lệnh này sẽ chạy song song 4 backend service: API Gateway, Auth, Catalog và Commerce.
+
 ## Công nghệ sử dụng
 
 ### Backend
