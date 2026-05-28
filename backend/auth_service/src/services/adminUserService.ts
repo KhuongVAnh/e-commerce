@@ -16,6 +16,11 @@ type UpdateUserInput = {
   status?: unknown;
 };
 
+type AdminActor = {
+  // Admin đang thực hiện thao tác; dùng để chặn self-block.
+  userId?: string;
+};
+
 function parsePositiveBigInt(value: unknown, field: string): bigint {
   const asText = String(value ?? "").trim();
 
@@ -221,9 +226,10 @@ function assertUpdateUserInput(input: UpdateUserInput): {
   };
 }
 
-export async function adminUpdateUser(userId: string, input: UpdateUserInput) {
+export async function adminUpdateUser(userId: string, input: UpdateUserInput, actor: AdminActor = {}) {
   const id = parsePositiveBigInt(userId, "userId");
   const payload = assertUpdateUserInput(input);
+  const actorId = actor.userId ? parsePositiveBigInt(actor.userId, "authUser.userId") : undefined;
 
   const existing = await prisma.user.findUnique({
     where: { id },
@@ -236,14 +242,34 @@ export async function adminUpdateUser(userId: string, input: UpdateUserInput) {
     });
   }
 
-  // Không cho tự hạ quyền ADMIN cuối cùng thành role khác (basic guard).
-  if (existing.role.name === UserRole.ADMIN && payload.role && payload.role !== UserRole.ADMIN) {
+  const isSelf = actorId !== undefined && existing.id === actorId;
+  // Một admin active bị xem là "bị vô hiệu hóa" nếu bị hạ role hoặc chuyển khỏi ACTIVE.
+  const willDisableActiveAdmin =
+    existing.role.name === UserRole.ADMIN &&
+    existing.status === UserStatus.ACTIVE &&
+    (
+      (payload.role !== undefined && payload.role !== UserRole.ADMIN) ||
+      (payload.status !== undefined && payload.status !== UserStatus.ACTIVE)
+    );
+
+  if (isSelf && payload.status !== undefined && payload.status !== UserStatus.ACTIVE) {
+    throw new HttpError(409, "Không thể tự khóa tài khoản admin đang đăng nhập", {
+      code: "SELF_ADMIN_PROTECTED",
+    });
+  }
+
+  if (willDisableActiveAdmin) {
+    // Luôn phải còn ít nhất một ADMIN ACTIVE khác để hệ thống không tự khóa quyền quản trị.
     const adminCount = await prisma.user.count({
-      where: { role: { name: UserRole.ADMIN }, status: UserStatus.ACTIVE },
+      where: {
+        role: { name: UserRole.ADMIN },
+        status: UserStatus.ACTIVE,
+        id: { not: existing.id },
+      },
     });
 
-    if (adminCount <= 1) {
-      throw new HttpError(409, "Không thể thay đổi quyền của admin cuối cùng", {
+    if (adminCount <= 0) {
+      throw new HttpError(409, "Không thể khóa hoặc hạ quyền admin active cuối cùng", {
         code: "LAST_ADMIN_PROTECTED",
       });
     }
@@ -260,14 +286,32 @@ export async function adminUpdateUser(userId: string, input: UpdateUserInput) {
     roleId = role.id;
   }
 
-  const user = await prisma.user.update({
-    where: { id },
-    data: {
-      ...(payload.fullName !== undefined ? { fullName: payload.fullName } : {}),
-      ...(payload.status !== undefined ? { status: payload.status } : {}),
-      ...(roleId !== undefined ? { roleId } : {}),
-    },
-    include: { role: true },
+  const user = await prisma.$transaction(async (tx) => {
+    // Update user và revoke token nằm chung transaction để trạng thái tài khoản khớp phiên đăng nhập.
+    const updated = await tx.user.update({
+      where: { id },
+      data: {
+        ...(payload.fullName !== undefined ? { fullName: payload.fullName } : {}),
+        ...(payload.status !== undefined ? { status: payload.status } : {}),
+        ...(roleId !== undefined ? { roleId } : {}),
+      },
+      include: { role: true },
+    });
+
+    if (payload.status === UserStatus.BLOCKED || payload.status === UserStatus.INACTIVE) {
+      // User bị khóa/inactive không được tiếp tục refresh token sau khi access token hết hạn.
+      await tx.refreshToken.updateMany({
+        where: {
+          userId: id,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      });
+    }
+
+    return updated;
   });
 
   return {
@@ -275,6 +319,6 @@ export async function adminUpdateUser(userId: string, input: UpdateUserInput) {
   };
 }
 
-export async function adminBlockUser(userId: string) {
-  return adminUpdateUser(userId, { status: UserStatus.BLOCKED });
+export async function adminBlockUser(userId: string, actor: AdminActor = {}) {
+  return adminUpdateUser(userId, { status: UserStatus.BLOCKED }, actor);
 }
