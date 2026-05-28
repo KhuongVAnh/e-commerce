@@ -31,7 +31,6 @@ const ProductManagement = () => {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
     // Dropdown filter cần danh sách shop/category phụ trợ, tách khỏi API list product chính.
