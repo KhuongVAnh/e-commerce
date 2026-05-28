@@ -13,8 +13,9 @@ const SellerOrderList = () => {
     { key: 'ALL', label: 'All Orders' },
     { key: 'PENDING', label: 'Pending' },
     { key: 'CONFIRMED', label: 'Confirmed' },
+    { key: 'PROCESSING', label: 'Processing' },
     { key: 'SHIPPING', label: 'Shipping' },
-    { key: 'DELIVERED', label: 'Completed' },
+    { key: 'DELIVERED', label: 'Delivered' },
     { key: 'CANCELLED', label: 'Cancelled' }
   ];
 
@@ -50,8 +51,10 @@ const SellerOrderList = () => {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'PENDING': return <span className="px-2.5 py-1 bg-orange-50 text-orange-600 rounded-md text-[10px] font-black uppercase">Pending</span>;
+      case 'AWAITING_PAYMENT': return <span className="px-2.5 py-1 bg-orange-100 text-orange-700 rounded-md text-[10px] font-black uppercase">Wait Pay</span>;
       case 'CONFIRMED': return <span className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-md text-[10px] font-black uppercase">Confirmed</span>;
-      case 'SHIPPING': return <span className="px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-black uppercase">Shipping</span>;
+      case 'PROCESSING': return <span className="px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-black uppercase">Processing</span>;
+      case 'SHIPPING': return <span className="px-2.5 py-1 bg-purple-50 text-purple-600 rounded-md text-[10px] font-black uppercase">Shipping</span>;
       case 'DELIVERED': return <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-black uppercase">Delivered</span>;
       case 'CANCELLED': return <span className="px-2.5 py-1 bg-rose-50 text-rose-600 rounded-md text-[10px] font-black uppercase">Cancelled</span>;
       default: return <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md text-[10px] font-black uppercase">{status}</span>;
@@ -60,18 +63,14 @@ const SellerOrderList = () => {
 
   return (
     <div className="p-6 md:p-10 font-sans bg-[#f8fafc] min-h-full">
-      <header className="mb-8">
+      <header className="mb-8 mt-8 md:mt-0">
         <h1 className="text-3xl md:text-4xl font-black text-[#2e3785] tracking-tight mb-2">Order Management</h1>
         <p className="text-slate-500 font-medium text-sm">Quản lý và xử lý đơn hàng của gian hàng.</p>
       </header>
 
       <div className="flex overflow-x-auto border-b border-slate-200 mb-6 scrollbar-hide gap-6">
         {tabs.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`pb-4 text-sm font-bold whitespace-nowrap transition-colors relative ${activeTab === tab.key ? 'text-[#2e3785]' : 'text-slate-500 hover:text-slate-700'}`}
-          >
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`pb-4 text-sm font-bold whitespace-nowrap transition-colors relative ${activeTab === tab.key ? 'text-[#2e3785]' : 'text-slate-500 hover:text-slate-700'}`}>
             {tab.label}
             {activeTab === tab.key && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#2e3785] rounded-t-full"></div>}
           </button>
@@ -98,34 +97,19 @@ const SellerOrderList = () => {
               ) : errorMsg ? (
                 <tr><td colSpan="7" className="p-10 text-center text-rose-500 font-medium">{errorMsg}</td></tr>
               ) : orders.length === 0 ? (
-                <tr><td colSpan="7" className="p-10 text-center text-slate-400 font-medium">No orders found.</td></tr>
+                <tr><td colSpan="7" className="p-10 text-center text-slate-400 font-medium">Không có đơn hàng.</td></tr>
               ) : orders.map((order) => (
                 <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <button 
-                      onClick={() => navigate(`/seller/orders/${order.id}`)} 
-                      className="font-bold text-[#2e3785] text-sm hover:underline"
-                    >
-                      #{order.orderCode}
-                    </button>
-                  </td>
+                  <td className="px-6 py-4"><button onClick={() => navigate(`/seller/orders/${order.id}`)} className="font-bold text-[#2e3785] text-sm hover:underline">#{order.orderCode}</button></td>
                   <td className="px-6 py-4 font-medium text-slate-700 text-sm">{order.receiverName}</td>
                   <td className="px-6 py-4 font-medium text-slate-500 text-sm">{new Date(order.createdAt).toLocaleDateString()}</td>
-                  <td className="px-6 py-4">
-                    <span className="text-[10px] font-bold text-slate-500 px-2 py-1 bg-slate-100 rounded border border-slate-200">{order.paymentMethod}</span>
-                  </td>
+                  <td className="px-6 py-4"><span className="text-[10px] font-bold text-slate-500 px-2 py-1 bg-slate-100 rounded border border-slate-200">{order.paymentMethod}</span></td>
                   <td className="px-6 py-4 font-black text-slate-900">{order.totalAmount?.toLocaleString()} ₫</td>
                   <td className="px-6 py-4">{getStatusBadge(order.orderStatus)}</td>
                   <td className="px-6 py-4 text-right space-x-2">
-                    {order.orderStatus === 'PENDING' && (
-                      <button onClick={() => handleUpdateStatus(order.id, 'CONFIRMED')} className="px-3 py-1.5 bg-[#2e3785] text-white text-xs font-bold rounded shadow-sm hover:bg-[#252d70]">Chốt đơn</button>
-                    )}
-                    {order.orderStatus === 'CONFIRMED' && (
-                      <button onClick={() => handleUpdateStatus(order.id, 'PROCESSING')} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded shadow-sm hover:bg-blue-700">Đóng gói</button>
-                    )}
-                    {order.orderStatus === 'PROCESSING' && (
-                      <button onClick={() => handleUpdateStatus(order.id, 'SHIPPING')} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded shadow-sm hover:bg-indigo-700">Giao Ship</button>
-                    )}
+                    {order.orderStatus === 'PENDING' && <button onClick={() => handleUpdateStatus(order.id, 'CONFIRMED')} className="px-3 py-1.5 bg-[#2e3785] text-white text-xs font-bold rounded shadow-sm hover:bg-[#252d70]">Chốt đơn</button>}
+                    {order.orderStatus === 'CONFIRMED' && <button onClick={() => handleUpdateStatus(order.id, 'PROCESSING')} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded shadow-sm hover:bg-blue-700">Đóng gói</button>}
+                    {order.orderStatus === 'PROCESSING' && <button onClick={() => handleUpdateStatus(order.id, 'SHIPPING')} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded shadow-sm hover:bg-indigo-700">Giao Ship</button>}
                   </td>
                 </tr>
               ))}
@@ -136,5 +120,4 @@ const SellerOrderList = () => {
     </div>
   );
 };
-
 export default SellerOrderList;
