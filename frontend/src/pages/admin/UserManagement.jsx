@@ -29,6 +29,10 @@ const UserManagement = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [confirmAction, setConfirmAction] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [stats, setStats] = useState({ total: 0, sellers: 0, admins: 0 });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Danh sách user là API phân trang thật, nên filters/page/limit đều gửi thẳng xuống backend.
   const fetchUsers = useCallback(async () => {
@@ -78,20 +82,77 @@ const UserManagement = () => {
       await axiosClient.patch(`/auth/admin/users/${confirmAction.user.id}`, { status: confirmAction.nextStatus });
       setConfirmAction(null);
       fetchUsers();
+      fetchStats();
     } catch (error) {
       alert(getErrorMessage(error, 'Không thể cập nhật trạng thái người dùng.'));
     } finally {
       setActionLoading(false);
     }
   };
+  
+  const fetchStats = useCallback(async () => {
+    try {
+      const [allRes, sellerRes, adminRes] = await Promise.allSettled([
+        axiosClient.get('/auth/admin/users?limit=1'),
+        axiosClient.get('/auth/admin/users?role=SELLER&limit=1'),
+        axiosClient.get('/auth/admin/users?role=ADMIN&limit=1'),
+      ]);
 
-  const stats = {
-    // Total lấy từ backend; các số còn lại là thống kê nhanh trên page hiện tại.
-    total: pagination.total,
-    active: users.filter((user) => user.status === 'ACTIVE').length,
-    blocked: users.filter((user) => user.status === 'BLOCKED').length,
-    admins: users.filter((user) => user.role === 'ADMIN').length,
+      const getTotal = (res) =>
+        res.status === 'fulfilled'
+          ? res.value?.data?.pagination?.total || res.value?.pagination?.total || 0
+          : 0;
+
+      setStats({
+        total: getTotal(allRes),
+        sellers: getTotal(sellerRes),
+        admins: getTotal(adminRes),
+      });
+    } catch (error) {
+      console.warn('Không thể tải Stats:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  const openEditModal = async (userId) => {
+    setIsModalOpen(true);
+    setSelectedUser(null);
+
+    try {
+      const res = await axiosClient.get(`/auth/admin/users/${userId}`);
+      setSelectedUser(res?.data?.user || res?.user || res?.data);
+    } catch (error) {
+      alert('Lỗi tải chi tiết: ' + getErrorMessage(error));
+      setIsModalOpen(false);
+    }
   };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+
+    setIsSaving(true);
+
+    try {
+      await axiosClient.patch(`/auth/admin/users/${selectedUser.id}`, {
+        fullName: selectedUser.fullName,
+        role: selectedUser.role,
+        status: selectedUser.status,
+      });
+
+      alert('Cập nhật người dùng thành công!');
+      setIsModalOpen(false);
+      fetchUsers();
+      fetchStats();
+    } catch (error) {
+      alert(getErrorMessage(error, 'Không thể cập nhật người dùng.'));
+    } finally {
+      setIsSaving(false);
+    }
+  };    
 
   return (
     <div className="min-h-full bg-[#f8fafc] p-4 font-sans md:p-6 lg:p-8">
@@ -101,10 +162,31 @@ const UserManagement = () => {
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard icon="group" label="Total Results" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
-        <AdminStatCard icon="verified_user" label="Active On Page" value={stats.active} tone="success" />
-        <AdminStatCard icon="block" label="Blocked On Page" value={stats.blocked} tone="danger" />
-        <AdminStatCard icon="admin_panel_settings" label="Admins On Page" value={stats.admins} />
+        <AdminStatCard
+          icon="group"
+          label="Total System Users"
+          value={stats.total.toLocaleString('vi-VN')}
+          tone="primary"
+        />
+
+        <AdminStatCard
+          icon="storefront"
+          label="Total Sellers"
+          value={stats.sellers.toLocaleString('vi-VN')}
+          tone="success"
+        />
+
+        <AdminStatCard
+          icon="admin_panel_settings"
+          label="Total Admins"
+          value={stats.admins.toLocaleString('vi-VN')}
+        />
+
+        <AdminStatCard
+          icon="groups"
+          label="Users In Current Page"
+          value={users.length.toLocaleString('vi-VN')}
+        />
       </div>
 
       <AdminToolbar>
@@ -152,17 +234,33 @@ const UserManagement = () => {
             <td className="px-5 py-4"><AdminStatusBadge status={user.status} /></td>
             <td className="px-5 py-4 text-sm font-medium text-slate-500">{formatDate(user.createdAt)}</td>
             <td className="px-5 py-4">
-              {user.status === 'ACTIVE' ? (
-                <button onClick={() => requestStatusChange(user, 'BLOCKED')} className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100">
-                  <span className="material-symbols-outlined text-[16px]">block</span>
-                  Khóa
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openEditModal(user.id)}
+                  className="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100"
+                >
+                  <span className="material-symbols-outlined text-[16px]">edit</span>
+                  Sửa
                 </button>
-              ) : (
-                <button onClick={() => requestStatusChange(user, 'ACTIVE')} className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-100">
-                  <span className="material-symbols-outlined text-[16px]">lock_open</span>
-                  Mở
-                </button>
-              )}
+
+                {user.status === 'ACTIVE' ? (
+                  <button
+                    onClick={() => requestStatusChange(user, 'BLOCKED')}
+                    className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">block</span>
+                    Khóa
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => requestStatusChange(user, 'ACTIVE')}
+                    className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-100"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">lock_open</span>
+                    Mở
+                  </button>
+                )}
+              </div>
             </td>
           </tr>
         )}
@@ -184,6 +282,111 @@ const UserManagement = () => {
         onCancel={() => setConfirmAction(null)}
         onConfirm={confirmStatusChange}
       />
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
+            <div className="relative p-6 md:p-8">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="absolute right-6 top-6 text-slate-400 hover:text-slate-900"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+
+              <h2 className="mb-6 text-2xl font-black text-slate-900">Cập nhật người dùng</h2>
+
+              {!selectedUser ? (
+                <div className="py-10 text-center font-medium text-slate-500">
+                  Đang tải dữ liệu...
+                </div>
+              ) : (
+                <form onSubmit={handleUpdateUser} className="space-y-5">
+                  <div>
+                    <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-500">
+                      Email
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedUser.email || ''}
+                      disabled
+                      className="w-full cursor-not-allowed rounded-xl bg-slate-100 px-4 py-3.5 text-sm font-medium text-slate-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-500">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedUser.fullName || ''}
+                      onChange={(e) =>
+                        setSelectedUser({ ...selectedUser, fullName: e.target.value })
+                      }
+                      required
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#2e3785]/20"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-500">
+                        Role
+                      </label>
+                      <select
+                        value={selectedUser.role || 'CUSTOMER'}
+                        onChange={(e) =>
+                          setSelectedUser({ ...selectedUser, role: e.target.value })
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-bold text-slate-700 outline-none"
+                      >
+                        <option value="CUSTOMER">Customer</option>
+                        <option value="SELLER">Seller</option>
+                        <option value="ADMIN">Admin</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-500">
+                        Status
+                      </label>
+                      <select
+                        value={selectedUser.status || 'ACTIVE'}
+                        onChange={(e) =>
+                          setSelectedUser({ ...selectedUser, status: e.target.value })
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-bold text-slate-700 outline-none"
+                      >
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                        <option value="BLOCKED">BLOCKED</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex justify-end gap-3 border-t border-slate-100 pt-6">
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="rounded-xl bg-slate-100 px-5 py-3 text-sm font-bold text-slate-600 hover:bg-slate-200"
+                    >
+                      Hủy
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={isSaving}
+                      className="rounded-xl bg-[#2e3785] px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-[#252d70] disabled:opacity-70"
+                    >
+                      {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}    
     </div>
   );
 };

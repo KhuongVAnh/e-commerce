@@ -23,28 +23,31 @@ const SellerOrderList = () => {
     setLoading(true);
     setErrorMsg('');
     try {
-      const query = activeTab !== 'ALL' ? `?status=${activeTab}` : '';
-      const res = await axiosClient.get(`/commerce/seller/orders${query}`);
-      setOrders(res.data.orders || []);
+      const queryParams = new URLSearchParams();
+      if (activeTab !== 'ALL') queryParams.append('status', activeTab);
+
+      const res = await axiosClient.get(`/commerce/seller/orders?${queryParams.toString()}`);
+      const data = res?.data?.orders || res?.orders || res?.data || [];
+      setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
-      setErrorMsg(error.message || "Không thể tải danh sách đơn hàng.");
+      setErrorMsg(error.response?.data?.message || "Không thể tải danh sách đơn hàng.");
       setOrders([]);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, [activeTab]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
       await axiosClient.patch(`/commerce/seller/orders/${orderId}/status`, { status: newStatus });
-      setOrders(orders.map(o => o.id === orderId ? { ...o, orderStatus: newStatus } : o));
-      alert(`Đã cập nhật trạng thái thành ${newStatus}`);
+      alert(`Chuyển trạng thái đơn hàng thành ${newStatus} thành công!`);
+      fetchOrders();
     } catch (error) {
-      alert("Lỗi khi cập nhật trạng thái: " + (error.message || "Internal Error"));
+      if (error.response?.data?.error?.code === 'INVALID_STATUS_TRANSITION') {
+        alert("LỖI HỆ THỐNG: Chuyển trạng thái đơn hàng không hợp lệ theo quy trình (State Machine)!");
+      } else {
+        alert("Lỗi khi cập nhật trạng thái: " + (error.response?.data?.message || "Internal Error"));
+      }
     }
   };
 
@@ -62,10 +65,10 @@ const SellerOrderList = () => {
   };
 
   return (
-    <div className="p-6 md:p-10 font-sans bg-[#f8fafc] min-h-full">
+    <div className="p-6 md:p-10 font-sans bg-[#f8fafc] min-h-full flex flex-col">
       <header className="mb-8 mt-8 md:mt-0">
-        <h1 className="text-3xl md:text-4xl font-black text-[#2e3785] tracking-tight mb-2">Order Management</h1>
-        <p className="text-slate-500 font-medium text-sm">Quản lý và xử lý đơn hàng của gian hàng.</p>
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#2e3785] tracking-tight mb-2">Order Management</h1>
+        <p className="text-slate-500 font-medium text-xs md:text-sm">Quản lý và xử lý đơn hàng của gian hàng.</p>
       </header>
 
       <div className="flex overflow-x-auto border-b border-slate-200 mb-6 scrollbar-hide gap-6">
@@ -77,39 +80,40 @@ const SellerOrderList = () => {
         ))}
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden w-full">
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden w-full flex-1">
         <div className="overflow-x-auto">
-          <table className="w-full text-left whitespace-nowrap">
+          <table className="w-full text-left whitespace-nowrap min-w-[800px]">
             <thead className="bg-slate-50/50">
               <tr>
-                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Order ID</th>
-                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Customer</th>
-                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Date</th>
-                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Payment</th>
-                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Total</th>
-                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Status</th>
-                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400 text-right">Actions</th>
+                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Order ID</th>
+                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Customer</th>
+                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Date</th>
+                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Payment</th>
+                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Total Amount</th>
+                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Status</th>
+                <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan="7" className="p-10 text-center text-slate-400 font-medium">Loading orders...</td></tr>
+                <tr><td colSpan="7" className="p-10 text-center text-slate-400 font-bold">Đang tải danh sách đơn hàng...</td></tr>
               ) : errorMsg ? (
-                <tr><td colSpan="7" className="p-10 text-center text-rose-500 font-medium">{errorMsg}</td></tr>
+                <tr><td colSpan="7" className="p-10 text-center text-rose-500 font-bold">{errorMsg}</td></tr>
               ) : orders.length === 0 ? (
-                <tr><td colSpan="7" className="p-10 text-center text-slate-400 font-medium">Không có đơn hàng.</td></tr>
+                <tr><td colSpan="7" className="p-10 text-center text-slate-400">Không có đơn hàng nào trong mục này.</td></tr>
               ) : orders.map((order) => (
                 <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4"><button onClick={() => navigate(`/seller/orders/${order.id}`)} className="font-bold text-[#2e3785] text-sm hover:underline">#{order.orderCode}</button></td>
-                  <td className="px-6 py-4 font-medium text-slate-700 text-sm">{order.receiverName}</td>
-                  <td className="px-6 py-4 font-medium text-slate-500 text-sm">{new Date(order.createdAt).toLocaleDateString()}</td>
-                  <td className="px-6 py-4"><span className="text-[10px] font-bold text-slate-500 px-2 py-1 bg-slate-100 rounded border border-slate-200">{order.paymentMethod}</span></td>
-                  <td className="px-6 py-4 font-black text-slate-900">{order.totalAmount?.toLocaleString()} ₫</td>
+                  <td className="px-6 py-4"><button onClick={() => navigate(`/seller/orders/${order.id}`)} className="font-bold text-[#2e3785] text-xs md:text-sm hover:underline">#{order.orderCode}</button></td>
+                  <td className="px-6 py-4 font-bold text-slate-900 text-xs md:text-sm">{order.receiverName}</td>
+                  <td className="px-6 py-4 font-medium text-slate-500 text-xs md:text-sm">{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}</td>
+                  <td className="px-6 py-4"><span className="text-[10px] font-bold text-[#2e3785] px-2 py-1 bg-indigo-50 rounded border border-indigo-100">{order.paymentMethod}</span></td>
+                  <td className="px-6 py-4 font-black text-slate-900 text-xs md:text-sm">{(order.totalAmount || 0).toLocaleString()} ₫</td>
                   <td className="px-6 py-4">{getStatusBadge(order.orderStatus)}</td>
                   <td className="px-6 py-4 text-right space-x-2">
-                    {order.orderStatus === 'PENDING' && <button onClick={() => handleUpdateStatus(order.id, 'CONFIRMED')} className="px-3 py-1.5 bg-[#2e3785] text-white text-xs font-bold rounded shadow-sm hover:bg-[#252d70]">Chốt đơn</button>}
-                    {order.orderStatus === 'CONFIRMED' && <button onClick={() => handleUpdateStatus(order.id, 'PROCESSING')} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded shadow-sm hover:bg-blue-700">Đóng gói</button>}
-                    {order.orderStatus === 'PROCESSING' && <button onClick={() => handleUpdateStatus(order.id, 'SHIPPING')} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded shadow-sm hover:bg-indigo-700">Giao Ship</button>}
+                    {order.orderStatus === 'PENDING' && <button onClick={() => handleUpdateStatus(order.id, 'CONFIRMED')} className="px-3 py-1.5 bg-[#2e3785] text-white text-[10px] md:text-xs font-bold rounded shadow-sm hover:bg-[#252d70] transition">Chốt đơn</button>}
+                    {order.orderStatus === 'CONFIRMED' && <button onClick={() => handleUpdateStatus(order.id, 'PROCESSING')} className="px-3 py-1.5 bg-blue-600 text-white text-[10px] md:text-xs font-bold rounded shadow-sm hover:bg-blue-700 transition">Đóng gói</button>}
+                    {order.orderStatus === 'PROCESSING' && <button onClick={() => handleUpdateStatus(order.id, 'SHIPPING')} className="px-3 py-1.5 bg-indigo-600 text-white text-[10px] md:text-xs font-bold rounded shadow-sm hover:bg-indigo-700 transition">Giao Ship</button>}
+                    <button onClick={() => navigate(`/seller/orders/${order.id}`)} className="px-3 py-1.5 bg-slate-100 text-slate-600 hover:text-[#2e3785] text-[10px] md:text-xs font-bold rounded shadow-sm transition">Chi tiết</button>
                   </td>
                 </tr>
               ))}

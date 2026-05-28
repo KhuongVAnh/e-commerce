@@ -29,6 +29,10 @@ const ProductManagement = () => {
   const [confirmAction, setConfirmAction] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
   useEffect(() => {
     // Dropdown filter cần danh sách shop/category phụ trợ, tách khỏi API list product chính.
     const fetchFilters = async () => {
@@ -140,6 +144,40 @@ const ProductManagement = () => {
     active: products.filter((product) => product.status === 'ACTIVE').length,
     outOfStock: products.filter((product) => product.status === 'OUT_OF_STOCK').length,
     deleted: products.filter((product) => product.status === 'DELETED').length,
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Xóa sản phẩm này vĩnh viễn?")) return;
+    try {
+      await axiosClient.delete(`/catalog/admin/products/${id}`);
+      fetchProducts();
+    } catch (error) { alert("Lỗi khi xóa!"); }
+  };
+
+  const openEditModal = async (productId) => {
+    setIsModalOpen(true);
+    try {
+      const res = await axiosClient.get(`/catalog/admin/products/${productId}`);
+      setSelectedProduct(res?.data?.product || res?.product || res?.data);
+    } catch (error) {
+      alert("Lỗi tải chi tiết: " + error.message);
+      setIsModalOpen(false);
+    }
+  };
+
+  const handleUpdateProduct = async (e) => {
+    e.preventDefault();
+    try {
+      await axiosClient.put(`/catalog/admin/products/${selectedProduct.id}`, {
+        name: selectedProduct.name,
+        price: parseFloat(selectedProduct.price),
+        stockQuantity: parseInt(selectedProduct.stockQuantity),
+        status: selectedProduct.status
+      });
+      alert('Cập nhật thành công!');
+      setIsModalOpen(false);
+      fetchProducts();
+    } catch (error) { alert("Lỗi: " + (error.response?.data?.message || 'Không thể lưu.')); }
   };
 
   return (
