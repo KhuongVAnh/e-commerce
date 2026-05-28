@@ -23,7 +23,20 @@ Mỗi service hiện đã có khung thư mục:
 
 ## Cách chạy nhanh
 
-Chạy trong từng thư mục service:
+Chạy toàn bộ backend từ thư mục `backend`:
+
+```bash
+npm run dev
+```
+
+Lệnh này sẽ chạy song song 4 service:
+
+- `api_gateway`
+- `auth_service`
+- `catalog_service`
+- `commerce_service`
+
+Nếu chỉ muốn chạy một service riêng lẻ, vào thư mục service đó:
 
 ```bash
 npm run dev

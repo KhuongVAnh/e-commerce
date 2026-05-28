@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import axiosClient from '../../utils/axiosClient';
 import useCartStore from '../../store/useCartStore';
@@ -9,6 +9,8 @@ const Checkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { fetchCartTotal } = useCartStore();
+  const checkoutIdempotencyKeyRef = useRef(null);
+  const submittingRef = useRef(false);
 
   const [previewData, setPreviewData] = useState(null);
   const [cartItemIds, setCartItemIds] = useState([]);
@@ -73,6 +75,11 @@ const Checkout = () => {
 
   // HÀM XỬ LÝ ĐẶT HÀNG CHUNG CHO CẢ 2 LUỒNG
   const handlePlaceOrder = async () => {
+    // Dùng ref để chặn double-click ngay lập tức, vì setSubmitting là async và có thể chưa kịp disable nút.
+    if (submittingRef.current) {
+      return;
+    }
+
     if (!formData.fullName || !formData.phone || !formData.street || !formData.district || !formData.city) {
       alert("Vui lòng điền đầy đủ địa chỉ giao hàng!");
       return;
@@ -81,7 +88,14 @@ const Checkout = () => {
     const receiverAddress = `${formData.street}, ${formData.district}, ${formData.city}`;
 
     try {
+      submittingRef.current = true;
       setSubmitting(true);
+
+      // Một lần checkout chỉ dùng một idempotency key.
+      // Nếu request timeout sau khi backend đã tạo đơn, lần bấm lại sẽ gửi cùng key để backend trả đơn cũ thay vì tạo đơn mới.
+      if (!checkoutIdempotencyKeyRef.current) {
+        checkoutIdempotencyKeyRef.current = crypto.randomUUID();
+      }
 
       const payload = {
         paymentMethod: paymentMethod,
@@ -94,9 +108,14 @@ const Checkout = () => {
       payload.shopId = Number(shopIdParam);
       payload.cartItemIds = cartItemIds;
 
-      const orderRes = await axiosClient.post('/commerce/orders/checkout', payload);
+      const orderRes = await axiosClient.post('/commerce/orders/checkout', payload, {
+        headers: {
+          'Idempotency-Key': checkoutIdempotencyKeyRef.current,
+        },
+      });
       
       const orderData = orderRes.data;
+      checkoutIdempotencyKeyRef.current = null;
 
       fetchCartTotal();
 
@@ -121,6 +140,7 @@ const Checkout = () => {
       console.error("Chi tiết lỗi đặt hàng:", error);
       alert(error.message || "Có lỗi xảy ra khi tạo đơn!");
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

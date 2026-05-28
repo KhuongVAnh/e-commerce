@@ -71,6 +71,43 @@ function parseOptionalOrderStatus(value: unknown): OrderStatus | undefined {
     return parseOrderStatus(value, "status");
 }
 
+function parseOptionalIdempotencyKey(value: unknown): string | undefined {
+    if (value === undefined || value === null || value === "") {
+        return undefined;
+    }
+
+    if (Array.isArray(value)) {
+        value = value[0];
+    }
+
+    if (typeof value !== "string") {
+        throw new HttpError(400, "idempotencyKey không hợp lệ", {
+            code: "VALIDATION_ERROR",
+            fieldErrors: [{ field: "idempotencyKey", message: "idempotencyKey phải là chuỗi" }],
+        });
+    }
+
+    const normalized = value.trim();
+    if (!normalized) {
+        return undefined;
+    }
+
+    if (normalized.length > 120) {
+        throw new HttpError(400, "idempotencyKey quá dài", {
+            code: "VALIDATION_ERROR",
+            fieldErrors: [{ field: "idempotencyKey", message: "idempotencyKey tối đa 120 ký tự" }],
+        });
+    }
+
+    return normalized;
+}
+
+function getClientIp(req: Request): string {
+    // Dùng req.ip để Express tự xử lý trust proxy.
+    // Không đọc x-forwarded-for trực tiếp vì header này có thể bị client giả mạo nếu app chưa cấu hình trust proxy.
+    return req.ip || req.socket.remoteAddress || "127.0.0.1";
+}
+
 // ─────────────────────────────────────────────────────────────
 // Customer controllers
 // ─────────────────────────────────────────────────────────────
@@ -94,10 +131,7 @@ export async function createOrderController(
     _next: NextFunction,
 ) {
     const customerId = parseRequiredBigInt(req.authUser!.userId, "userId");
-    let ipAddr = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "127.0.0.1";
-    if (Array.isArray(ipAddr)) {
-        ipAddr = ipAddr[0];
-    }
+    const ipAddr = getClientIp(req);
 
     const shopId = parseRequiredBigInt(req.body.shopId, "shopId");
 
@@ -114,6 +148,9 @@ export async function createOrderController(
     }
 
     const paymentMethod = parsePaymentMethod(req.body.paymentMethod);
+    // FE nên gửi cùng một idempotency key khi retry checkout.
+    // Header được ưu tiên để sau này dễ đồng bộ với API gateway/proxy, body giữ lại cho client hiện tại.
+    const idempotencyKey = parseOptionalIdempotencyKey(req.headers["idempotency-key"] ?? req.body.idempotencyKey);
 
     // Validate các trường thông tin người nhận bắt buộc
     const requiredFields = ["receiverName", "receiverPhone", "receiverAddress"] as const;
@@ -131,11 +168,12 @@ export async function createOrderController(
         shopId,
         cartItemIds,
         paymentMethod,
+        idempotencyKey,
         receiverName: req.body.receiverName.trim(),
         receiverPhone: req.body.receiverPhone.trim(),
         receiverAddress: req.body.receiverAddress.trim(),
         note: req.body.note?.trim(),
-        ipAddr: ipAddr as string,
+        ipAddr,
     });
 
     const warnings =
@@ -169,13 +207,10 @@ export async function getOrderPaymentUrlController(
         });
     }
 
-    let ipAddr = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "127.0.0.1";
-    if (Array.isArray(ipAddr)) {
-        ipAddr = ipAddr[0];
-    }
+    const ipAddr = getClientIp(req);
 
     // lấy link cũ còn hiệu lực hoặc tạo link mới nếu link cũ đã hết hạn hoặc bị lỗi
-    const result = await refreshOrderPaymentUrlIfNeeded(customerId, orderCode, ipAddr as string);
+    const result = await refreshOrderPaymentUrlIfNeeded(customerId, orderCode, ipAddr);
 
     return sendSuccess(res, {
         requestId: res.locals.requestId,
@@ -210,9 +245,10 @@ export async function cancelOrderController(
  * - DB là source of truth
  */
 export async function checkResultPaymentController(req: Request, res: Response) {
+    const customerId = parseRequiredBigInt(req.authUser!.userId, "userId");
     const orderCode = String(req.params.orderCode ?? "").trim();
 
-    const { order, payment, isPaid, isFailed, isPending } = await checkPaymentFromOrderCode(orderCode);
+    const { order, payment, isPaid, isFailed, isPending } = await checkPaymentFromOrderCode(orderCode, customerId);
 
     return sendSuccess(res, {
         requestId: res.locals.requestId,
