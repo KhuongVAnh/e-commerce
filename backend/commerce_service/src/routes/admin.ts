@@ -18,8 +18,7 @@ function asyncHandler(
   };
 }
 
-router.use(authMiddleware);
-router.use(roleMiddleware(["ADMIN"]));
+router.use("/admin", authMiddleware, roleMiddleware(["ADMIN"]));
 
 // Orders
 router.get("/admin/orders", asyncHandler(adminListOrdersController));
