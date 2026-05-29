@@ -12,8 +12,8 @@ export const authService = {
   },
 
   // Gọi API Lấy thông tin user hiện tại (dùng để check lúc load trang)
-  getMe: () => {
-    return axiosClient.get('/auth/me');
+  getMe: (config = {}) => {
+    return axiosClient.get('/auth/me', config);
   },
 
   // Gọi API Đăng xuất
