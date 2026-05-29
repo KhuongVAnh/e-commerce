@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { authService } from '../../services/authService';
+import AuthBackground from '../../components/AuthBackground';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -68,28 +69,28 @@ const Register = () => {
   };
 
   return (
-    <div className="bg-gray-50 font-sans text-gray-900 min-h-screen flex flex-col">
-      <main className="flex-grow flex flex-col items-center justify-center relative overflow-hidden px-4 py-12 bg-gradient-to-br from-gray-50 to-gray-200">
+    <div className="font-sans text-gray-900 min-h-screen flex flex-col relative">
+      <main className="flex-grow flex flex-col items-center justify-center relative overflow-hidden px-4 py-12">
         
-        {/* Background Effects */}
-        <div className="absolute top-[-10%] right-[-5%] w-96 h-96 bg-[#2b3896]/5 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-[-5%] left-[-10%] w-[32rem] h-[32rem] bg-orange-600/5 rounded-full blur-3xl pointer-events-none"></div>
+        <AuthBackground theme="teal" />
 
-        {/* Header */}
-        <div className="mb-10 text-center z-10 w-full flex flex-col items-center">
-          <h1 className="text-4xl font-extrabold tracking-tighter text-[#2b3896] leading-none mb-2 uppercase">
+        <div className="absolute top-[-10%] right-[-5%] w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none z-0"></div>
+        <div className="absolute bottom-[-5%] left-[-10%] w-[32rem] h-[32rem] bg-orange-600/10 rounded-full blur-3xl pointer-events-none z-0"></div>
+
+        <div className="mb-10 text-center z-10 w-full flex flex-col items-center pointer-events-none">
+          <h1 className="text-4xl font-extrabold tracking-tighter text-[#2b3896] leading-none mb-2 uppercase drop-shadow-md bg-white/50 px-6 py-2 rounded-2xl backdrop-blur-sm inline-block">
             E-COMMERCE
           </h1>
-          <p className="text-gray-500 tracking-wide uppercase text-xs font-semibold">
+          <p className="text-gray-600 tracking-wide uppercase text-xs font-bold drop-shadow-sm bg-white/50 px-4 py-1 rounded-full backdrop-blur-sm mt-2">
             Sàn thương mại điện tử dành cho bạn
           </p>
         </div>
 
         <section className="w-full max-w-md z-10">
-          <div className="bg-white shadow-[0px_12px_32px_rgba(43,56,150,0.06)] rounded-3xl p-8 md:p-10 border border-gray-100">
+          <div className="bg-white/90 backdrop-blur-xl shadow-[0px_12px_32px_rgba(43,56,150,0.15)] rounded-3xl p-8 md:p-10 border border-white/40">
             <header className="mb-8 text-center">
               <h2 className="font-extrabold text-2xl text-gray-900 leading-tight tracking-tight">Tạo Tài Khoản</h2>
-              <p className="text-gray-500 text-sm mt-2">Bắt đầu hành trình mua sắm & kinh doanh của bạn.</p>
+              <p className="text-gray-500 text-sm mt-2 font-medium">Bắt đầu hành trình mua sắm & kinh doanh của bạn.</p>
             </header>
 
             {/* HIỂN THỊ LỖI */}
@@ -115,7 +116,7 @@ const Register = () => {
                   <button 
                     type="button"
                     onClick={() => setRole('seller')}
-                    className={`flex-1 py-2.5 px-4 rounded-full text-sm font-bold transition-all duration-300 ${role === 'seller' ? 'bg-white text-[#2b3896] shadow-sm' : 'text-gray-500 hover:text-[#2b3896]'}`}
+                    className={`flex-1 py-2.5 px-4 rounded-full text-sm font-bold transition-all duration-300 ${role === 'seller' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-orange-600'}`}
                   >
                     Người bán
                   </button>
@@ -134,7 +135,7 @@ const Register = () => {
                     value={formData.fullName}
                     onChange={handleChange}
                     placeholder="Nguyễn Văn A" 
-                    className="w-full bg-gray-100 border-none rounded-xl px-5 py-4 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#2b3896]/40 transition-all outline-none text-sm"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-gray-900 placeholder-gray-400 focus:ring-2 focus:border-[#2b3896] focus:ring-[#2b3896]/40 transition-all outline-none text-sm font-medium"
                   />
                 </div>
 
@@ -147,7 +148,7 @@ const Register = () => {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="nguyenvana@example.com" 
-                    className="w-full bg-gray-100 border-none rounded-xl px-5 py-4 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#2b3896]/40 transition-all outline-none text-sm"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-gray-900 placeholder-gray-400 focus:ring-2 focus:border-[#2b3896] focus:ring-[#2b3896]/40 transition-all outline-none text-sm font-medium"
                   />
                 </div>
 
@@ -162,7 +163,7 @@ const Register = () => {
                         value={formData.password}
                         onChange={handleChange}
                         placeholder="••••••••" 
-                        className="w-full bg-gray-100 border-none rounded-xl px-5 py-4 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#2b3896]/40 transition-all outline-none text-sm"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-gray-900 placeholder-gray-400 focus:ring-2 focus:border-[#2b3896] focus:ring-[#2b3896]/40 transition-all outline-none text-sm font-medium pr-12"
                       />
                       <button 
                         type="button"
@@ -184,7 +185,7 @@ const Register = () => {
                         value={formData.confirmPassword}
                         onChange={handleChange}
                         placeholder="••••••••" 
-                        className="w-full bg-gray-100 border-none rounded-xl px-5 py-4 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#2b3896]/40 transition-all outline-none text-sm"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-gray-900 placeholder-gray-400 focus:ring-2 focus:border-[#2b3896] focus:ring-[#2b3896]/40 transition-all outline-none text-sm font-medium pr-12"
                       />
                       <button 
                         type="button"
@@ -219,15 +220,15 @@ const Register = () => {
           </div>
 
           <div className="mt-8 px-6 text-center">
-            <p className="text-gray-400 text-[11px] leading-relaxed uppercase tracking-widest font-semibold">
-              Bằng việc đăng ký, bạn đồng ý với <Link to="/terms" className="hover:text-[#2b3896] transition-colors underline">Điều khoản dịch vụ</Link> & <Link to="/privacy" className="hover:text-[#2b3896] transition-colors underline">Chính sách bảo mật</Link>
+            <p className="text-gray-400 text-[11px] leading-relaxed uppercase tracking-widest font-semibold drop-shadow-sm bg-white/50 backdrop-blur-sm rounded-lg p-2 inline-block">
+              Bằng việc đăng ký, bạn đồng ý với <Link to="/terms" className="hover:text-[#2b3896] transition-colors underline">Điều khoản</Link> & <Link to="/privacy" className="hover:text-[#2b3896] transition-colors underline">Bảo mật</Link>
             </p>
           </div>
         </section>
       </main>
 
-      <footer className="w-full py-6 text-center border-t border-gray-200 bg-gray-50">
-        <p className="text-xs text-gray-400 tracking-widest uppercase font-bold">© 2026 Đồ án E-Commerce. Nhóm 31.</p>
+      <footer className="w-full py-6 text-center border-t border-gray-200 bg-white/50 backdrop-blur-sm relative z-10">
+        <p className="text-xs text-gray-500 tracking-widest uppercase font-bold">© 2026 Đồ án E-Commerce. Nhóm 31.</p>
       </footer>
     </div>
   );
