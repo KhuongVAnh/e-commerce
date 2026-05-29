@@ -5,14 +5,16 @@ import useAuthStore from '../../store/useAuthStore';
 import useCartStore from '../../store/useCartStore';
 
 const ProductDetail = () => {
-  const { slug } = useParams(); 
-  const id = slug?.includes('-id') ? slug.split('-id').pop() : slug;
+  const { slug } = useParams();
+  // Route dùng /product/:slug. Link hiện có thể là "123" hoặc "ten-san-pham-id123",
+  // nên cần tách productId trước khi gọi API catalog.
+  const productId = slug?.includes('-id') ? slug.split('-id').pop() : slug;
   const navigate = useNavigate();
   
   const [productData, setProductData] = useState(null);
-  const [activeImage, setActiveImage] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState('description');
+  const [categories, setCategories] = useState([]);
+  const [selectedImageUrl, setSelectedImageUrl] = useState('');
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -79,20 +81,24 @@ const ProductDetail = () => {
 
   useEffect(() => {
     const fetchProduct = async () => {
+      if (!productId) {
+        setError('Không tìm thấy mã sản phẩm trong đường dẫn.');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:3000/api/catalog/products/${id}`);
-        const result = await response.json();
+        const result = await axiosClient.get(`/catalog/products/${productId}`);
+        const nextProductData = result.data;
+        const productImages = Array.isArray(nextProductData?.images) ? nextProductData.images : [];
+        const firstGalleryImage = [...productImages]
+          .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0))
+          .find((image) => image.imageUrl)?.imageUrl;
 
-        if (!response.ok || !result.success) {
-          throw new Error(result.error?.details?.[0] || result.message || "Không thể tải thông tin sản phẩm");
-        }
-
-        setProductData(result.data);
-        
-        const defaultImage = result.data.product.thumbnailUrl || (result.data.images?.length > 0 ? result.data.images[0].imageUrl : '');
-        setActiveImage(defaultImage);
-
+        setProductData(nextProductData);
+        // Ưu tiên ảnh gallery từ bảng product_images; nếu chưa có thì dùng thumbnail sản phẩm.
+        setSelectedImageUrl(firstGalleryImage || nextProductData?.product?.thumbnailUrl || '');
       } catch (err) {
         setError(err.message);
       } finally {
@@ -101,7 +107,19 @@ const ProductDetail = () => {
     };
 
     fetchProduct();
-  }, [id]);
+  }, [productId]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const result = await axiosClient.get('/catalog/categories');
+        setCategories(result.data);
+      } catch (err) {
+        console.error("Lỗi khi tải danh mục:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   if (loading) {
     return (
@@ -126,6 +144,17 @@ const ProductDetail = () => {
   if (!productData) return null;
 
   const { product, images, shop } = productData;
+  const galleryImages = [
+    ...(Array.isArray(images)
+      ? [...images]
+        .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0))
+        .map((image) => image.imageUrl)
+      : []),
+    product.thumbnailUrl,
+  ].filter((imageUrl, index, list) => imageUrl && list.indexOf(imageUrl) === index);
+  const mainImageUrl = selectedImageUrl || galleryImages[0] || '';
+
+  const categoryName = categories.find(c => Number(c.id) === Number(product.categoryId))?.name || 'Danh mục khác';
 
   const handleDecrease = () => {
     if (quantity > 1) setQuantity(quantity - 1);
@@ -141,112 +170,118 @@ const ProductDetail = () => {
       <nav className="flex gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-8">
         <Link to="/" className="hover:text-[#2b3896] transition-colors">Trang chủ</Link>
         <span>/</span>
-        <Link to={`/products?category=${product.categoryId}`} className="hover:text-[#2b3896] transition-colors">Danh mục</Link>
+        <Link to={`/products?categoryId=${product.categoryId}`} className="hover:text-[#2b3896] transition-colors">Danh mục</Link>
         <span>/</span>
         <span className="text-[#2b3896]">{product.name}</span>
       </nav>
 
       {/*1: THÔNG TIN CHÍNH */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 mb-24">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 mb-16">
         
         {/* Gallery Ảnh */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          <div className="aspect-[4/5] bg-gray-50 rounded-2xl overflow-hidden shadow-[0px_12px_32px_rgba(43,56,150,0.06)] border border-gray-100">
+        <div className="lg:col-span-5 flex flex-col gap-4">
+          <div className="aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden shadow-[0px_8px_24px_rgba(43,56,150,0.04)] border border-gray-100">
             <img 
-              src={activeImage} 
+              src={mainImageUrl}
               alt={product.name} 
-              className="w-full h-full object-cover transition-all duration-500"
+              className="w-full h-full object-cover"
             />
           </div>
-          
-          {images && images.length > 0 && (
-            <div className="grid grid-cols-4 gap-4">
-              {product.thumbnailUrl && (
-                <button 
-                  onClick={() => setActiveImage(product.thumbnailUrl)}
-                  className={`aspect-square rounded-xl overflow-hidden transition-all active:scale-95 ${activeImage === product.thumbnailUrl ? 'border-2 border-[#2b3896] shadow-md' : 'bg-gray-100 border border-transparent hover:border-[#2b3896]/30'}`}
-                >
-                  <img src={product.thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
-                </button>
-              )}
-              {images.map((img) => (
-                <button 
-                  key={img.id}
-                  onClick={() => setActiveImage(img.imageUrl)}
-                  className={`aspect-square rounded-xl overflow-hidden transition-all active:scale-95 ${activeImage === img.imageUrl ? 'border-2 border-[#2b3896] shadow-md' : 'bg-gray-100 border border-transparent hover:border-[#2b3896]/30'}`}
-                >
-                  <img src={img.imageUrl} alt={`Gallery ${img.id}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
+
+          {galleryImages.length > 1 && (
+            <div className="grid grid-cols-5 sm:grid-cols-6 gap-3">
+              {galleryImages.map((imageUrl, index) => {
+                const isSelected = imageUrl === mainImageUrl;
+
+                return (
+                  <button
+                    key={imageUrl}
+                    type="button"
+                    onClick={() => setSelectedImageUrl(imageUrl)}
+                    className={`aspect-square overflow-hidden rounded-lg border-2 bg-gray-50 transition-all ${
+                      isSelected
+                        ? 'border-[#2b3896] ring-2 ring-[#2b3896]/15'
+                        : 'border-gray-100 hover:border-[#2b3896]/40'
+                    }`}
+                    aria-label={`Xem ảnh sản phẩm ${index + 1}`}
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={`${product.name} ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
 
         {/* Chi tiết & Nút Mua */}
-        <div className="lg:col-span-5 flex flex-col">
+        <div className="lg:col-span-7 flex flex-col">
           
-          <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tighter text-gray-900 mb-4 leading-tight font-headline">
+          <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-gray-900 mb-3 leading-tight font-headline">
             {product.name}
           </h1>
           
-          <div className="flex items-baseline gap-4 mb-8">
-            <span className="text-3xl font-extrabold text-[#2b3896]">
-              {Number(product.price).toLocaleString('vi-VN')} <span className="text-sm font-medium align-top opacity-70">₫</span>
+          <div className="flex items-baseline gap-4 mb-6">
+            <span className="text-2xl font-extrabold text-[#2b3896]">
+              {Number(product.price).toLocaleString('vi-VN')} <span className="text-xs font-medium align-top opacity-70">₫</span>
             </span>
           </div>
 
           {/* Chọn số lượng */}
-          <div className="bg-gray-50 p-6 rounded-2xl mb-8 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-bold text-gray-600">Số lượng</span>
+          <div className="bg-gray-50 p-4 rounded-xl mb-6 border border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-gray-600">Số lượng</span>
               <span className="text-xs font-bold text-[#2b3896] uppercase tracking-wider">
                 {product.stockQuantity > 0 ? `${product.stockQuantity} Sản phẩm sẵn có` : 'Hết hàng'}
               </span>
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200 p-1">
+              <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200 p-0.5">
                 <button 
                   onClick={handleDecrease}
                   disabled={product.stockQuantity === 0}
-                  className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-[#2b3896] hover:bg-gray-50 transition-colors rounded-full disabled:opacity-50"
+                  className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-[#2b3896] hover:bg-gray-50 transition-colors rounded-full disabled:opacity-50"
                 >
-                  <span className="material-symbols-outlined">remove</span>
+                  <span className="material-symbols-outlined text-[18px]">remove</span>
                 </button>
-                <span className="w-12 text-center font-extrabold text-lg text-gray-900">{product.stockQuantity === 0 ? 0 : quantity}</span>
+                <span className="w-10 text-center font-extrabold text-base text-gray-900">{product.stockQuantity === 0 ? 0 : quantity}</span>
                 <button 
                   onClick={handleIncrease}
                   disabled={product.stockQuantity === 0}
-                  className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-[#2b3896] hover:bg-gray-50 transition-colors rounded-full disabled:opacity-50"
+                  className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-[#2b3896] hover:bg-gray-50 transition-colors rounded-full disabled:opacity-50"
                 >
-                  <span className="material-symbols-outlined">add</span>
+                  <span className="material-symbols-outlined text-[18px]">add</span>
                 </button>
               </div>
             </div>
           </div>
 
           {/* Nút hành động */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-10">
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <button 
               onClick={handleAddToCart}
               disabled={product.stockQuantity === 0}
-              className="flex-1 py-4 px-8 border-2 border-[#2b3896] text-[#2b3896] font-bold tracking-wide rounded-full hover:bg-[#2b3896]/5 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 px-6 border-2 border-[#2b3896] text-[#2b3896] font-bold text-sm tracking-wide rounded-xl hover:bg-[#2b3896]/5 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Thêm vào giỏ
             </button>
             <button 
               onClick={handleBuyNow}
               disabled={product.stockQuantity === 0}
-              className="flex-1 py-4 px-8 bg-gradient-to-br from-[#2b3896] to-[#4551af] text-white font-bold tracking-wide rounded-full hover:shadow-lg hover:shadow-[#2b3896]/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 px-6 bg-gradient-to-br from-[#2b3896] to-[#4551af] text-white font-bold text-sm tracking-wide rounded-xl hover:shadow-lg hover:shadow-[#2b3896]/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {product.stockQuantity > 0 ? 'Mua Ngay' : 'Đã hết hàng'}
             </button>
           </div>
 
           {/* Cập nhật UI Thông tin Cửa hàng */}
-          <div className="bg-white p-6 rounded-2xl shadow-[0px_8px_24px_rgba(43,56,150,0.05)] border border-gray-100 mb-8 flex items-center justify-between">
+          <div className="bg-white p-4 rounded-xl shadow-[0px_4px_16px_rgba(43,56,150,0.03)] border border-gray-100 mb-6 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link to={`/shop/${shop?.slug ? `${shop.slug}-id${shop.id}` : shop?.id}`} className="w-14 h-14 rounded-full overflow-hidden border-2 border-[#2b3896]/10 bg-gray-100 flex items-center justify-center shrink-0">
+              <Link to={`/shop/${shop?.id}`} className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#2b3896]/10 bg-gray-100 flex items-center justify-center shrink-0">
                 <img 
                   src={shop?.logoUrl || fallbackShopLogo} 
                   alt={shop?.name || 'Shop Logo'}
@@ -258,8 +293,8 @@ const ProductDetail = () => {
                 />
               </Link>
               <div>
-                <Link to={`/shop/${shop?.slug ? `${shop.slug}-id${shop.id}` : shop?.id}`}>
-                  <h3 className="font-extrabold text-gray-900 hover:text-[#2b3896] transition-colors">{shop?.name || 'Gian hàng'}</h3>
+                <Link to={`/shop/${shop?.id}`}>
+                  <h3 className="font-extrabold text-sm text-gray-900 hover:text-[#2b3896] transition-colors">{shop?.name || 'Gian hàng'}</h3>
                 </Link>
                 <div className="flex items-center gap-1 text-xs font-bold text-gray-500 mt-0.5">
                   <span className="material-symbols-outlined text-[14px] text-yellow-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
@@ -267,60 +302,67 @@ const ProductDetail = () => {
                 </div>
               </div>
             </div>
-            <Link to={`/shop/${shop?.slug ? `${shop.slug}-id${shop.id}` : shop?.id}`} className="shrink-0 text-sm font-bold text-[#2b3896] px-5 py-2 rounded-full border border-[#2b3896]/20 hover:bg-[#2b3896] hover:text-white transition-all">
+            <Link to={`/shop/${shop?.id}`} className="shrink-0 text-xs font-bold text-[#2b3896] px-4 py-1.5 rounded-full border border-[#2b3896]/20 hover:bg-[#2b3896] hover:text-white transition-all">
               Xem Shop
             </Link>
           </div>
 
           {/* Cam kết / Dịch vụ */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 text-sm font-medium text-gray-600">
-              <span className="material-symbols-outlined text-[#2b3896]">local_shipping</span>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2.5 text-xs font-medium text-gray-600">
+              <span className="material-symbols-outlined text-[#2b3896] text-[18px]">local_shipping</span>
               <span>Miễn phí vận chuyển toàn quốc cho đơn từ 1.000.000đ</span>
             </div>
-            <div className="flex items-center gap-3 text-sm font-medium text-gray-600">
-              <span className="material-symbols-outlined text-[#2b3896]">verified</span>
+            <div className="flex items-center gap-2.5 text-xs font-medium text-gray-600">
+              <span className="material-symbols-outlined text-[#2b3896] text-[18px]">verified</span>
               <span>Được đảm bảo chất lượng bởi hệ thống</span>
+            </div>
+          </div>
+
+          {/* Thông số kỹ thuật chi tiết */}
+          <div className="mt-6 border-t border-gray-100 pt-5">
+            <h3 className="text-[11px] font-bold text-gray-900 mb-3 uppercase tracking-wider">Thông số sản phẩm</h3>
+            <div className="grid grid-cols-2 gap-y-2 gap-x-6 text-[11px]">
+              <div className="flex justify-between border-b border-gray-50 pb-1.5">
+                <span className="text-gray-400 font-medium">Mã sản phẩm</span>
+                <span className="text-gray-700 font-bold">SP-{product.id}</span>
+              </div>
+              <div className="flex justify-between border-b border-gray-50 pb-1.5">
+                <span className="text-gray-400 font-medium">Danh mục</span>
+                <span className="text-[#2b3896] font-bold">{categoryName}</span>
+              </div>
+              <div className="flex justify-between border-b border-gray-50 pb-1.5">
+                <span className="text-gray-400 font-medium">Thương hiệu / Shop</span>
+                <span className="text-gray-700 font-bold">{shop?.name || 'Chính hãng'}</span>
+              </div>
+              <div className="flex justify-between border-b border-gray-50 pb-1.5">
+                <span className="text-gray-400 font-medium">Xuất xứ</span>
+                <span className="text-gray-700 font-bold">Việt Nam</span>
+              </div>
+              <div className="flex justify-between border-b border-gray-50 pb-1.5">
+                <span className="text-gray-400 font-medium">Trạng thái</span>
+                <span className={`font-bold ${product.stockQuantity > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                  {product.stockQuantity > 0 ? 'Còn hàng' : 'Hết hàng'}
+                </span>
+              </div>
+              <div className="flex justify-between border-b border-gray-50 pb-1.5">
+                <span className="text-gray-400 font-medium">Bảo hành</span>
+                <span className="text-gray-700 font-bold">12 tháng chính hãng</span>
+              </div>
             </div>
           </div>
 
         </div>
       </div>
 
-      {/* 2: TABS THÔNG TIN CHI TIẾT */}
-      <div className="mt-12">
-        <div className="flex gap-8 md:gap-12 border-b border-gray-200 mb-10 overflow-x-auto no-scrollbar">
-          <button 
-            onClick={() => setActiveTab('description')}
-            className={`pb-4 font-bold tracking-tight text-lg whitespace-nowrap transition-colors ${activeTab === 'description' ? 'text-[#2b3896] border-b-2 border-[#2b3896]' : 'text-gray-400 hover:text-gray-700'}`}
-          >
-            Mô tả sản phẩm
-          </button>
-          <button 
-            onClick={() => setActiveTab('reviews')}
-            className={`pb-4 font-bold tracking-tight text-lg whitespace-nowrap transition-colors ${activeTab === 'reviews' ? 'text-[#2b3896] border-b-2 border-[#2b3896]' : 'text-gray-400 hover:text-gray-700'}`}
-          >
-            Đánh giá
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-          {activeTab === 'description' && (
-            <div className="prose max-w-none text-gray-600">
-              <h2 className="text-3xl font-extrabold tracking-tighter text-gray-900 mb-6 font-headline">Thông tin chi tiết</h2>
-              <div className="leading-relaxed mb-6 font-medium whitespace-pre-wrap">
-                {product.description || 'Sản phẩm này chưa có mô tả chi tiết.'}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'reviews' && (
-            <div className="col-span-full text-center py-12">
-              <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">forum</span>
-              <h3 className="text-xl font-bold text-gray-900">Tính năng đang cập nhật</h3>
-              <p className="text-gray-500 mt-2">Hệ thống đang hoàn thiện luồng đánh giá sản phẩm.</p>
-            </div>
-          )}
+      {/* 2: MÔ TẢ SẢN PHẨM */}
+      <div className="mt-12 border-t border-gray-100 pt-8">
+        <h2 className="text-lg font-extrabold tracking-tight text-gray-900 mb-4 font-headline flex items-center gap-2">
+          <span className="material-symbols-outlined text-[#2b3896] text-[20px]">description</span>
+          Mô tả sản phẩm
+        </h2>
+        <div className="prose max-w-none text-xs md:text-sm text-gray-600 leading-relaxed whitespace-pre-wrap font-medium">
+          {product.description || 'Sản phẩm này chưa có mô tả chi tiết.'}
         </div>
       </div>
     </div>

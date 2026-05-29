@@ -41,8 +41,9 @@ const Login = () => {
       const res = await authService.login(formData.email, formData.password, role);
       
       const userData = res.data.user;
-      const accessToken = res.data.tokens.accessToken;
+      const accessToken = res.data.tokens?.accessToken;
 
+      // Backend set refreshToken bằng cookie; FE chỉ cần giữ accessToken để gắn Bearer header.
       setAuthData(userData, accessToken);
 
       if (userData.role === 'ADMIN') {

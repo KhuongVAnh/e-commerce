@@ -206,13 +206,18 @@ const Checkout = () => {
         <span className="text-gray-900 font-medium">Thanh toán</span>
       </nav>
 
-      {/* 1. ĐỊA CHỈ GIAO HÀNG */}
-      <section className="bg-white rounded-sm shadow-sm mb-6 overflow-hidden border border-gray-100">
-        <div className="h-1 w-full bg-[repeating-linear-gradient(45deg,transparent,transparent_33px,#2b3896_33px,#2b3896_41px,transparent_41px,transparent_74px,#4551af_74px,#4551af_82px)] opacity-80"></div>
-        <div className="p-6 md:p-8">
-          <div className="flex items-center text-[#2b3896] mb-4">
-            <span className="material-symbols-outlined mr-2">location_on</span>
-            <h2 className="text-lg font-medium tracking-tight uppercase">Địa Chỉ Nhận Hàng</h2>
+      <header className="mb-12">
+        <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-[#2b3896] mb-2 font-headline">Thanh Toán</h1>
+        <p className="text-gray-500 font-medium">Hoàn tất các bước cuối cùng để sở hữu những sản phẩm tuyệt vời của bạn.</p>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* ĐỊA CHỈ GIAO HÀNG */}
+        <section className="lg:col-span-4 space-y-6 bg-gray-50 p-8 rounded-2xl border border-gray-100">
+          <div className="flex items-center space-x-3 mb-2">
+            <span className="material-symbols-outlined text-[#2b3896]">local_shipping</span>
+            <h2 className="text-xl font-extrabold tracking-tight text-gray-900">Địa Chỉ Nhận Hàng</h2>
           </div>
           
           {!isAddressSaved ? (

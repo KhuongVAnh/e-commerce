@@ -3,9 +3,16 @@ import { sendError } from "../utils/http";
 import { verifyAccessToken } from "../utils/token";
 
 export function gatewayAuth(req: Request, res: Response, next: NextFunction): void {
+    let token: string | undefined = undefined;
     const authHeader = req.header("Authorization");
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.slice("Bearer ".length).trim();
+    } else if (req.cookies && req.cookies.accessToken) {
+        token = req.cookies.accessToken;
+    }
+
+    if (!token) {
         sendError(res, {
             statusCode: 401,
             message: "Thiếu token xác thực",
@@ -16,8 +23,6 @@ export function gatewayAuth(req: Request, res: Response, next: NextFunction): vo
         });
         return;
     }
-
-    const token = authHeader.slice("Bearer ".length).trim();
 
     try {
         verifyAccessToken(token);

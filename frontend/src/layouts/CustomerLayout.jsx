@@ -1,4 +1,4 @@
-import { Outlet, Link, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import useAuthStore from '../store/useAuthStore';
 import useCartStore from '../store/useCartStore';
@@ -6,10 +6,9 @@ import useNotificationStore from '../store/useNotificationStore';
 
 const CustomerLayout = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout } = useAuthStore();
-  const { totalQuantity, fetchCartTotal } = useCartStore();
-  const { notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead } = useNotificationStore();
-
+  const location = useLocation();
+  const currentPath = location.pathname;
+  const { isAuthenticated, user, clearAuthData } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -19,6 +18,19 @@ const CustomerLayout = () => {
 
   const displayQuantity = totalQuantity > 99 ? '99+' : totalQuantity;
   const displayNotif = unreadCount > 99 ? '99+' : unreadCount;
+
+  const isHomeActive = currentPath === '/';
+  const isProductsActive = currentPath.startsWith('/products') || currentPath.startsWith('/product/');
+  const isShopActive = currentPath.startsWith('/shop');
+  const isCategoriesActive = currentPath.startsWith('/categories');
+  const isSavedActive = currentPath.startsWith('/saved');
+  const isCartActive = currentPath.startsWith('/cart');
+
+  const getNavClass = (isActive) => {
+    return isActive
+      ? "text-[#2b3896] font-semibold border-b-2 border-[#2b3896] pb-1 transition-all duration-200"
+      : "text-gray-600 font-medium hover:text-[#2b3896] border-b-2 border-transparent pb-1 transition-all duration-200";
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -62,11 +74,9 @@ const CustomerLayout = () => {
   return (
     <div className="bg-surface text-on-surface min-h-screen font-body flex flex-col">
       
-      {/* 1. TOP NAVIGATION BAR */}
-      <header className="sticky top-0 w-full z-50 bg-white/90 backdrop-blur-xl shadow-sm border-b border-gray-100">
-        <div className="flex items-center justify-between px-6 py-3.5 max-w-7xl mx-auto">
-          {/* Brand Logo */}
-          <Link to="/" className="text-2xl font-black tracking-tighter text-[#2b3896] font-headline">
+      <header className="sticky top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-sm">
+        <div className="flex items-center justify-between px-6 py-4 max-w-screen-2xl mx-auto">
+          <Link to="/" className="text-2xl font-bold tracking-tighter text-[#2b3896] font-headline">
             E-commerce
           </Link>
 
@@ -88,25 +98,11 @@ const CustomerLayout = () => {
 
           {/* Action Cluster */}
           <div className="flex items-center gap-6">
-            <nav className="hidden md:flex items-center gap-8 mr-2">
-              <NavLink 
-                to="/" 
-                className={({ isActive }) => `font-bold text-sm transition-all py-1 ${isActive ? 'text-[#2b3896] border-b-2 border-[#2b3896]' : 'text-gray-500 hover:text-[#2b3896]'}`}
-              >
-                Trang chủ
-              </NavLink>
-              <NavLink 
-                to="/shop" 
-                className={({ isActive }) => `font-bold text-sm transition-all py-1 ${isActive ? 'text-[#2b3896] border-b-2 border-[#2b3896]' : 'text-gray-500 hover:text-[#2b3896]'}`}
-              >
-                Cửa hàng
-              </NavLink>
-              <NavLink 
-                to="/categories" 
-                className={({ isActive }) => `font-bold text-sm transition-all py-1 ${isActive ? 'text-[#2b3896] border-b-2 border-[#2b3896]' : 'text-gray-500 hover:text-[#2b3896]'}`}
-              >
-                Danh mục
-              </NavLink>
+            <nav className="hidden md:flex items-center gap-8">
+              <Link to="/" className={getNavClass(isHomeActive)}>Home</Link>
+              <Link to="/products" className={getNavClass(isProductsActive)}>Products</Link>
+              <Link to="/shop" className={getNavClass(isShopActive)}>Shop</Link>
+              <Link to="/categories" className={getNavClass(isCategoriesActive)}>Categories</Link>
             </nav>
             
             <div className="flex items-center gap-3">
@@ -250,17 +246,30 @@ const CustomerLayout = () => {
             </div>
           </div>
         </div>
+        {/* Mobile Search Bar */}
+        <div className="block md:hidden px-6 pb-4 max-w-screen-2xl mx-auto -mt-1">
+          <form onSubmit={handleSearch} className="relative w-full">
+            <input 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-gray-100 border-none rounded-full px-5 py-2 text-xs focus:ring-2 focus:ring-[#2b3896]/20 transition-all outline-none" 
+              placeholder="Tìm kiếm sản phẩm..." 
+              type="text" 
+            />
+            <button type="submit" className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#2b3896] bg-transparent border-none cursor-pointer text-[18px]">
+              search
+            </button>
+          </form>
+        </div>
+        <div className="bg-gray-200 h-[1px] w-full"></div>
       </header>
 
-      {/* 2. MAIN CONTENT */}
-      <main className="flex-grow w-full max-w-7xl mx-auto px-6 pb-24 md:pb-12 mt-8">
+      <main className="max-w-screen-2xl mx-auto px-6 pb-24 md:pb-12 mt-8">
         <Outlet />
       </main>
 
-      {/* 3. FOOTER */}
-      <footer className="bg-slate-900 text-slate-300 py-12 md:py-16 border-t border-slate-800 mt-auto">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-          
+      <footer className="bg-slate-900 text-slate-300 py-12 md:py-16 border-t border-slate-800 font-body">
+        <div className="max-w-screen-2xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           <div className="space-y-4">
             <Link to="/" className="text-2xl font-bold tracking-tighter text-white font-headline">
               E-commerce
@@ -304,56 +313,40 @@ const CustomerLayout = () => {
             </div>
           </div>
         </div>
-
-        <div className="max-w-7xl mx-auto px-6 mt-12 pt-8 border-t border-slate-800 text-sm text-center text-slate-500 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="max-w-screen-2xl mx-auto px-6 mt-12 pt-8 border-t border-slate-800 text-sm text-center text-slate-500 flex flex-col md:flex-row justify-between items-center gap-4">
           <p>&copy; 2026 E-Commerce. Mọi quyền được bảo lưu.</p>
           <p>Dự án E-Commerce - Nhóm 31</p>
         </div>
       </footer>
 
-      {/* 4. MOBILE NAVIGATION BAR */}
-      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pt-3 pb-6 md:hidden bg-white/90 backdrop-blur-xl border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        <NavLink 
-          to="/" 
-          className={({ isActive }) => `flex flex-col items-center justify-center w-16 py-1.5 rounded-2xl transition-all ${isActive ? 'bg-[#f4f5fa] text-[#2b3896]' : 'text-gray-400 hover:text-gray-900'}`}
-        >
-          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>home</span>
-          <span className="text-[10px] font-bold mt-1">Trang chủ</span>
-        </NavLink>
-        
-        <NavLink 
-          to="/categories" 
-          className={({ isActive }) => `flex flex-col items-center justify-center w-16 py-1.5 rounded-2xl transition-all ${isActive ? 'bg-[#f4f5fa] text-[#2b3896]' : 'text-gray-400 hover:text-gray-900'}`}
-        >
-          <span className="material-symbols-outlined text-[24px]">grid_view</span>
-          <span className="text-[10px] font-bold mt-1">Danh mục</span>
-        </NavLink>
-
-        <button 
-          onClick={() => {
-            if(!isAuthenticated) navigate('/login');
-          }}
-          className="flex flex-col items-center justify-center w-16 py-1.5 rounded-2xl transition-all text-gray-400 hover:text-gray-900 relative"
-        >
-          <span className="material-symbols-outlined text-[24px]">notifications</span>
-          <span className="text-[10px] font-bold mt-1">Thông báo</span>
-          {unreadCount > 0 && (
-            <span className="absolute top-1 right-3 bg-[#f43f5e] w-2.5 h-2.5 rounded-full border-2 border-white"></span>
-          )}
-        </button>
-
-        <NavLink 
-          to="/cart" 
-          className={({ isActive }) => `flex flex-col items-center justify-center w-16 py-1.5 rounded-2xl transition-all relative ${isActive ? 'bg-[#f4f5fa] text-[#2b3896]' : 'text-gray-400 hover:text-gray-900'}`}
-        >
-          <span className="material-symbols-outlined text-[24px]">shopping_bag</span>
-          <span className="text-[10px] font-bold mt-1">Giỏ hàng</span>
-          {totalQuantity > 0 && (
-            <span className="absolute top-0 right-2 translate-x-1 min-w-[18px] h-[18px] bg-[#2b3896] text-white text-[9px] font-black flex items-center justify-center rounded-full border-2 border-white">
-              {displayQuantity}
-            </span>
-          )}
-        </NavLink>
+      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pt-3 pb-8 md:hidden bg-white/90 backdrop-blur-2xl shadow-[0_-4px_20px_rgba(43,56,150,0.08)] border-t border-slate-100">
+        <Link to="/" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isHomeActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: isHomeActive ? "'FILL' 1" : "'FILL' 0" }}>home</span>
+          <span className="text-[11px] font-medium font-body mt-1">Home</span>
+        </Link>
+        <Link to="/products" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isProductsActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: isProductsActive ? "'FILL' 1" : "'FILL' 0" }}>storefront</span>
+          <span className="text-[11px] font-medium font-body mt-1">Sản phẩm</span>
+        </Link>
+        <Link to="/categories" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isCategoriesActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: isCategoriesActive ? "'FILL' 1" : "'FILL' 0" }}>grid_view</span>
+          <span className="text-[11px] font-medium font-body mt-1">Danh mục</span>
+        </Link>
+        <Link to="/saved" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isSavedActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: isSavedActive ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
+          <span className="text-[11px] font-medium font-body mt-1">Đã lưu</span>
+        </Link>
+        <Link to="/cart" className={`relative flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isCartActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
+          <div className="relative">
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: isCartActive ? "'FILL' 1" : "'FILL' 0" }}>shopping_bag</span>
+            {totalQuantity > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-[#2b3896] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-white shadow-sm">
+                {displayQuantity}
+              </span>
+            )}
+          </div>
+          <span className="text-[11px] font-medium font-body mt-1">Giỏ hàng</span>
+        </Link>
       </nav>
 
     </div>
