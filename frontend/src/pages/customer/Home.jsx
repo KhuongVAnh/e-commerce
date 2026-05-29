@@ -322,7 +322,7 @@ const Home = () => {
                       className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-[#2b3896] hover:text-white transition-colors"
                       title="Thêm vào giỏ hàng"
                     >
-                      <span className="material-symbols-outlined text-sm">shopping_cart</span>
+                      <span className="material-symbols-outlined text-sm">add_shopping_cart</span>
                     </button>
                   </div>
                 </div>
