@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { orderService } from '../../services/orderService';
+import toast from 'react-hot-toast';
 
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
@@ -47,18 +48,14 @@ export default function OrderDetail() {
         
         setIsCancelling(true);
         try {
-            const res = await orderService.cancelOrder(order.orderCode);
-            const responseData = res.data || res;
+            await orderService.cancelOrder(order.orderCode);
 
-            if (responseData?.success) {
-                setOrder(prev => ({ ...prev, orderStatus: 'CANCELLED' }));
-                setPopup({ isOpen: true, message: 'Đã hủy đơn hàng thành công!', type: 'success' });
-            } else {
-                setPopup({ isOpen: true, message: responseData?.message || 'Không thể hủy đơn hàng.', type: 'error' });
-            }
+            setOrder(prev => ({ ...prev, orderStatus: 'CANCELLED' }));
+            toast.success('Đã hủy đơn hàng thành công!');
+            
         } catch (error) {
             console.error("Lỗi khi hủy đơn:", error);
-            setPopup({ isOpen: true, message: error.response?.data?.message || 'Có lỗi xảy ra khi hủy đơn hàng.', type: 'error' });
+            toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi hủy đơn hàng.');
         } finally {
             setIsCancelling(false);
         }

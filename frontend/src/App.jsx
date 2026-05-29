@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import CustomerLayout from './layouts/CustomerLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -42,6 +43,13 @@ const NotFound = () => <div className="p-10 text-center text-gray-700 font-bold 
 function App() {
   return (
     <BrowserRouter>
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          duration: 3000,
+          style: { borderRadius: '12px', fontWeight: 'bold', fontSize: '14px' },
+        }} 
+      />
       <Routes>
         
         {/* --- TRANG ĐĂNG NHẬP / ĐĂNG KÝ --- */}

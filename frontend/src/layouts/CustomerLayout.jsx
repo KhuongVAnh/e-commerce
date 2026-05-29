@@ -2,17 +2,23 @@ import { Outlet, Link, NavLink, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import useAuthStore from '../store/useAuthStore';
 import useCartStore from '../store/useCartStore';
+import useNotificationStore from '../store/useNotificationStore';
 
 const CustomerLayout = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuthStore();
+  const { totalQuantity, fetchCartTotal } = useCartStore();
+  const { notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead } = useNotificationStore();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
   
-  const { totalQuantity, fetchCartTotal } = useCartStore();
+  const dropdownRef = useRef(null);
+  const notifRef = useRef(null);
 
-  const [notificationCount, setNotificationCount] = useState(3);
+  const displayQuantity = totalQuantity > 99 ? '99+' : totalQuantity;
+  const displayNotif = unreadCount > 99 ? '99+' : unreadCount;
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -22,29 +28,36 @@ const CustomerLayout = () => {
   };
 
   const handleLogout = () => {
-    if(logout) logout();
+    if (logout) logout();
     setIsDropdownOpen(false);
     window.location.href = '/login';
   };
 
   useEffect(() => {
-    if (isAuthenticated && fetchCartTotal) {
-      fetchCartTotal();
+    if (isAuthenticated) {
+      if (fetchCartTotal) fetchCartTotal();
+      if (fetchNotifications) fetchNotifications();
     }
   }, [isAuthenticated]);
-
-  const displayQuantity = totalQuantity > 99 ? '99+' : totalQuantity;
-  const displayNotif = notificationCount > 99 ? '99+' : notificationCount;
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setIsNotifOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const formatDate = (isoString) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
 
   return (
     <div className="bg-surface text-on-surface min-h-screen font-body flex flex-col">
@@ -75,7 +88,6 @@ const CustomerLayout = () => {
 
           {/* Action Cluster */}
           <div className="flex items-center gap-6">
-            {/* ĐÃ SỬA: Dùng NavLink để tự động bắt trạng thái active (Gạch chân đúng trang) */}
             <nav className="hidden md:flex items-center gap-8 mr-2">
               <NavLink 
                 to="/" 
@@ -99,17 +111,73 @@ const CustomerLayout = () => {
             
             <div className="flex items-center gap-3">
               
-              {/* ĐÃ SỬA: Đồng bộ Icon Thông báo & Giỏ hàng theo ảnh */}
               <div className="flex items-center gap-2">
-                {/* Nút Thông Báo */}
-                <button className="relative p-2.5 rounded-full bg-[#f4f5fa] hover:bg-[#e8ebf5] transition-colors active:scale-95 group">
-                  <span className="material-symbols-outlined text-[#2b3896] text-[22px] block group-hover:animate-wiggle">notifications</span>
-                  {notificationCount > 0 && (
-                    <span className="absolute top-0 right-0 translate-x-1/4 -translate-y-1/4 bg-[#f43f5e] text-white text-[10px] font-black min-w-[20px] h-[20px] px-1 flex items-center justify-center rounded-full border-2 border-white shadow-sm">
-                      {displayNotif}
-                    </span>
+                {/* Khu vực Nút Thông Báo */}
+                <div className="relative" ref={notifRef}>
+                  <button 
+                    onClick={() => {
+                      if(!isAuthenticated) { navigate('/login'); return; }
+                      setIsNotifOpen(!isNotifOpen);
+                      setIsDropdownOpen(false); // Đóng menu user nếu đang mở
+                    }}
+                    className="relative p-2.5 rounded-full bg-[#f4f5fa] hover:bg-[#e8ebf5] transition-colors active:scale-95 group"
+                  >
+                    <span className="material-symbols-outlined text-[#2b3896] text-[22px] block group-hover:animate-wiggle">notifications</span>
+                    {unreadCount > 0 && (
+                      <span className="absolute top-0 right-0 translate-x-1/4 -translate-y-1/4 bg-[#f43f5e] text-white text-[10px] font-black min-w-[20px] h-[20px] px-1 flex items-center justify-center rounded-full border-2 border-white shadow-sm">
+                        {displayNotif}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Dropdown Thông Báo */}
+                  {isNotifOpen && (
+                    <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1)] border border-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                        <h3 className="font-bold text-gray-900">Thông báo</h3>
+                        {unreadCount > 0 && (
+                          <button onClick={markAllAsRead} className="text-xs font-semibold text-[#2b3896] hover:underline">
+                            Đánh dấu đã đọc
+                          </button>
+                        )}
+                      </div>
+                      
+                      <div className="max-h-[400px] overflow-y-auto no-scrollbar">
+                        {notifications?.length === 0 ? (
+                          <div className="p-8 text-center text-gray-500">
+                            <span className="material-symbols-outlined text-4xl mb-2 opacity-50">notifications_off</span>
+                            <p className="text-sm font-medium">Bạn chưa có thông báo nào.</p>
+                          </div>
+                        ) : (
+                          notifications?.map((notif) => (
+                            <div 
+                              key={notif.id} 
+                              onClick={() => !notif.isRead && markAsRead(notif.id)}
+                              className={`p-4 border-b border-gray-50 cursor-pointer transition-colors hover:bg-gray-50 flex gap-3 ${notif.isRead ? 'opacity-70' : 'bg-indigo-50/30'}`}
+                            >
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${notif.isRead ? 'bg-gray-100 text-gray-500' : 'bg-[#2b3896]/10 text-[#2b3896]'}`}>
+                                <span className="material-symbols-outlined text-[20px]">
+                                  {notif?.type?.includes('order') ? 'local_mall' : 'notifications'}
+                                </span>
+                              </div>
+                              <div className="flex-1">
+                                <p className={`text-sm mb-1 ${notif.isRead ? 'text-gray-700 font-medium' : 'text-gray-900 font-bold'}`}>
+                                  {notif.title}
+                                </p>
+                                <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-1">{notif.content}</p>
+                                <p className="text-[10px] text-gray-400 font-medium">{formatDate(notif.createdAt)}</p>
+                              </div>
+                              {!notif.isRead && <div className="w-2 h-2 rounded-full bg-[#2b3896] mt-1 shrink-0"></div>}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      <div className="p-2 border-t border-gray-100 text-center bg-gray-50/50 hover:bg-gray-100 transition-colors cursor-pointer">
+                        <span className="text-xs font-bold text-[#2b3896]">Xem tất cả</span>
+                      </div>
+                    </div>
                   )}
-                </button>
+                </div>
 
                 {/* Nút Giỏ Hàng */}
                 <Link to="/cart" className="relative p-2.5 rounded-full hover:bg-gray-50 transition-colors active:scale-95 group">
@@ -128,7 +196,10 @@ const CustomerLayout = () => {
               {isAuthenticated ? (
                 <div className="relative" ref={dropdownRef}>
                   <button 
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    onClick={() => {
+                      setIsDropdownOpen(!isDropdownOpen);
+                      setIsNotifOpen(false);
+                    }}
                     className="w-10 h-10 rounded-full overflow-hidden border-2 border-transparent hover:border-[#2b3896]/30 active:scale-95 transition-all bg-gray-100 flex items-center justify-center ml-1 shadow-sm"
                   >
                     <span className="font-extrabold text-[#2b3896] text-lg">
@@ -136,7 +207,7 @@ const CustomerLayout = () => {
                     </span>
                   </button>
 
-                  {/* Dropdown Menu */}
+                  {/* Dropdown Menu Tài Khoản */}
                   {isDropdownOpen && (
                     <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-gray-100 py-2 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
@@ -258,10 +329,15 @@ const CustomerLayout = () => {
           <span className="text-[10px] font-bold mt-1">Danh mục</span>
         </NavLink>
 
-        <button className="flex flex-col items-center justify-center w-16 py-1.5 rounded-2xl transition-all text-gray-400 hover:text-gray-900 relative">
+        <button 
+          onClick={() => {
+            if(!isAuthenticated) navigate('/login');
+          }}
+          className="flex flex-col items-center justify-center w-16 py-1.5 rounded-2xl transition-all text-gray-400 hover:text-gray-900 relative"
+        >
           <span className="material-symbols-outlined text-[24px]">notifications</span>
           <span className="text-[10px] font-bold mt-1">Thông báo</span>
-          {notificationCount > 0 && (
+          {unreadCount > 0 && (
             <span className="absolute top-1 right-3 bg-[#f43f5e] w-2.5 h-2.5 rounded-full border-2 border-white"></span>
           )}
         </button>
