@@ -17,7 +17,7 @@ const PaymentResult = () => {
     const checkPayment = async () => {
       try {
         const res = await axiosClient.get(`/commerce/payments/check-result${searchParams}`);
-        const resultData = res.data;
+        const resultData = res.data ?? res;
 
         if (resultData?.result) {
           const { isPaid, isFailed, isPending } = resultData.result;
@@ -64,6 +64,31 @@ const PaymentResult = () => {
           <div className="flex flex-col gap-4">
             <Link to="/orders" className="w-full bg-[#2b3896] text-white font-bold py-4 rounded-xl hover:bg-[#1f2970] active:scale-95 transition-all shadow-md">
               Xem chi tiết đơn hàng
+            </Link>
+            <Link to="/" className="w-full bg-gray-50 text-gray-700 font-bold py-4 rounded-xl hover:bg-gray-100 active:scale-95 transition-all">
+              Tiếp tục mua sắm
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // KẾT QUẢ CHƯA ĐỒNG BỘ
+  if (status === 'pending') {
+    return (
+      <div className="min-h-screen bg-[#f9f9fc] flex items-center justify-center px-4 py-24">
+        <div className="bg-white p-10 md:p-14 rounded-3xl shadow-[0px_12px_32px_rgba(43,56,150,0.06)] max-w-lg w-full text-center border border-gray-100">
+          <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
+            <span className="material-symbols-outlined text-5xl text-amber-600" style={{ fontVariationSettings: "'FILL' 1" }}>hourglass_top</span>
+          </div>
+          <h1 className="text-3xl font-black text-gray-900 mb-4 font-['Be_Vietnam_Pro']">Đang xác nhận thanh toán</h1>
+          <p className="text-gray-600 mb-8 leading-relaxed">
+            Giao dịch đã được gửi về hệ thống nhưng ngân hàng/VNPay có thể cần thêm thời gian để đồng bộ. Đơn hàng {orderCode ? `#${orderCode}` : ''} vẫn đang chờ xác nhận thanh toán.
+          </p>
+          <div className="flex flex-col gap-4">
+            <Link to="/orders" className="w-full bg-[#2b3896] text-white font-bold py-4 rounded-xl hover:bg-[#1f2970] active:scale-95 transition-all shadow-md">
+              Kiểm tra đơn hàng
             </Link>
             <Link to="/" className="w-full bg-gray-50 text-gray-700 font-bold py-4 rounded-xl hover:bg-gray-100 active:scale-95 transition-all">
               Tiếp tục mua sắm

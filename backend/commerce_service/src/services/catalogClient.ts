@@ -13,6 +13,14 @@ export type CatalogProduct = {
     status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
 };
 
+export type CatalogShop = {
+    id: string;
+    sellerId?: string;
+    name: string;
+    slug?: string;
+    logoUrl?: string | null;
+};
+
 const catalogBaseUrl = process.env.CATALOG_SERVICE_URL || "http://localhost:3002";
 const normalizedCatalogBaseUrl = catalogBaseUrl.replace(/\/+$/, "");
 const catalogApiBaseUrl = normalizedCatalogBaseUrl.endsWith("/api/catalog")
@@ -93,6 +101,31 @@ export async function getShopIdBySellerId(sellerId: string): Promise<string | nu
         const shop = body.data?.shop ?? body.data ?? body;
         
         return shop?.id ? shop.id.toString() : null;
+    } catch (error) {
+        console.error("[commerce_service] Failed to call Catalog Service:", error);
+        return null;
+    }
+}
+
+export async function getShopById(shopId: bigint): Promise<CatalogShop | null> {
+    try {
+        const response = await fetch(`${catalogApiBaseUrl}/shops/internal/${shopId.toString()}`);
+
+        if (!response.ok) {
+            console.error(`[commerce_service] Catalog Service error: ${response.status}`);
+            return null;
+        }
+
+        const body = await response.json();
+        const shop = body.data?.shop ?? body.data ?? body;
+
+        return shop
+            ? {
+                ...shop,
+                id: shop.id?.toString(),
+                sellerId: shop.sellerId?.toString(),
+            }
+            : null;
     } catch (error) {
         console.error("[commerce_service] Failed to call Catalog Service:", error);
         return null;

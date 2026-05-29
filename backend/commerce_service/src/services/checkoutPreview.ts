@@ -1,6 +1,6 @@
 import { prisma } from "../config/prisma";
 import { HttpError } from "../utils/http";
-import { getProductsByIds } from "./catalogClient";
+import { getProductsByIds, getShopById } from "./catalogClient";
 
 export async function buildCheckoutPreview(
     customerId: bigint,
@@ -72,6 +72,7 @@ export async function buildCheckoutPreview(
             cartItemId: item.id,
             productId: item.productId,
             productName: product.name,
+            thumbnailUrl: product.thumbnailUrl ?? null,
             unitPrice, // number
             quantity: item.quantity,
             subtotal: lineSubtotal, // number
@@ -86,9 +87,12 @@ export async function buildCheckoutPreview(
 
     const shippingFee = 30000; // cố định 30k, có thể thay đổi sau khi tích hợp với dịch vụ vận chuyển
     const grandTotal = subtotal + shippingFee;
+    const shop = await getShopById(shopId);
 
     return {
         shopId,
+        shopName: shop?.name ?? null,
+        shopLogoUrl: shop?.logoUrl ?? null,
         items: previewItems,
         pricing: {
             subtotal,
