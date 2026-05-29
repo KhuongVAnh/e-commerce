@@ -50,9 +50,10 @@ const SellerDashboard = () => {
         }
 
         if (productsRes && productsRes.status === 'fulfilled') {
-          setTotalProducts(productsRes.value?.data?.pagination?.total || productsRes.value?.pagination?.total || 0);
+          setTotalProducts(productsRes.value?.stats?.productCount || 0);
         } else {
           setTotalProducts(0);
+        }
         }
       } catch (err) {
         console.error("Lỗi lấy dữ liệu dashboard seller:", err);
