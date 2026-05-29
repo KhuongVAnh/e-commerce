@@ -115,7 +115,10 @@ export async function adminListShops(query: ListShopsQuery) {
     prisma.shop.count({ where }),
     prisma.shop.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [
+        { createdAt: "desc" },
+        { id: "asc" }
+      ],
       skip: (page - 1) * limit,
       take: limit,
     }),
