@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { sendSuccess } from "../utils/https";
 import {
   adminDeleteProduct,
+  adminGetProductStats,
   adminGetProduct,
   adminListProducts,
   adminUpdateProduct,
@@ -22,6 +23,16 @@ export async function adminListProductsController(req: Request, res: Response, _
     message: "Lấy danh sách sản phẩm (admin) thành công",
     data,
     pagination: data.pagination,
+  });
+}
+
+export async function adminGetProductStatsController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+  const data = await adminGetProductStats();
+
+  sendSuccess(res, {
+    requestId: res.locals.requestId,
+    message: "Lấy thống kê sản phẩm thành công",
+    data,
   });
 }
 

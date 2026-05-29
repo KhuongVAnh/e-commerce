@@ -180,6 +180,36 @@ export async function adminListOrders(query: ListAdminOrdersQuery) {
   };
 }
 
+export async function adminGetOrderStats() {
+  const [total, pending, awaitingPayment, confirmed, processing, shipping, delivered, cancelled, paid] = await Promise.all([
+    prisma.order.count(),
+    prisma.order.count({ where: { orderStatus: OrderStatus.PENDING } }),
+    prisma.order.count({ where: { orderStatus: OrderStatus.AWAITING_PAYMENT } }),
+    prisma.order.count({ where: { orderStatus: OrderStatus.CONFIRMED } }),
+    prisma.order.count({ where: { orderStatus: OrderStatus.PROCESSING } }),
+    prisma.order.count({ where: { orderStatus: OrderStatus.SHIPPING } }),
+    prisma.order.count({ where: { orderStatus: OrderStatus.DELIVERED } }),
+    prisma.order.count({ where: { orderStatus: OrderStatus.CANCELLED } }),
+    prisma.order.count({ where: { paymentStatus: PaymentStatus.PAID } }),
+  ]);
+
+  return {
+    total,
+    pending: pending + awaitingPayment,
+    paid,
+    cancelled,
+    orderStatuses: {
+      PENDING: pending,
+      AWAITING_PAYMENT: awaitingPayment,
+      CONFIRMED: confirmed,
+      PROCESSING: processing,
+      SHIPPING: shipping,
+      DELIVERED: delivered,
+      CANCELLED: cancelled,
+    },
+  };
+}
+
 export async function adminGetOrderDetail(orderId: string) {
   const id = parsePositiveBigInt(orderId, "orderId");
 
