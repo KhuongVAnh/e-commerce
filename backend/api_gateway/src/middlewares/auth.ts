@@ -3,9 +3,16 @@ import { verifyAccessToken } from "../utils/token";
 import { sendError } from "../utils/http";
 
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
+    let token: string | undefined = undefined;
     const authorization = req.header("Authorization");
 
-    if (!authorization || !authorization.startsWith("Bearer ")) {
+    if (authorization && authorization.startsWith("Bearer ")) {
+        token = authorization.slice("Bearer ".length).trim();
+    } else if (req.cookies && req.cookies.accessToken) {
+        token = req.cookies.accessToken;
+    }
+
+    if (!token) {
         sendError(res, {
             requestId: res.locals.requestId,
             statusCode: 401,
@@ -17,8 +24,6 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
         });
         return;
     }
-
-    const token = authorization.slice("Bearer ".length).trim();
 
     try {
         const payload = verifyAccessToken(token);
