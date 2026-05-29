@@ -115,7 +115,7 @@ export default function OrderHistory() {
     <main className="pt-28 pb-12 px-6 md:px-12 max-w-7xl mx-auto font-['Inter']">
       <div className="mb-12">
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-[#2b3896] mb-2 font-['Be_Vietnam_Pro']">My Orders</h1>
-        <p className="text-gray-600 max-w-md">Track, manage, and review your curated acquisitions from across Vietnam's finest artisans.</p>
+        <p className="text-gray-600 max-w-md">Theo dõi, quản lý và kiểm tra lịch sử đặt hàng của bạn một cách dễ dàng.</p>
       </div>
 
       {/* Tabs */}

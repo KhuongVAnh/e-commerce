@@ -4,10 +4,10 @@ import axiosClient from '../../utils/axiosClient';
 
 // Mảng placeholder để giao diện không bị trống nếu Backend chưa trả về logo/description
 const fallbackData = [
-    { desc: 'Lưu giữ tinh hoa thủ công truyền thống qua từng thớ vải và đường kim mũi chỉ.', img: 'https://images.unsplash.com/photo-1618220179428-22790b46a0eb?q=80&w=300&auto=format&fit=crop' },
+    { desc: 'Thời trang cao cấp với những xu hướng mới nhất mang phong cách hiện đại và thời thượng.', img: 'https://images.unsplash.com/photo-1618220179428-22790b46a0eb?q=80&w=300&auto=format&fit=crop' },
     { desc: 'Khơi nguồn cảm hứng từ thiên nhiên, mang vẻ đẹp nguyên bản vào không gian sống.', img: 'https://images.unsplash.com/photo-1490312278390-ab64016e0aa9?q=80&w=300&auto=format&fit=crop' },
     { desc: 'Chế tác gốm sứ nghệ thuật, giao thoa giữa nét đẹp cổ điển và thiết kế đương đại.', img: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?q=80&w=300&auto=format&fit=crop' },
-    { desc: 'Nghệ thuật đan lát thủ công từ những chất liệu bền vững và thân thiện với môi trường.', img: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=300&auto=format&fit=crop' },
+    { desc: 'Đồ gia dụng và nội thất cao cấp mang lại sự sang trọng và tiện nghi cho gia đình bạn.', img: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=300&auto=format&fit=crop' },
 ];
 
 const ShopList = () => {
@@ -37,7 +37,7 @@ const ShopList = () => {
     );
 
     return (
-        <main className="pt-32 pb-24 px-6 max-w-screen-xl mx-auto min-h-screen font-['Inter'] bg-[#f9f9fc]">
+        <main className="pt-32 pb-24 px-6 max-w-screen-2xl mx-auto min-h-screen font-['Inter'] bg-[#f9f9fc]">
             
             {/* Header */}
             <header className="mb-16 md:mb-24 flex flex-col items-center text-center">
@@ -45,7 +45,7 @@ const ShopList = () => {
                     Shop Directory
                 </h1>
                 <p className="text-gray-500 text-lg md:text-xl max-w-2xl font-light leading-relaxed">
-                    Khám phá những câu chuyện phía sau các đối tác thủ công của chúng tôi. Nơi tuyển chọn tinh hoa nghệ thuật Việt Nam từ các xưởng mộc vùng cao đến gốm sứ duyên hải.
+                    Kết nối trực tiếp đến các nhà phân phối và cửa hàng uy tín hàng đầu. Nơi mang lại trải nghiệm mua sắm đáng tin cậy với chất lượng dịch vụ tốt nhất.
                 </p>
             </header>
 
@@ -75,7 +75,7 @@ const ShopList = () => {
             </section>
 
             {/* Lưới danh sách Shop */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                 
                 {loading ? (
                     Array.from({ length: 5 }).map((_, i) => (
@@ -138,10 +138,10 @@ const ShopList = () => {
                     <article className="bg-[#f9f9fc] p-8 rounded-xl flex flex-col items-center text-center group transition-transform duration-300 border-2 border-dashed border-gray-300 hover:border-[#2b3896]/50 hover:bg-white justify-center min-h-[400px]">
                         <div className="flex flex-col items-center text-gray-500 p-6">
                             <span className="material-symbols-outlined text-5xl mb-4 opacity-40 group-hover:text-[#2b3896] transition-colors group-hover:opacity-100">
-                                palette
+                                storefront
                             </span>
-                            <p className="font-bold text-gray-900 mb-1 font-['Be_Vietnam_Pro']">Bạn là nghệ nhân?</p>
-                            <p className="text-sm opacity-80 mb-8">Tham gia vào mạng lưới tinh hoa của chúng tôi</p>
+                            <p className="font-bold text-gray-900 mb-1 font-['Be_Vietnam_Pro']">Bạn muốn bán hàng?</p>
+                            <p className="text-sm opacity-80 mb-8">Bắt đầu hành trình kinh doanh của bạn cùng chúng tôi</p>
                             <Link 
                                 to="/register"
                                 className="px-8 py-3 border-2 border-[#2b3896] text-[#2b3896] font-bold rounded-full hover:bg-[#2b3896] hover:text-white transition-all active:scale-95 shadow-sm"

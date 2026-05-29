@@ -38,7 +38,7 @@ const Categories = () => {
     );
 
     return (
-        <main className="pt-32 pb-24 px-6 md:px-12 max-w-screen-xl mx-auto font-['Inter'] bg-[#f9f9fc] min-h-screen">
+        <main className="pt-32 pb-24 px-6 md:px-12 max-w-screen-2xl mx-auto font-['Inter'] bg-[#f9f9fc] min-h-screen">
             
             {/* Header & Thanh tìm kiếm */}
             <header className="mb-16">
@@ -124,10 +124,10 @@ const Categories = () => {
                 
                 <div className="relative z-10 px-8 md:px-16 py-20 max-w-3xl">
                     <h2 className="text-white text-4xl md:text-5xl font-black font-['Be_Vietnam_Pro'] leading-tight mb-6">
-                        Khám phá nghệ thuật tinh tuyển.
+                        Khám phá phong cách mua sắm mới.
                     </h2>
                     <p className="text-indigo-100 text-lg mb-10 leading-relaxed font-medium">
-                        Mỗi danh mục trong bộ sưu tập của chúng tôi là một minh chứng cho kỹ thuật thủ công vượt thời gian và tinh thần di sản Việt Nam.
+                        Mỗi danh mục trong cửa hàng của chúng tôi đều được tuyển chọn kỹ lưỡng để mang đến cho bạn trải nghiệm tuyệt vời nhất.
                     </p>
                     <Link 
                         to="/products"
