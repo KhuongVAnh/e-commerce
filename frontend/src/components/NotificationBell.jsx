@@ -45,22 +45,26 @@ const NotificationBell = ({ className = '' }) => {
       setUnreadCount(Number(data.unreadCount || 0));
       setPagination(response.meta?.pagination || null);
     } catch (error) {
-      showToast(error?.message || 'Không thể tải thông báo', { type: 'error' });
+      if (!quiet) {
+        showToast(error?.message || 'Không thể tải thông báo', { type: 'error' });
+      }
     } finally {
-      setIsLoading(false);
+      if (!quiet) setIsLoading(false);
     }
   }, [activeFilter, isAuthenticated, isExpanded, showToast]);
 
   useEffect(() => {
-    fetchNotifications({ quiet: true });
-  }, [fetchNotifications]);
+    if (isAuthenticated) {
+      fetchNotifications({ quiet: true });
+    }
+  }, [fetchNotifications, isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) return undefined;
 
     const intervalId = window.setInterval(() => {
       fetchNotifications({ quiet: true });
-    }, 45000);
+    }, 30000); // 30,000 ms = 30 giây
 
     return () => window.clearInterval(intervalId);
   }, [fetchNotifications, isAuthenticated]);
@@ -84,14 +88,14 @@ const NotificationBell = ({ className = '' }) => {
     setIsMenuOpen(false);
 
     if (nextOpen) {
-      fetchNotifications({ filter: activeFilter, expanded: isExpanded });
+      fetchNotifications({ filter: activeFilter, expanded: isExpanded, quiet: false });
     }
   };
 
   const handleFilterChange = (filter) => {
     setActiveFilter(filter);
     setIsExpanded(false);
-    fetchNotifications({ filter, expanded: false });
+    fetchNotifications({ filter, expanded: false, quiet: false });
   };
 
   const handleViewAll = () => {
@@ -131,7 +135,7 @@ const NotificationBell = ({ className = '' }) => {
       setUnreadCount(0);
       setIsMenuOpen(false);
       if (activeFilter === 'unread') {
-        fetchNotifications({ filter: 'unread', expanded: isExpanded });
+        fetchNotifications({ filter: 'unread', expanded: isExpanded, quiet: false });
       }
       showToast('Đã đánh dấu tất cả thông báo là đã đọc', { type: 'success' });
     } catch (error) {
@@ -161,7 +165,7 @@ const NotificationBell = ({ className = '' }) => {
           notifications
         </span>
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white shadow-sm">
+          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white shadow-sm animate-pulse">
             {displayUnread}
           </span>
         )}
@@ -199,7 +203,7 @@ const NotificationBell = ({ className = '' }) => {
                       type="button"
                       onClick={() => {
                         setIsMenuOpen(false);
-                        fetchNotifications();
+                        fetchNotifications({ quiet: false });
                       }}
                       className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-indigo-50 hover:text-[#2b3896]"
                     >
@@ -298,7 +302,7 @@ const NotificationBell = ({ className = '' }) => {
           <div className="shrink-0 border-t border-slate-100 p-3">
             <button
               type="button"
-              onClick={canViewMore || !isExpanded ? handleViewAll : () => fetchNotifications({ expanded: isExpanded })}
+              onClick={canViewMore || !isExpanded ? handleViewAll : () => fetchNotifications({ expanded: isExpanded, quiet: false })}
               className="w-full rounded-xl bg-slate-100 px-4 py-3 text-sm font-extrabold text-slate-700 transition hover:bg-indigo-50 hover:text-[#2b3896]"
             >
               {canViewMore || !isExpanded ? 'Xem thông báo trước đó' : 'Làm mới thông báo'}
