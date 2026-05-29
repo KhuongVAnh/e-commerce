@@ -112,10 +112,10 @@ const ShopForm = () => {
 
         <div className="text-center md:text-left mb-10">
           <h1 className="text-2xl md:text-4xl font-black text-[#2e3785] mb-2 tracking-tight">
-            {isUpdate ? 'Store Settings' : 'Share your craft with the world.'}
+            {isUpdate ? 'Store Settings' : 'Start your business journey with us.'}
           </h1>
           <p className="text-slate-500 text-sm font-medium">
-            {isUpdate ? 'Cập nhật thông tin nhận diện thương hiệu của bạn.' : 'Join a community of elite merchants and reach customers who appreciate the finer details.'}
+            {isUpdate ? 'Cập nhật thông tin nhận diện thương hiệu của bạn.' : 'Join a community of successful sellers and grow your business today.'}
           </p>
         </div>
 

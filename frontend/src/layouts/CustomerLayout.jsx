@@ -1,4 +1,4 @@
-import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import useAuthStore from '../store/useAuthStore';
 import useCartStore from '../store/useCartStore';
@@ -7,11 +7,26 @@ import NotificationBell from '../components/NotificationBell';
 
 const CustomerLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname;
   const { isAuthenticated, user, clearAuthData } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const { totalQuantity, fetchCartTotal } = useCartStore();
+
+  const isHomeActive = currentPath === '/';
+  const isProductsActive = currentPath.startsWith('/products') || currentPath.startsWith('/product/');
+  const isShopActive = currentPath.startsWith('/shop');
+  const isCategoriesActive = currentPath.startsWith('/categories');
+  const isSavedActive = currentPath.startsWith('/saved');
+  const isCartActive = currentPath.startsWith('/cart');
+
+  const getNavClass = (isActive) => {
+    return isActive
+      ? "text-[#2b3896] font-semibold border-b-2 border-[#2b3896] pb-1 transition-all duration-200"
+      : "text-gray-600 font-medium hover:text-[#2b3896] border-b-2 border-transparent pb-1 transition-all duration-200";
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -49,7 +64,7 @@ const CustomerLayout = () => {
     <div className="bg-surface text-on-surface min-h-screen font-body">
       
       <header className="sticky top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-sm">
-        <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between px-6 py-4 max-w-screen-2xl mx-auto">
           <Link to="/" className="text-2xl font-bold tracking-tighter text-[#2b3896] font-headline">
             E-commerce
           </Link>
@@ -71,9 +86,10 @@ const CustomerLayout = () => {
 
           <div className="flex items-center gap-6">
             <nav className="hidden md:flex items-center gap-8">
-              <Link to="/" className="text-[#2b3896] font-semibold border-b-2 border-[#2b3896] transition-colors duration-200">Home</Link>
-              <Link to="/shop" className="text-gray-600 font-medium hover:text-[#2b3896] transition-colors duration-200">Shop</Link>
-              <Link to="/categories" className="text-gray-600 font-medium hover:text-[#2b3896] transition-colors duration-200">Categories</Link>
+              <Link to="/" className={getNavClass(isHomeActive)}>Home</Link>
+              <Link to="/products" className={getNavClass(isProductsActive)}>Products</Link>
+              <Link to="/shop" className={getNavClass(isShopActive)}>Shop</Link>
+              <Link to="/categories" className={getNavClass(isCategoriesActive)}>Categories</Link>
             </nav>
             
             <div className="flex items-center gap-4">
@@ -141,15 +157,30 @@ const CustomerLayout = () => {
             </div>
           </div>
         </div>
+        {/* Mobile Search Bar */}
+        <div className="block md:hidden px-6 pb-4 max-w-screen-2xl mx-auto -mt-1">
+          <form onSubmit={handleSearch} className="relative w-full">
+            <input 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-gray-100 border-none rounded-full px-5 py-2 text-xs focus:ring-2 focus:ring-[#2b3896]/20 transition-all outline-none" 
+              placeholder="Tìm kiếm sản phẩm..." 
+              type="text" 
+            />
+            <button type="submit" className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#2b3896] bg-transparent border-none cursor-pointer text-[18px]">
+              search
+            </button>
+          </form>
+        </div>
         <div className="bg-gray-200 h-[1px] w-full"></div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 pb-24 md:pb-12 mt-8">
+      <main className="max-w-screen-2xl mx-auto px-6 pb-24 md:pb-12 mt-8">
         <Outlet />
       </main>
 
       <footer className="bg-slate-900 text-slate-300 py-12 md:py-16 border-t border-slate-800 font-body">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+        <div className="max-w-screen-2xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           <div className="space-y-4">
             <Link to="/" className="text-2xl font-bold tracking-tighter text-white font-headline">E-commerce</Link>
             <p className="text-sm text-slate-400 leading-relaxed pr-4">Khám phá bộ sưu tập đồ công nghệ và thời trang cao cấp được tuyển chọn kỹ lưỡng dành riêng cho bạn.</p>
@@ -189,32 +220,39 @@ const CustomerLayout = () => {
             </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-6 mt-12 pt-8 border-t border-slate-800 text-sm text-center text-slate-500 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="max-w-screen-2xl mx-auto px-6 mt-12 pt-8 border-t border-slate-800 text-sm text-center text-slate-500 flex flex-col md:flex-row justify-between items-center gap-4">
           <p>&copy; 2026 E-Commerce. Mọi quyền được bảo lưu.</p>
           <p>Dự án E-Commerce - Nhóm 26</p>
         </div>
       </footer>
 
-      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pt-3 pb-8 md:hidden bg-white/90 backdrop-blur-2xl shadow-[0_-4px_20px_rgba(43,56,150,0.08)] border-t border-slate-100">
-        <Link to="/" className="flex flex-col items-center justify-center bg-indigo-50 text-[#2b3896] rounded-xl px-4 py-1.5 active:scale-90 duration-150">
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>home</span>
+      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pt-3 pb-8 md:hidden bg-white/90 backdrop-blur-2xl shadow-[0_-4px_20px_rgba(43,56,150,0.08)] border-t border-slate-100">
+        <Link to="/" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isHomeActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: isHomeActive ? "'FILL' 1" : "'FILL' 0" }}>home</span>
           <span className="text-[11px] font-medium font-body mt-1">Home</span>
         </Link>
-        <Link to="/categories" className="flex flex-col items-center justify-center text-slate-500 hover:bg-slate-50 rounded-xl px-4 py-1.5">
-          <span className="material-symbols-outlined">grid_view</span>
+        <Link to="/products" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isProductsActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: isProductsActive ? "'FILL' 1" : "'FILL' 0" }}>storefront</span>
+          <span className="text-[11px] font-medium font-body mt-1">Sản phẩm</span>
+        </Link>
+        <Link to="/categories" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isCategoriesActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: isCategoriesActive ? "'FILL' 1" : "'FILL' 0" }}>grid_view</span>
           <span className="text-[11px] font-medium font-body mt-1">Danh mục</span>
         </Link>
-        <Link to="/saved" className="flex flex-col items-center justify-center text-slate-500 hover:bg-slate-50 rounded-xl px-4 py-1.5">
-          <span className="material-symbols-outlined">favorite</span>
+        <Link to="/saved" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isSavedActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: isSavedActive ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
           <span className="text-[11px] font-medium font-body mt-1">Đã lưu</span>
         </Link>
-        <Link to="/cart" className="relative text-indigo-900 hover:bg-slate-50 p-2 rounded-full transition-all">
-          <span className="material-symbols-outlined">shopping_bag</span>
-          {totalQuantity > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
-              {displayQuantity}
-            </span>
-          )}
+        <Link to="/cart" className={`relative flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isCartActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
+          <div className="relative">
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: isCartActive ? "'FILL' 1" : "'FILL' 0" }}>shopping_bag</span>
+            {totalQuantity > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-[#2b3896] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-white shadow-sm">
+                {displayQuantity}
+              </span>
+            )}
+          </div>
+          <span className="text-[11px] font-medium font-body mt-1">Giỏ hàng</span>
         </Link>
       </nav>
     </div>
