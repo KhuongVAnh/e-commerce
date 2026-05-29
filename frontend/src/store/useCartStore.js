@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import axiosClient from '../utils/axiosClient';
+import useAuthStore from './useAuthStore';
 
 const useCartStore = create((set) => ({
   totalQuantity: 0,
 
   fetchCartTotal: async () => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
+    const isAuthenticated = useAuthStore.getState().isAuthenticated;
+    if (!isAuthenticated) {
       set({ totalQuantity: 0 });
       return;
     }

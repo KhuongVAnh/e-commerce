@@ -21,7 +21,6 @@ const refreshClient = axios.create({
 let refreshPromise = null;
 
 const clearAuthAndRedirect = () => {
-  localStorage.removeItem('accessToken');
   localStorage.removeItem('userRole');
 
   if (window.location.pathname !== '/login') {
@@ -30,10 +29,6 @@ const clearAuthAndRedirect = () => {
 };
 
 axiosClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type'];
   }
@@ -63,16 +58,7 @@ axiosClient.interceptors.response.use(
           });
         }
 
-        const refreshRes = await refreshPromise;
-        const accessToken = refreshRes.data?.data?.tokens?.accessToken;
-
-        if (!accessToken) {
-          throw new Error('Missing refreshed access token');
-        }
-
-        localStorage.setItem('accessToken', accessToken);
-        originalRequest.headers = originalRequest.headers || {};
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        await refreshPromise;
         return axiosClient(originalRequest);
       } catch (refreshError) {
         clearAuthAndRedirect();
