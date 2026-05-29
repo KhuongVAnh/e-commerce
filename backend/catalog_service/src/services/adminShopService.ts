@@ -132,6 +132,24 @@ export async function adminListShops(query: ListShopsQuery) {
   };
 }
 
+export async function adminGetShopStats() {
+  const [total, pending, active, inactive] = await Promise.all([
+    prisma.shop.count(),
+    prisma.shop.count({ where: { status: ShopStatus.PENDING } }),
+    prisma.shop.count({ where: { status: ShopStatus.ACTIVE } }),
+    prisma.shop.count({ where: { status: ShopStatus.INACTIVE } }),
+  ]);
+
+  return {
+    total,
+    statuses: {
+      PENDING: pending,
+      ACTIVE: active,
+      INACTIVE: inactive,
+    },
+  };
+}
+
 export async function adminGetShop(shopId: string) {
   const id = parsePositiveBigInt(shopId, "shopId");
 

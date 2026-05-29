@@ -1,3 +1,4 @@
+import { ProductStatus } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { HttpError } from "../utils/https";
 import { softDeleteProduct, updateProduct } from "./productService";
@@ -119,6 +120,26 @@ export async function adminListProducts(query: ListAdminProductsQuery) {
       limit,
       total,
       totalPages: Math.ceil(total / limit),
+    },
+  };
+}
+
+export async function adminGetProductStats() {
+  const [total, active, inactive, outOfStock, deleted] = await Promise.all([
+    prisma.product.count(),
+    prisma.product.count({ where: { status: ProductStatus.ACTIVE } }),
+    prisma.product.count({ where: { status: ProductStatus.INACTIVE } }),
+    prisma.product.count({ where: { status: ProductStatus.OUT_OF_STOCK } }),
+    prisma.product.count({ where: { status: ProductStatus.DELETED } }),
+  ]);
+
+  return {
+    total,
+    statuses: {
+      ACTIVE: active,
+      INACTIVE: inactive,
+      OUT_OF_STOCK: outOfStock,
+      DELETED: deleted,
     },
   };
 }

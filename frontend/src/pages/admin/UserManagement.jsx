@@ -92,21 +92,13 @@ const UserManagement = () => {
   
   const fetchStats = useCallback(async () => {
     try {
-      const [allRes, sellerRes, adminRes] = await Promise.allSettled([
-        axiosClient.get('/auth/admin/users?limit=1'),
-        axiosClient.get('/auth/admin/users?role=SELLER&limit=1'),
-        axiosClient.get('/auth/admin/users?role=ADMIN&limit=1'),
-      ]);
-
-      const getTotal = (res) =>
-        res.status === 'fulfilled'
-          ? res.value?.data?.pagination?.total || res.value?.pagination?.total || 0
-          : 0;
+      const res = await axiosClient.get('/auth/admin/users/stats');
+      const data = res?.data || {};
 
       setStats({
-        total: getTotal(allRes),
-        sellers: getTotal(sellerRes),
-        admins: getTotal(adminRes),
+        total: data.total || 0,
+        sellers: data.roles?.SELLER || 0,
+        admins: data.roles?.ADMIN || 0,
       });
     } catch (error) {
       console.warn('Không thể tải Stats:', error);

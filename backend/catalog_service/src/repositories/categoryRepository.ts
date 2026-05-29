@@ -4,6 +4,11 @@ import { prisma } from "../config/prisma";
 type listCategoryParams = {
     q?: string;
     status?: "ACTIVE" | "INACTIVE";
+    includeAllStatuses?: boolean;
+};
+
+type countCategoryParams = {
+    status?: "ACTIVE" | "INACTIVE";
 };
 
 export async function findCategoryByNameInsensitive(name: string) {
@@ -56,9 +61,17 @@ export async function deleteCategoryRecord(categoryId: bigint) {
     });
 }
 
+export async function countCategoryRecords(params: countCategoryParams = {}) {
+    return prisma.category.count({
+        where: {
+            ...(params.status ? { status: params.status } : {}),
+        },
+    });
+}
+
 export async function listCategoryRecords(params: listCategoryParams) {
     const where: Prisma.CategoryWhereInput = {
-        ...(params.status ? { status: params.status } : { status: "ACTIVE" }),
+        ...(params.status ? { status: params.status } : params.includeAllStatuses ? {} : { status: "ACTIVE" }),
         ...(params.q
             ? {
                 OR: [

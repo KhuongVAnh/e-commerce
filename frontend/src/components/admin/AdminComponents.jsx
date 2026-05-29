@@ -97,14 +97,22 @@ export const AdminDateInput = ({ value, onChange, label }) => (
 );
 
 // Bảng admin chuẩn hóa 3 trạng thái quan trọng: loading, error, empty.
-export const AdminDataTable = ({ columns, rows, loading, error, emptyMessage = 'Không có dữ liệu.', renderRow }) => (
+export const AdminDataTable = ({
+  columns,
+  rows,
+  loading,
+  error,
+  emptyMessage = 'Không có dữ liệu.',
+  renderRow,
+  tableClassName = 'w-full min-w-[820px] text-left',
+}) => (
   <div className="overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm">
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[820px] text-left">
+      <table className={tableClassName}>
         <thead className="bg-slate-50">
           <tr>
             {columns.map((column) => (
-              <th key={column.key || column} className="px-5 py-4 text-[10px] font-black uppercase text-slate-400">
+              <th key={column.key || column} className={`px-5 py-4 text-[10px] font-black uppercase text-slate-400 ${column.headerClassName || ''}`}>
                 {column.label || column}
               </th>
             ))}
