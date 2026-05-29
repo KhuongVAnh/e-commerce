@@ -4,6 +4,7 @@ import useAuthStore from '../store/useAuthStore';
 import useCartStore from '../store/useCartStore';
 import { authService } from '../services/authService';
 import NotificationBell from '../components/NotificationBell';
+import toast from 'react-hot-toast'; 
 
 const CustomerLayout = () => {
   const navigate = useNavigate();
@@ -64,6 +65,13 @@ const CustomerLayout = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleCopyLink = (e) => {
+    e.preventDefault();
+    navigator.clipboard.writeText(window.location.origin)
+      .then(() => toast.success('Đã sao chép liên kết trang web!'))
+      .catch(() => toast.error('Không thể sao chép liên kết.'));
+  };
+
   return (
     <div className="bg-surface text-on-surface min-h-screen font-body flex flex-col">
       
@@ -90,7 +98,6 @@ const CustomerLayout = () => {
           </div>
 
           <div className="flex items-center gap-6">
-            {/* MENU DESKTOP */}
             <nav className="hidden md:flex items-center gap-8">
               <Link to="/" className={getNavClass(isHomeActive)}>Trang chủ</Link>
               <Link to="/products" className={getNavClass(isProductsActive)}>Sản phẩm</Link>
@@ -195,19 +202,19 @@ const CustomerLayout = () => {
           <div>
             <h3 className="text-white font-semibold mb-6 uppercase tracking-wider text-sm">Chăm sóc khách hàng</h3>
             <ul className="space-y-3 text-sm">
-              <li><Link to="/help" className="hover:text-white transition-colors">Trung tâm trợ giúp</Link></li>
-              <li><Link to="/shipping" className="hover:text-white transition-colors">Chính sách vận chuyển</Link></li>
-              <li><Link to="/returns" className="hover:text-white transition-colors">Trả hàng & Hoàn tiền</Link></li>
-              <li><Link to="/contact" className="hover:text-white transition-colors">Liên hệ với chúng tôi</Link></li>
+              <li><Link to="/help#faq" className="hover:text-white transition-colors">Trung tâm trợ giúp</Link></li>
+              <li><Link to="/help#shipping" className="hover:text-white transition-colors">Chính sách vận chuyển</Link></li>
+              <li><Link to="/help#returns" className="hover:text-white transition-colors">Trả hàng & Hoàn tiền</Link></li>
+              <li><Link to="/help#contact" className="hover:text-white transition-colors">Liên hệ với chúng tôi</Link></li>
             </ul>
           </div>
           <div>
             <h3 className="text-white font-semibold mb-6 uppercase tracking-wider text-sm">Về thương hiệu</h3>
             <ul className="space-y-3 text-sm">
-              <li><Link to="/about" className="hover:text-white transition-colors">Giới thiệu về chúng tôi</Link></li>
-              <li><Link to="/careers" className="hover:text-white transition-colors">Tuyển dụng</Link></li>
-              <li><Link to="/terms" className="hover:text-white transition-colors">Điều khoản dịch vụ</Link></li>
-              <li><Link to="/privacy" className="hover:text-white transition-colors">Chính sách bảo mật</Link></li>
+              <li><Link to="/about#intro" className="hover:text-white transition-colors">Giới thiệu về chúng tôi</Link></li>
+              <li><Link to="/about#careers" className="hover:text-white transition-colors">Tuyển dụng</Link></li>
+              <li><Link to="/about#terms" className="hover:text-white transition-colors">Điều khoản dịch vụ</Link></li>
+              <li><Link to="/about#privacy" className="hover:text-white transition-colors">Chính sách bảo mật</Link></li>
             </ul>
           </div>
           <div>
@@ -218,48 +225,42 @@ const CustomerLayout = () => {
             </div>
             <h3 className="text-white font-semibold mb-4 uppercase tracking-wider text-sm">Kết nối</h3>
             <div className="flex gap-4">
-              <a href="#" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-[#2b3896] hover:text-white transition-colors">
+              <button onClick={handleCopyLink} className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-[#2b3896] hover:text-white transition-colors" title="Copy link trang web">
                  <span className="material-symbols-outlined text-xl">share</span>
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-[#2b3896] hover:text-white transition-colors">
+              </button>
+              <Link to="/help#contact" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-[#2b3896] hover:text-white transition-colors" title="Liên hệ chúng tôi">
                  <span className="material-symbols-outlined text-xl">mail</span>
-              </a>
+              </Link>
             </div>
           </div>
         </div>
         <div className="max-w-screen-2xl mx-auto px-6 mt-12 pt-8 border-t border-slate-800 text-sm text-center text-slate-500 flex flex-col md:flex-row justify-between items-center gap-4">
           <p>&copy; 2026 E-Commerce. Mọi quyền được bảo lưu.</p>
-          <p>Dự án E-Commerce - Nhóm 26</p>
+          <p>Dự án E-Commerce - Nhóm 31</p>
         </div>
       </footer>
 
       <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pt-3 pb-8 md:hidden bg-white/90 backdrop-blur-2xl shadow-[0_-4px_20px_rgba(43,56,150,0.08)] border-t border-slate-100">
-        
         <Link to="/" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isHomeActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
           <span className="material-symbols-outlined" style={{ fontVariationSettings: isHomeActive ? "'FILL' 1" : "'FILL' 0" }}>home</span>
           <span className="text-[11px] font-medium font-body mt-1">Trang chủ</span>
         </Link>
-        
         <Link to="/shop" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isShopActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
           <span className="material-symbols-outlined" style={{ fontVariationSettings: isShopActive ? "'FILL' 1" : "'FILL' 0" }}>storefront</span>
           <span className="text-[11px] font-medium font-body mt-1">Cửa hàng</span>
         </Link>
-
         <Link to="/products" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isProductsActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
           <span className="material-symbols-outlined" style={{ fontVariationSettings: isProductsActive ? "'FILL' 1" : "'FILL' 0" }}>box</span>
           <span className="text-[11px] font-medium font-body mt-1">Sản phẩm</span>
         </Link>
-
         <Link to="/categories" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isCategoriesActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
           <span className="material-symbols-outlined" style={{ fontVariationSettings: isCategoriesActive ? "'FILL' 1" : "'FILL' 0" }}>category</span>
           <span className="text-[11px] font-medium font-body mt-1">Danh mục</span>
         </Link>
-
         <Link to="/profile" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isProfileActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
           <span className="material-symbols-outlined" style={{ fontVariationSettings: isProfileActive ? "'FILL' 1" : "'FILL' 0" }}>person</span>
           <span className="text-[11px] font-medium font-body mt-1">Hồ sơ</span>
         </Link>
-
       </nav>
 
     </div>
