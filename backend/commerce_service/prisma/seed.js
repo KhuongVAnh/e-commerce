@@ -10,140 +10,101 @@ const adapter = new PrismaPg({
 });
 const prisma = new PrismaClient({ adapter });
 
-const CUSTOMER_ID = 1003n;
-const SHOP_ONE_ID = 3001n;
-const SHOP_TWO_ID = 3002n;
-
-const CART_ITEMS = [
-  {
-    productId: 4001n,
-    shopId: SHOP_ONE_ID,
-    quantity: 1,
-  },
-  {
-    productId: 4003n,
-    shopId: SHOP_ONE_ID,
-    quantity: 2,
-  },
-  {
-    productId: 4008n,
-    shopId: SHOP_TWO_ID,
-    quantity: 1,
-  },
+const ORDER_STATUSES = [
+  "PENDING",
+  "AWAITING_PAYMENT",
+  "CONFIRMED",
+  "PROCESSING",
+  "SHIPPING",
+  "DELIVERED",
+  "CANCELLED"
 ];
 
-const ORDERS = [
-  {
-    id: 5001n,
-    orderCode: "ORD-CNW-0001",
-    customerId: CUSTOMER_ID,
-    shopId: SHOP_ONE_ID,
-    totalAmount: "3500000.00",
-    shippingFee: "30000.00",
-    paymentMethod: "COD",
-    paymentStatus: "COD_PENDING",
-    orderStatus: "CONFIRMED",
-    receiverName: "Customer One",
-    receiverPhone: "0900000001",
-    receiverAddress: "100 Nguyễn Trãi, Quận 5, TP.HCM",
-    note: "Gọi trước khi giao hàng.",
-    items: [
-      {
-        productId: 4001n,
-        productNameSnapshot: "Tai nghe Bluetooth chống ồn SoundAir Pro",
-        priceSnapshot: "1890000.00",
-        quantity: 1,
-        subtotal: "1890000.00",
-      },
-      {
-        productId: 4002n,
-        productNameSnapshot: "Tai nghe true wireless BassPods Mini",
-        priceSnapshot: "790000.00",
-        quantity: 2,
-        subtotal: "1580000.00",
-      },
-    ],
-    payments: [
-      {
-        method: "COD",
-        amount: "3500000.00",
-        status: "PENDING",
-        transactionRef: "COD-ORD-CNW-0001",
-        providerResponse: "Thu tiền khi giao hàng",
-      },
-    ],
-  },
-  {
-    id: 5002n,
-    orderCode: "ORD-CNW-0002",
-    customerId: CUSTOMER_ID,
-    shopId: SHOP_TWO_ID,
-    totalAmount: "2020000.00",
-    shippingFee: "40000.00",
-    paymentMethod: "VNPAY",
-    paymentStatus: "PAID",
-    orderStatus: "PROCESSING",
-    receiverName: "Customer One",
-    receiverPhone: "0900000001",
-    receiverAddress: "100 Nguyễn Trãi, Quận 5, TP.HCM",
-    note: "Đóng gói chống sốc.",
-    items: [
-      {
-        productId: 4041n,
-        productNameSnapshot: "Nồi chiên không dầu 5L AirCook",
-        priceSnapshot: "1690000.00",
-        quantity: 1,
-        subtotal: "1690000.00",
-      },
-      {
-        productId: 4046n,
-        productNameSnapshot: "Bình giữ nhiệt inox 750ml",
-        priceSnapshot: "290000.00",
-        quantity: 1,
-        subtotal: "290000.00",
-      },
-    ],
-    payments: [
-      {
-        method: "VNPAY",
-        amount: "2020000.00",
-        status: "SUCCESS",
-        transactionRef: "VNPAY-ORD-CNW-0002",
-        providerResponse: '{"code":"00","message":"Success"}',
-      },
-    ],
-  },
-];
+// 10 Customers defined in auth_service
+const CUSTOMER_IDS = Array.from({ length: 10 }, (_, i) => BigInt(1201 + i));
+
+const ORDERS = [];
+let orderId = 5001n;
+
+for (const cid of CUSTOMER_IDS) {
+  for (const status of ORDER_STATUSES) {
+    const isPending = status === "PENDING" || status === "CANCELLED";
+    // Using real product names matching catalog_service
+    // Product 4001: Apple iPhone 15 Pro Max 256GB - 34,990,000
+    // Product 4002: Samsung Galaxy S24 Ultra 512GB - 33,990,000
+    const totalAmount = (34990000 + 33990000).toFixed(2);
+    const shippingFee = "30000.00";
+    const paymentAmount = (34990000 + 33990000 + 30000).toFixed(2);
+    
+    ORDERS.push({
+      id: orderId,
+      orderCode: `ORD-CNW-${orderId}`,
+      customerId: cid,
+      shopId: 3001n, // Mua từ Shop Điện tử
+      totalAmount: totalAmount,
+      shippingFee: shippingFee,
+      paymentMethod: isPending ? "COD" : "VNPAY",
+      paymentStatus: isPending ? "COD_PENDING" : "PAID",
+      orderStatus: status,
+      receiverName: `Customer ${cid}`,
+      receiverPhone: "0900000000",
+      receiverAddress: "100 Nguyễn Trãi, Quận 5, TP.HCM",
+      note: "Giao hàng cẩn thận, hàng giá trị cao.",
+      items: [
+        {
+          productId: 4001n,
+          productNameSnapshot: "Apple iPhone 15 Pro Max 256GB",
+          priceSnapshot: "34990000.00",
+          quantity: 1,
+          subtotal: "34990000.00",
+        },
+        {
+          productId: 4002n,
+          productNameSnapshot: "Samsung Galaxy S24 Ultra 512GB",
+          priceSnapshot: "33990000.00",
+          quantity: 1,
+          subtotal: "33990000.00",
+        }
+      ],
+      payments: [
+        {
+          method: isPending ? "COD" : "VNPAY",
+          amount: paymentAmount,
+          status: isPending ? "PENDING" : "SUCCESS",
+          transactionRef: `${isPending ? 'COD' : 'VNPAY'}-ORD-${orderId}`,
+          providerResponse: isPending ? "Thu tiền khi giao hàng" : '{"code":"00","message":"Success"}',
+        }
+      ],
+    });
+    orderId++;
+  }
+}
 
 async function main() {
   await prisma.$connect();
 
   await prisma.$transaction(async (tx) => {
-    const cart = await tx.cart.upsert({
-      where: {
-        customerId: CUSTOMER_ID,
-      },
-      update: {},
-      create: {
-        customerId: CUSTOMER_ID,
-      },
-    });
+    // Generate Cart and CartItems for all 10 customers
+    for (const cId of CUSTOMER_IDS) {
+      const cart = await tx.cart.upsert({
+        where: { customerId: cId },
+        update: {},
+        create: { customerId: cId },
+      });
 
-    await tx.cartItem.deleteMany({
-      where: {
-        cartId: cart.id,
-      },
-    });
+      await tx.cartItem.deleteMany({
+        where: { cartId: cart.id },
+      });
 
-    await tx.cartItem.createMany({
-      data: CART_ITEMS.map((item) => ({
-        cartId: cart.id,
-        productId: item.productId,
-        shopId: item.shopId,
-        quantity: item.quantity,
-      })),
-    });
+      await tx.cartItem.createMany({
+        data: [
+          { cartId: cart.id, productId: 4001n, shopId: 3001n, quantity: 1 },
+          { cartId: cart.id, productId: 4002n, shopId: 3001n, quantity: 2 },
+        ]
+      });
+    }
 
+    // Generate Orders for all 10 customers (7 orders each)
     for (const order of ORDERS) {
       await tx.order.upsert({
         where: {
@@ -216,18 +177,7 @@ async function main() {
     }
   });
 
-  console.log("Seeded commerce_service with cart, orders, order items and payments.");
-  console.table(
-    ORDERS.map((order) => ({
-      orderId: order.id.toString(),
-      orderCode: order.orderCode,
-      customerId: order.customerId.toString(),
-      shopId: order.shopId.toString(),
-      paymentMethod: order.paymentMethod,
-      paymentStatus: order.paymentStatus,
-      orderStatus: order.orderStatus,
-    })),
-  );
+  console.log(`Seeded commerce_service with carts and ${ORDERS.length} orders (7 cho mỗi khách hàng). Dữ liệu thực đã được đồng bộ.`);
 }
 
 main()
