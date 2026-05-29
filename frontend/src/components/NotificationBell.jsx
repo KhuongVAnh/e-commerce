@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, CheckCheck, Loader2, MoreHorizontal, RefreshCw } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import { notificationService } from '../services/notificationService';
 import { useToast } from './ToastProvider';
@@ -155,16 +154,21 @@ const NotificationBell = ({ className = '' }) => {
         title="Thông báo"
         className={`relative grid h-10 w-10 place-items-center rounded-full transition-all active:scale-95 ${isOpen ? 'bg-[#2b3896] text-white shadow-lg shadow-[#2b3896]/25' : 'bg-indigo-50 text-[#2b3896] hover:bg-indigo-100'}`}
       >
-        <Bell size={21} fill={isOpen ? 'currentColor' : 'none'} strokeWidth={2.3} />
+        <span 
+          className="material-symbols-outlined text-[22px]" 
+          style={{ fontVariationSettings: isOpen ? "'FILL' 1" : "'FILL' 0" }}
+        >
+          notifications
+        </span>
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-2 bg-[#2b3896] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white shadow-sm">
+          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white shadow-sm">
             {displayUnread}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-12 z-[80] flex max-h-[calc(100vh-6rem)] w-[min(27rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white text-slate-900 shadow-2xl shadow-[#2b3896]/15 ring-1 ring-black/5">
+        <div className="absolute right-0 top-12 z-[80] flex max-h-[calc(100vh-6rem)] w-[85vw] max-w-[360px] md:w-96 flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white text-slate-900 shadow-2xl shadow-[#2b3896]/15 ring-1 ring-black/5 transform origin-top-right transition-all animate-in slide-in-from-top-2">
           <div className="shrink-0 px-4 pt-4">
             <div className="flex items-center justify-between">
               <div>
@@ -178,7 +182,7 @@ const NotificationBell = ({ className = '' }) => {
                   className="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-[#2b3896]"
                   aria-label="Tùy chọn thông báo"
                 >
-                  <MoreHorizontal size={22} />
+                  <span className="material-symbols-outlined text-[22px]">more_horiz</span>
                 </button>
 
                 {isMenuOpen && (
@@ -188,7 +192,7 @@ const NotificationBell = ({ className = '' }) => {
                       onClick={handleReadAll}
                       className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-indigo-50 hover:text-[#2b3896]"
                     >
-                      <CheckCheck size={18} />
+                      <span className="material-symbols-outlined text-[18px]">done_all</span>
                       Đánh dấu tất cả đã đọc
                     </button>
                     <button
@@ -199,7 +203,7 @@ const NotificationBell = ({ className = '' }) => {
                       }}
                       className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-indigo-50 hover:text-[#2b3896]"
                     >
-                      <RefreshCw size={17} />
+                      <span className="material-symbols-outlined text-[17px]">refresh</span>
                       Làm mới thông báo
                     </button>
                   </div>
@@ -238,13 +242,13 @@ const NotificationBell = ({ className = '' }) => {
           <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
             {isLoading && notifications.length === 0 ? (
               <div className="flex items-center justify-center gap-2 py-12 text-sm font-semibold text-slate-500">
-                <Loader2 size={18} className="animate-spin text-[#2b3896]" />
+                <span className="material-symbols-outlined animate-spin text-[18px] text-[#2b3896]">progress_activity</span>
                 Đang tải thông báo
               </div>
             ) : notifications.length === 0 ? (
               <div className="px-7 py-12 text-center">
                 <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-indigo-50 text-[#2b3896]">
-                  <Bell size={26} />
+                  <span className="material-symbols-outlined text-[26px]">notifications</span>
                 </div>
                 <p className="mt-4 text-base font-extrabold text-slate-900">{emptyText}</p>
                 <p className="mt-1 text-sm leading-5 text-slate-500">Các cập nhật về đơn hàng, thanh toán và tài khoản sẽ hiển thị tại đây.</p>

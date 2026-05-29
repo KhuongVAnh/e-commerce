@@ -63,6 +63,7 @@ const CustomerLayout = () => {
   return (
     <div className="bg-surface text-on-surface min-h-screen font-body">
       
+      {/* HEADER TỔNG */}
       <header className="sticky top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-sm">
         <div className="flex items-center justify-between px-6 py-4 max-w-screen-2xl mx-auto">
           <Link to="/" className="text-2xl font-bold tracking-tighter text-[#2b3896] font-headline">
@@ -85,18 +86,19 @@ const CustomerLayout = () => {
           </div>
 
           <div className="flex items-center gap-6">
+            {/* MENU DESKTOP */}
             <nav className="hidden md:flex items-center gap-8">
-              <Link to="/" className={getNavClass(isHomeActive)}>Home</Link>
-              <Link to="/products" className={getNavClass(isProductsActive)}>Products</Link>
-              <Link to="/shop" className={getNavClass(isShopActive)}>Shop</Link>
-              <Link to="/categories" className={getNavClass(isCategoriesActive)}>Categories</Link>
+              <Link to="/" className={getNavClass(isHomeActive)}>Trang chủ</Link>
+              <Link to="/products" className={getNavClass(isProductsActive)}>Sản phẩm</Link>
+              <Link to="/shop" className={getNavClass(isShopActive)}>Cửa hàng</Link>
+              <Link to="/categories" className={getNavClass(isCategoriesActive)}>Danh mục</Link>
             </nav>
             
             <div className="flex items-center gap-4">
               <NotificationBell />
 
               <Link to="/cart" className="relative cursor-pointer hover:opacity-70 active:scale-95 transition-all mr-2">
-                <span className="material-symbols-outlined text-[#2b3896] text-3xl">shopping_bag</span>
+                <span className="material-symbols-outlined text-[#2b3896] text-3xl">shopping_cart</span>
                 {totalQuantity > 0 && (
                   <span className="absolute -top-1 -right-2 bg-[#2b3896] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white shadow-sm">
                     {displayQuantity}
@@ -157,6 +159,7 @@ const CustomerLayout = () => {
             </div>
           </div>
         </div>
+        
         {/* Mobile Search Bar */}
         <div className="block md:hidden px-6 pb-4 max-w-screen-2xl mx-auto -mt-1">
           <form onSubmit={handleSearch} className="relative w-full">
@@ -226,35 +229,34 @@ const CustomerLayout = () => {
         </div>
       </footer>
 
+      {/* MENU MOBILE BOTTOM TÙY CHỈNH THEO YÊU CẦU */}
       <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pt-3 pb-8 md:hidden bg-white/90 backdrop-blur-2xl shadow-[0_-4px_20px_rgba(43,56,150,0.08)] border-t border-slate-100">
+        
+        {/* 1. Trang Chủ */}
         <Link to="/" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isHomeActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
           <span className="material-symbols-outlined" style={{ fontVariationSettings: isHomeActive ? "'FILL' 1" : "'FILL' 0" }}>home</span>
-          <span className="text-[11px] font-medium font-body mt-1">Home</span>
+          <span className="text-[11px] font-medium font-body mt-1">Trang chủ</span>
         </Link>
+        
+        {/* 2. Cửa hàng */}
+        <Link to="/shop" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isShopActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: isShopActive ? "'FILL' 1" : "'FILL' 0" }}>storefront</span>
+          <span className="text-[11px] font-medium font-body mt-1">Cửa hàng</span>
+        </Link>
+
+        {/* 3. Sản Phẩm */}
         <Link to="/products" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isProductsActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: isProductsActive ? "'FILL' 1" : "'FILL' 0" }}>storefront</span>
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: isProductsActive ? "'FILL' 1" : "'FILL' 0" }}>box</span>
           <span className="text-[11px] font-medium font-body mt-1">Sản phẩm</span>
         </Link>
+
+        {/* 4. Danh mục */}
         <Link to="/categories" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isCategoriesActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: isCategoriesActive ? "'FILL' 1" : "'FILL' 0" }}>grid_view</span>
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: isCategoriesActive ? "'FILL' 1" : "'FILL' 0" }}>category</span>
           <span className="text-[11px] font-medium font-body mt-1">Danh mục</span>
         </Link>
-        <Link to="/saved" className={`flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isSavedActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: isSavedActive ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
-          <span className="text-[11px] font-medium font-body mt-1">Đã lưu</span>
-        </Link>
-        <Link to="/cart" className={`relative flex flex-col items-center justify-center rounded-xl px-3 py-1.5 active:scale-90 duration-150 transition-all ${isCartActive ? 'bg-[#2b3896]/10 text-[#2b3896]' : 'text-slate-500 hover:bg-slate-50 hover:text-[#2b3896]'}`}>
-          <div className="relative">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: isCartActive ? "'FILL' 1" : "'FILL' 0" }}>shopping_bag</span>
-            {totalQuantity > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-[#2b3896] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-white shadow-sm">
-                {displayQuantity}
-              </span>
-            )}
-          </div>
-          <span className="text-[11px] font-medium font-body mt-1">Giỏ hàng</span>
-        </Link>
       </nav>
+
     </div>
   );
 };
