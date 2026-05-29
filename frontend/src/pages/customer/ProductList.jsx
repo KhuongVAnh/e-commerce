@@ -9,6 +9,7 @@ const ProductList = () => {
   const navigate = useNavigate();
 
   const categoryIdFromUrl = searchParams.get('categoryId');
+  const categorySlugFromUrl = searchParams.get('category');
   const searchFromUrl = searchParams.get('search') || searchParams.get('q'); 
   const minPriceFromUrl = searchParams.get('minPrice') || '';
   const maxPriceFromUrl = searchParams.get('maxPrice') || '';
@@ -61,6 +62,10 @@ const ProductList = () => {
   }, []);
 
   useEffect(() => {
+    if (!categoryIdFromUrl && categorySlugFromUrl && categories.length === 0) {
+      return;
+    }
+
     const fetchProducts = async () => {
       setLoading(true);
       setError(null);
@@ -68,7 +73,16 @@ const ProductList = () => {
         const queryParams = new URLSearchParams();
         
         if (searchFromUrl) queryParams.append('q', searchFromUrl);
-        if (categoryIdFromUrl) queryParams.append('categoryId', categoryIdFromUrl);
+        if (categoryIdFromUrl) {
+          queryParams.append('categoryId', categoryIdFromUrl);
+        } else if (categorySlugFromUrl) {
+          const matchedCategory = categories.find(c => c.slug === categorySlugFromUrl);
+          if (matchedCategory) {
+            queryParams.append('categoryId', String(matchedCategory.id));
+          } else {
+            queryParams.append('categoryId', '0');
+          }
+        }
         if (minPriceFromUrl) queryParams.append('minPrice', minPriceFromUrl);
         if (maxPriceFromUrl) queryParams.append('maxPrice', maxPriceFromUrl);
         queryParams.append('page', String(pageFromUrl));
@@ -90,22 +104,27 @@ const ProductList = () => {
     };
 
     fetchProducts();
-  }, [searchFromUrl, categoryIdFromUrl, minPriceFromUrl, maxPriceFromUrl, pageFromUrl]);
+  }, [searchFromUrl, categoryIdFromUrl, categorySlugFromUrl, minPriceFromUrl, maxPriceFromUrl, pageFromUrl, categories]);
 
-  const handleCategoryChange = (categoryId) => {
+  const handleCategoryChange = (categorySlug) => {
     const currentParams = new URLSearchParams(searchParams);
     
-    if (categoryIdFromUrl === String(categoryId)) {
-      currentParams.delete('categoryId');
+    currentParams.delete('categoryId');
+    
+    if (categorySlugFromUrl === categorySlug) {
+      currentParams.delete('category');
     } else {
-      currentParams.set('categoryId', categoryId);
+      currentParams.set('category', categorySlug);
     }
     currentParams.set('page', '1');
 
     navigate(`/products?${currentParams.toString()}`);
   };
 
-  const activeCategoryName = categories.find(c => String(c.id) === categoryIdFromUrl)?.name;
+  const activeCategory = categoryIdFromUrl
+    ? categories.find(c => String(c.id) === categoryIdFromUrl)
+    : categories.find(c => c.slug === categorySlugFromUrl);
+  const activeCategoryName = activeCategory?.name;
 
   const minPrice = 100000;
   const maxPrice = 20000000;
@@ -203,26 +222,29 @@ const ProductList = () => {
               <button
                 onClick={() => {
                   const currentParams = new URLSearchParams(searchParams);
+                  currentParams.delete('category');
                   currentParams.delete('categoryId');
                   navigate(`/products?${currentParams.toString()}`);
                 }}
                 className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-150 flex items-center justify-between group ${
-                  !categoryIdFromUrl 
+                  !categorySlugFromUrl && !categoryIdFromUrl
                     ? 'bg-[#2b3896]/10 text-[#2b3896]' 
                     : 'text-gray-500 hover:bg-gray-50 hover:text-[#2b3896]'
                 }`}
               >
                 <span>Tất cả sản phẩm</span>
-                {!categoryIdFromUrl && (
+                {!categorySlugFromUrl && !categoryIdFromUrl && (
                   <span className="w-1.5 h-1.5 rounded-full bg-[#2b3896]"></span>
                 )}
               </button>
               {categories.map((item) => {
-                const isActive = categoryIdFromUrl === String(item.id);
+                const isActive = categoryIdFromUrl 
+                  ? categoryIdFromUrl === String(item.id)
+                  : categorySlugFromUrl === item.slug;
                 return (
                   <button
                     key={item.id}
-                    onClick={() => handleCategoryChange(item.id)}
+                    onClick={() => handleCategoryChange(item.slug)}
                     className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-150 flex items-center justify-between group ${
                       isActive 
                         ? 'bg-[#2b3896]/10 text-[#2b3896]' 
@@ -353,7 +375,7 @@ const ProductList = () => {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-8">
               {products.map((product) => (
                 <Link 
-                  to={`/product/${product.id}`} 
+                  to={`/product/${product.slug}`} 
                   key={product.id} 
                   className="group flex flex-col h-full cursor-pointer bg-white p-3 rounded-2xl border border-gray-100 shadow-[0_4px_12px_rgba(43,56,150,0.02)] hover:shadow-md hover:-translate-y-1 transition-all"
                 >
@@ -469,13 +491,14 @@ const ProductList = () => {
                 <button
                   onClick={() => {
                     const currentParams = new URLSearchParams(searchParams);
+                    currentParams.delete('category');
                     currentParams.delete('categoryId');
                     currentParams.set('page', '1');
                     navigate(`/products?${currentParams.toString()}`);
                     setIsMobileFilterOpen(false);
                   }}
                   className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-all ${
-                    !categoryIdFromUrl 
+                    !categorySlugFromUrl && !categoryIdFromUrl
                       ? 'bg-[#2b3896] text-white shadow-md' 
                       : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                   }`}
@@ -483,12 +506,14 @@ const ProductList = () => {
                   Tất cả sản phẩm
                 </button>
                 {categories.map((item) => {
-                  const isActive = categoryIdFromUrl === String(item.id);
+                  const isActive = categoryIdFromUrl 
+                    ? categoryIdFromUrl === String(item.id)
+                    : categorySlugFromUrl === item.slug;
                   return (
                     <button
                       key={item.id}
                       onClick={() => {
-                        handleCategoryChange(item.id);
+                        handleCategoryChange(item.slug);
                         setIsMobileFilterOpen(false);
                       }}
                       className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-all ${

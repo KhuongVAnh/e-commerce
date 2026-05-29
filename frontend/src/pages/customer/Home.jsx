@@ -245,7 +245,7 @@ const Home = () => {
             {categories.map((category) => (
               <Link 
                 key={category.id} 
-                to={`/products?categoryId=${category.id}`} 
+                to={`/products?category=${category.slug}`} 
                 className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#2b3896]/30 transition-all group flex flex-col items-center text-center"
               >
                 <div className="w-16 h-16 rounded-full bg-[#f4f5fa] text-[#2b3896] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform group-hover:bg-[#2b3896] group-hover:text-white">
@@ -289,7 +289,7 @@ const Home = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-6">
             {products.map((product) => (
               <div key={product.id} className="bg-white rounded-2xl p-5 shadow-[0px_8px_24px_rgba(43,56,150,0.04)] border border-gray-100 group transition-all hover:-translate-y-1 hover:shadow-[0px_12px_32px_rgba(43,56,150,0.08)] flex flex-col">
-                <Link to={`/product/${product.id}`} className="block relative w-full h-56 bg-gray-50 rounded-xl overflow-hidden mb-5">
+                <Link to={`/product/${product.slug}`} className="block relative w-full h-56 bg-gray-50 rounded-xl overflow-hidden mb-5">
                   <img 
                     src={product.thumbnailUrl || 'https://via.placeholder.com/300'} 
                     alt={product.name} 
@@ -301,7 +301,7 @@ const Home = () => {
                 </Link>
                 
                 <div className="flex flex-col flex-grow">
-                  <Link to={`/product/${product.id}`}>
+                  <Link to={`/product/${product.slug}`}>
                     <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#2b3896] transition-colors">
                       {product.name}
                     </h3>

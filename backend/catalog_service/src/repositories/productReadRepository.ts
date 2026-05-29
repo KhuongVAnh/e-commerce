@@ -73,7 +73,7 @@ export async function listPublicProductRecords(params: listPublicProductsParams)
     const orderBy = buildPublicProductOrderBy(params.sortBy);
     const skip = (params.page - 1) * params.limit;
 
-    const [total, products] = await prisma.$transaction([
+    const [total, products] = await Promise.all([
         prisma.product.count({ where }),
         prisma.product.findMany({
             where,
@@ -104,6 +104,46 @@ export async function findPublicProductDetailById(productId: bigint) {
     return prisma.product.findFirst({
         where: {
             id: productId,
+            status: "ACTIVE",
+            deletedAt: null,
+        },
+        select: {
+            id: true,
+            shopId: true,
+            categoryId: true,
+            name: true,
+            slug: true,
+            description: true,
+            price: true,
+            stockQuantity: true,
+            thumbnailUrl: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+            images: {
+                select: {
+                    id: true,
+                    imageUrl: true,
+                    sortOrder: true,
+                },
+                orderBy: {
+                    sortOrder: "asc",
+                },
+            },
+            shop: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
+    });
+}
+
+export async function findPublicProductDetailBySlug(slug: string) {
+    return prisma.product.findFirst({
+        where: {
+            slug,
             status: "ACTIVE",
             deletedAt: null,
         },

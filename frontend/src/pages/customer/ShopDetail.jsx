@@ -174,7 +174,7 @@ const ShopDetail = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                         {filteredProducts.map(product => (
                             <div key={product.id} className="group bg-white border border-gray-100 rounded-3xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0px_24px_48px_rgba(43,56,150,0.08)] relative flex flex-col">
-                                <Link to={`/product/${product.id}`} className="aspect-[4/5] overflow-hidden bg-gray-50 block">
+                                <Link to={`/product/${product.slug}`} className="aspect-[4/5] overflow-hidden bg-gray-50 block">
                                     <img 
                                         src={product.thumbnailUrl || "https://via.placeholder.com/400x500"} 
                                         alt={product.name} 
@@ -183,7 +183,7 @@ const ShopDetail = () => {
                                 </Link>
                                 <div className="p-6 flex flex-col flex-grow">
                                     <div className="flex justify-between items-start mb-2 gap-2">
-                                        <Link to={`/product/${product.id}`}>
+                                        <Link to={`/product/${product.slug}`}>
                                             <h3 className="text-lg font-bold text-gray-900 leading-tight font-['Be_Vietnam_Pro'] group-hover:text-[#2b3896] transition-colors line-clamp-2">
                                                 {product.name}
                                             </h3>

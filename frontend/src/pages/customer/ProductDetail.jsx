@@ -5,7 +5,7 @@ import useCartStore from '../../store/useCartStore';
 import axiosClient from '../../utils/axiosClient';
 
 const ProductDetail = () => {
-  const { id } = useParams(); 
+  const { slug } = useParams(); 
   const navigate = useNavigate();
   
   const [productData, setProductData] = useState(null);
@@ -84,7 +84,7 @@ const ProductDetail = () => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const result = await axiosClient.get(`/catalog/products/${id}`);
+        const result = await axiosClient.get(`/catalog/products/${slug}`);
         setProductData(result.data);
       } catch (err) {
         setError(err.message);
@@ -94,7 +94,7 @@ const ProductDetail = () => {
     };
 
     fetchProduct();
-  }, [id]);
+  }, [slug]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -148,7 +148,7 @@ const ProductDetail = () => {
       <nav className="flex gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-8">
         <Link to="/" className="hover:text-[#2b3896] transition-colors">Trang chủ</Link>
         <span>/</span>
-        <Link to={`/products?categoryId=${product.categoryId}`} className="hover:text-[#2b3896] transition-colors">Danh mục</Link>
+        <Link to={`/products?category=${categories.find(c => Number(c.id) === Number(product.categoryId))?.slug || ''}`} className="hover:text-[#2b3896] transition-colors">{categoryName}</Link>
         <span>/</span>
         <span className="text-[#2b3896]">{product.name}</span>
       </nav>

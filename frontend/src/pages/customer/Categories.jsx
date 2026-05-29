@@ -89,7 +89,7 @@ const Categories = () => {
                             
                             return (
                                 <Link 
-                                    to={`/products?categoryId=${category.id}`} 
+                                    to={`/products?category=${category.slug}`} 
                                     key={category.id}
                                     className="group relative bg-white p-8 rounded-xl border border-gray-100 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0px_20px_40px_rgba(43,56,150,0.08)] flex flex-col items-start overflow-hidden"
                                 >

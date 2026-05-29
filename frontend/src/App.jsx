@@ -71,7 +71,7 @@ function App() {
           <Route path="unauthorized" element={<Unauthorized />} />
 
           <Route path="products" element={<ProductList />} />
-          <Route path="product/:id" element={<ProductDetail />} />
+          <Route path="product/:slug" element={<ProductDetail />} />
 
           <Route path="categories" element={<Categories />} />
 

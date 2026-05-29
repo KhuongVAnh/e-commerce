@@ -29,7 +29,7 @@ const SellerProductForm = () => {
 
         if (isUpdate) {
           const prodRes = await axiosClient.get(`/catalog/products/${id}`);
-          const product = prodRes?.data?.product || prodRes?.product || res?.data;
+          const product = prodRes?.data?.product || prodRes?.product || prodRes?.data;
           if (product) {
             setFormData({
               name: product.name || '', categoryId: product.categoryId || '',

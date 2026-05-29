@@ -48,7 +48,9 @@ axiosClient.interceptors.response.use(
     const isRefreshRequest = originalRequest?.url?.includes('/auth/refresh');
     const isPublicAuthRequest = ['/auth/login', '/auth/register'].some((path) => originalRequest?.url?.includes(path));
 
-    if (isAuthError && originalRequest && !originalRequest._retry && !isRefreshRequest && !isPublicAuthRequest) {
+    const isMeRequest = originalRequest?.url?.includes('/auth/me');
+
+    if (isAuthError && !isMeRequest && originalRequest && !originalRequest._retry && !isRefreshRequest && !isPublicAuthRequest) {
       originalRequest._retry = true;
 
       try {

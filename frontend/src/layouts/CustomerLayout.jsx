@@ -65,8 +65,13 @@ const CustomerLayout = () => {
       
       <header className="sticky top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-sm">
         <div className="flex items-center justify-between px-6 py-4 max-w-screen-2xl mx-auto">
-          <Link to="/" className="text-2xl font-bold tracking-tighter text-[#2b3896] font-headline">
-            E-commerce
+          <Link to="/" className="flex items-center gap-2 text-2xl font-black tracking-tight text-[#2b3896] font-headline">
+            <svg className="w-8 h-8 text-[#2b3896] shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3" y="6" width="18" height="14" rx="4" stroke="currentColor" strokeWidth="2.5" />
+              <path d="M9 9V6C9 4.34315 10.3431 3 12 3C13.6569 3 15 4.34315 15 6V9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M9 13L12 16L15 13" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="font-black bg-gradient-to-r from-[#2b3896] to-[#4551af] bg-clip-text text-transparent">E-Commerce</span>
           </Link>
 
           <div className="hidden md:flex flex-1 max-w-md mx-8">
@@ -182,7 +187,14 @@ const CustomerLayout = () => {
       <footer className="bg-slate-900 text-slate-300 py-12 md:py-16 border-t border-slate-800 font-body">
         <div className="max-w-screen-2xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           <div className="space-y-4">
-            <Link to="/" className="text-2xl font-bold tracking-tighter text-white font-headline">E-commerce</Link>
+            <Link to="/" className="flex items-center gap-2 text-2xl font-black tracking-tight text-white font-headline">
+              <svg className="w-8 h-8 text-[#4551af] shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="6" width="18" height="14" rx="4" stroke="currentColor" strokeWidth="2.5" />
+                <path d="M9 9V6C9 4.34315 10.3431 3 12 3C13.6569 3 15 4.34315 15 6V9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                <path d="M9 13L12 16L15 13" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span>E-Commerce</span>
+            </Link>
             <p className="text-sm text-slate-400 leading-relaxed pr-4">Khám phá bộ sưu tập đồ công nghệ và thời trang cao cấp được tuyển chọn kỹ lưỡng dành riêng cho bạn.</p>
           </div>
           <div>

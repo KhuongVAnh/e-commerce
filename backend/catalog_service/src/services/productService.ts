@@ -3,6 +3,7 @@ import { prisma } from "../config/prisma";
 import {
     findPublicProductsByIds,
     findPublicProductDetailById,
+    findPublicProductDetailBySlug,
     listPublicProductRecords,
     PublicProductSortBy,
 } from "../repositories/productReadRepository";
@@ -902,12 +903,24 @@ export async function listPublicProducts(query: listProductQuery): Promise<Publi
 }
 
 // Hàm này trả chi tiết product public và cache theo product id.
-export async function getPublicProductDetail(productId: string): Promise<publicProductDetailResponse & { cacheStatus: CacheStatus }> {
-    const productIdAsBigInt = parsePositiveBigInt(productId, "id");
-    const cacheKey = buildProductDetailCacheKey(productIdAsBigInt);
+export async function getPublicProductDetail(productIdOrSlug: string): Promise<publicProductDetailResponse & { cacheStatus: CacheStatus }> {
+    const isId = /^\d+$/.test(productIdOrSlug);
+
+    let productIdAsBigInt: bigint | null = null;
+    let slug: string | null = null;
+
+    if (isId) {
+        productIdAsBigInt = parsePositiveBigInt(productIdOrSlug, "id");
+    } else {
+        slug = productIdOrSlug;
+    }
+
+    const cacheKey = isId
+        ? buildProductDetailCacheKey(productIdAsBigInt!)
+        : `catalog:product:detail:slug:${slug}`;
+
     const cached = await getJsonCache<publicProductDetailResponse>(cacheKey);
 
-    // Cache hit giúp bỏ qua truy vấn detail gồm product, images và shop.
     if (cached.status === "HIT" && cached.value) {
         return {
             ...cached.value,
@@ -915,19 +928,25 @@ export async function getPublicProductDetail(productId: string): Promise<publicP
         };
     }
 
-    const product = await findPublicProductDetailById(productIdAsBigInt);
+    const product = isId
+        ? await findPublicProductDetailById(productIdAsBigInt!)
+        : await findPublicProductDetailBySlug(slug!);
 
     if (!product) {
         throw new HttpError(404, "Sản phẩm không tồn tại", {
             code: "PRODUCT_NOT_FOUND",
-            hint: "Kiểm tra lại id sản phẩm",
+            hint: "Kiểm tra lại id hoặc slug sản phẩm",
         });
     }
 
     const response = toPublicProductDetailResponse(product);
 
-    // Không cache lỗi 404; chỉ cache detail khi product tồn tại và đang public.
     await setJsonCache(cacheKey, response, PRODUCT_DETAIL_TTL_SECONDS);
+
+    if (!isId) {
+        const idCacheKey = buildProductDetailCacheKey(product.id);
+        await setJsonCache(idCacheKey, response, PRODUCT_DETAIL_TTL_SECONDS);
+    }
 
     return {
         ...response,
