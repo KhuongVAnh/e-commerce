@@ -2,9 +2,11 @@ import { NextFunction, Request, Response, Router } from "express";
 import {
     createProductController,
     deleteProductController,
+    getSellerProductDetailController,
     listPublicProductsByIdsController,
     getPublicProductDetailController,
     listPublicProductsController,
+    listSellerProductsController,
     updateProductController,
     updateProductStockController,
     decrementStockInternalController,
@@ -29,6 +31,20 @@ function asyncHandler(
         handler(req, res, next).catch(next);
     };
 }
+
+router.get(
+    "/seller/products",
+    authMiddleware,
+    roleMiddleware(["SELLER"]),
+    asyncHandler(listSellerProductsController),
+);
+
+router.get(
+    "/seller/products/:productId",
+    authMiddleware,
+    roleMiddleware(["SELLER"]),
+    asyncHandler(getSellerProductDetailController),
+);
 
 router.get(
     "/products",
