@@ -18,11 +18,13 @@ export const buildQueryString = (params = {}) => {
   return query.toString();
 };
 
-// Một số service trả pagination trong data, một số trả trong meta; helper này gom về một shape.
+// Một số service trả pagination trong payload, một số trả trong meta; helper này gom về một shape.
 export const getPagination = (res) => ({
   ...DEFAULT_PAGINATION,
+  ...(res?.pagination || {}),
   ...(res?.data?.pagination || {}),
   ...(res?.meta?.pagination || {}),
+  ...(res?.data?.meta?.pagination || {}),
 });
 
 // Axios interceptor có thể trả về error gốc hoặc body API lỗi; helper này đọc cả hai dạng.
