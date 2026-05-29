@@ -169,12 +169,6 @@ const Checkout = () => {
 
   if (!previewData) return null;
 
-  // === TÍNH TOÁN FREESHIP ===
-  const subtotal = Number(previewData.pricing.subtotal) || 0;
-  const isFreeShipping = subtotal >= 1000000;
-  const shippingFee = isFreeShipping ? 0 : (Number(previewData.pricing.shippingFee) || 30000); 
-  const grandTotal = subtotal + shippingFee;
-
   return (
     <main className="pt-8 pb-24 px-6 md:px-12 max-w-screen-2xl mx-auto font-['Inter'] relative">
       
@@ -306,31 +300,18 @@ const Checkout = () => {
               <div className="space-y-3 mb-8 border-t border-white/20 pt-8 font-medium">
                 <div className="flex justify-between text-sm opacity-90">
                   <span>Tạm tính</span>
-                  <span>{subtotal.toLocaleString('vi-VN')} ₫</span>
+                  <span>{Number(previewData.pricing.subtotal).toLocaleString('vi-VN')} ₫</span>
                 </div>
                 
                 <div className="flex justify-between text-sm opacity-90 items-center">
                   <span>Phí vận chuyển</span>
-                  {isFreeShipping ? (
-                    <span className="text-green-300 font-bold flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                      Miễn phí
-                    </span>
-                  ) : (
-                    <span>{shippingFee.toLocaleString('vi-VN')} ₫</span>
-                  )}
+                  <span className="text-green-300 font-bold">{previewData.pricing.shippingFee === 0 ? 'Miễn phí' : `${Number(previewData.pricing.shippingFee).toLocaleString('vi-VN')} ₫`}</span>
                 </div>
-
-                {!isFreeShipping && subtotal > 0 && (
-                  <div className="mt-2 text-[10px] text-yellow-300 text-right opacity-90 italic">
-                    Mua thêm {(1000000 - subtotal).toLocaleString('vi-VN')}đ để được Freeship
-                  </div>
-                )}
               </div>
               
               <div className="flex justify-between items-end mb-10">
                 <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Tổng Thanh Toán</span>
-                <span className="text-4xl font-black tracking-tighter">{grandTotal.toLocaleString('vi-VN')} <span className="text-sm align-top">₫</span></span>
+                <span className="text-4xl font-black tracking-tighter">{Number(previewData.pricing.grandTotal).toLocaleString('vi-VN')} <span className="text-sm align-top">₫</span></span>
               </div>
               
               {/* Nút đặt hàng */}
