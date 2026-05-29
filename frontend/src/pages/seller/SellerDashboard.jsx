@@ -28,8 +28,7 @@ const SellerDashboard = () => {
         if (dateRange.to) queryParams.append('to', new Date(dateRange.to).toISOString());
 
         const promises = [axiosClient.get(`/commerce/seller/revenue-summary?${queryParams.toString()}`)];
-        if (myShopId) promises.push(axiosClient.get(`/catalog/products?shopId=${myShopId}&limit=1`));
-
+        if (myShopId) promises.push(axiosClient.get(`/catalog/shops/${myShopId}`));
         const results = await Promise.allSettled(promises);
         const summaryRes = results[0];
         const productsRes = results.length > 1 ? results[1] : null;
