@@ -35,6 +35,7 @@ export type listProductQuery = {
     q?: string;
     shopId?: string;
     categoryId?: string;
+    status?: string;
     minPrice?: string;
     maxPrice?: string;
     sortBy?: string;

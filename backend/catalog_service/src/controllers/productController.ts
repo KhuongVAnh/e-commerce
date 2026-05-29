@@ -2,8 +2,10 @@ import { NextFunction, Request, Response } from "express";
 import {
     createProduct,
     getPublicProductDetail,
+    getSellerProductDetail,
     listPublicProductsByIds,
     listPublicProducts,
+    listSellerProducts,
     softDeleteProduct,
     updateProduct,
     updateProductStock,
@@ -113,6 +115,32 @@ export async function listPublicProductsController(req: Request, res: Response, 
     });
 }
 
+export async function listSellerProductsController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    // Seller list dùng endpoint quản trị nên cho phép lọc cả product đang ẩn/hết hàng.
+    // Controller chỉ gom query thô; service chịu trách nhiệm validate và dựng Prisma where/orderBy.
+    const query: listProductQuery = {
+        page: readQueryValue(req.query.page),
+        limit: readQueryValue(req.query.limit),
+        keyword: readQueryValue(req.query.keyword),
+        q: readQueryValue(req.query.q),
+        categoryId: readQueryValue(req.query.categoryId),
+        status: readQueryValue(req.query.status),
+        minPrice: readQueryValue(req.query.minPrice),
+        maxPrice: readQueryValue(req.query.maxPrice),
+        sortBy: readQueryValue(req.query.sortBy),
+    };
+
+    const data = await listSellerProducts(req.authUser!.userId, query);
+
+    sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Lấy danh sách sản phẩm của seller thành công",
+        data,
+        pagination: data.pagination,
+        filters: data.filters,
+    });
+}
+
 export async function getPublicProductDetailController(req: Request, res: Response, _next: NextFunction): Promise<void> {
     const data = await getPublicProductDetail(readProductId(req));
     const { cacheStatus, ...responseData } = data;
@@ -122,6 +150,16 @@ export async function getPublicProductDetailController(req: Request, res: Respon
         requestId: res.locals.requestId,
         message: "Lấy chi tiết sản phẩm thành công",
         data: responseData,
+    });
+}
+
+export async function getSellerProductDetailController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const data = await getSellerProductDetail(req.authUser!.userId, readProductId(req));
+
+    sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Lấy chi tiết sản phẩm của seller thành công",
+        data,
     });
 }
 

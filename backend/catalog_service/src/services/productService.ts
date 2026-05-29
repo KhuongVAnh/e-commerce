@@ -31,6 +31,9 @@ import {
 
 const SELLER_EDITABLE_STATUSES = ["ACTIVE", "INACTIVE", "OUT_OF_STOCK"] as const;
 type SellerEditableStatus = (typeof SELLER_EDITABLE_STATUSES)[number];
+// Sort riêng cho seller list vì màn hình quản trị cần sắp theo tồn kho/tên ngoài các kiểu public.
+const SELLER_PRODUCT_SORT_OPTIONS = ["latest", "oldest", "price_asc", "price_desc", "stock_asc", "stock_desc", "name_asc", "name_desc"] as const;
+type SellerProductSortBy = (typeof SELLER_PRODUCT_SORT_OPTIONS)[number];
 
 type ProductWithRelations = Prisma.ProductGetPayload<{
     include: {
@@ -550,6 +553,32 @@ function isPublicProductSortBy(value: string): value is PublicProductSortBy {
     return PUBLIC_PRODUCT_SORT_OPTIONS.includes(value as PublicProductSortBy);
 }
 
+function isSellerProductSortBy(value: string): value is SellerProductSortBy {
+    return SELLER_PRODUCT_SORT_OPTIONS.includes(value as SellerProductSortBy);
+}
+
+function buildSellerProductOrderBy(sortBy: SellerProductSortBy): Prisma.ProductOrderByWithRelationInput[] {
+    // Luôn thêm id làm tie-breaker để thứ tự phân trang ổn định khi nhiều product có cùng giá/tồn kho/tên.
+    switch (sortBy) {
+        case "price_asc":
+            return [{ price: "asc" }, { id: "asc" }];
+        case "price_desc":
+            return [{ price: "desc" }, { id: "asc" }];
+        case "stock_asc":
+            return [{ stockQuantity: "asc" }, { id: "asc" }];
+        case "stock_desc":
+            return [{ stockQuantity: "desc" }, { id: "asc" }];
+        case "name_asc":
+            return [{ name: "asc" }, { id: "asc" }];
+        case "name_desc":
+            return [{ name: "desc" }, { id: "asc" }];
+        case "oldest":
+            return [{ createdAt: "asc" }, { id: "asc" }];
+        default:
+            return [{ createdAt: "desc" }, { id: "asc" }];
+    }
+}
+
 function assertPublicListProductQuery(query: listProductQuery): {
     page: number;
     limit: number;
@@ -853,6 +882,216 @@ type PublicProductListResponse = {
         sortBy: PublicProductSortBy;
     };
 };
+
+type SellerProductListResponse = {
+    products: productResponse[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    };
+    filters: {
+        keyword: string | null;
+        categoryId: number | null;
+        status: SellerEditableStatus | null;
+        minPrice: number | null;
+        maxPrice: number | null;
+        sortBy: SellerProductSortBy;
+    };
+};
+
+function assertSellerListProductQuery(query: listProductQuery): {
+    page: number;
+    limit: number;
+    keyword?: string;
+    categoryId?: bigint;
+    status?: SellerEditableStatus;
+    minPrice?: Prisma.Decimal;
+    maxPrice?: Prisma.Decimal;
+    sortBy: SellerProductSortBy;
+} {
+    // Validate toàn bộ query trước khi query DB để trả fieldErrors rõ ràng cho FE.
+    const fieldErrors: Array<{ field: string; message: string }> = [];
+    const rawPage = typeof query.page === "string" ? query.page.trim() : "";
+    const rawLimit = typeof query.limit === "string" ? query.limit.trim() : "";
+    const rawCategoryId = typeof query.categoryId === "string" ? query.categoryId.trim() : "";
+    const rawStatus = typeof query.status === "string" ? query.status.trim() : "";
+    const rawKeyword = typeof query.keyword === "string"
+        ? query.keyword.trim()
+        : typeof query.q === "string"
+            ? query.q.trim()
+            : "";
+    const rawMinPrice = typeof query.minPrice === "string" ? query.minPrice.trim() : "";
+    const rawMaxPrice = typeof query.maxPrice === "string" ? query.maxPrice.trim() : "";
+    const rawSortBy = typeof query.sortBy === "string" ? query.sortBy.trim() : "";
+
+    let page = 1;
+    if (rawPage) {
+        const parsedPage = Number(rawPage);
+        if (!Number.isInteger(parsedPage) || parsedPage < 1) {
+            fieldErrors.push({ field: "page", message: "page phải là số nguyên dương" });
+        } else {
+            page = parsedPage;
+        }
+    }
+
+    let limit = 10;
+    if (rawLimit) {
+        const parsedLimit = Number(rawLimit);
+        if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+            fieldErrors.push({ field: "limit", message: "limit phải là số nguyên trong khoảng 1-100" });
+        } else {
+            limit = parsedLimit;
+        }
+    }
+
+    let categoryId: bigint | undefined;
+    if (rawCategoryId) {
+        try {
+            categoryId = parsePositiveBigInt(rawCategoryId, "categoryId");
+        } catch {
+            fieldErrors.push({ field: "categoryId", message: "categoryId phải là số nguyên dương" });
+        }
+    }
+
+    let status: SellerEditableStatus | undefined;
+    if (rawStatus) {
+        // Seller list chỉ cho lọc các trạng thái còn quản trị được; DELETED vẫn là soft-delete nội bộ.
+        if (!isSellerEditableStatus(rawStatus)) {
+            fieldErrors.push({
+                field: "status",
+                message: `status phải là một trong các giá trị: ${SELLER_EDITABLE_STATUSES.join(", ")}`,
+            });
+        } else {
+            status = rawStatus;
+        }
+    }
+
+    let minPrice: Prisma.Decimal | undefined;
+    if (rawMinPrice) {
+        try {
+            minPrice = parseNonNegativePrice(rawMinPrice, "minPrice");
+        } catch {
+            fieldErrors.push({ field: "minPrice", message: "minPrice phải là số không âm" });
+        }
+    }
+
+    let maxPrice: Prisma.Decimal | undefined;
+    if (rawMaxPrice) {
+        try {
+            maxPrice = parseNonNegativePrice(rawMaxPrice, "maxPrice");
+        } catch {
+            fieldErrors.push({ field: "maxPrice", message: "maxPrice phải là số không âm" });
+        }
+    }
+
+    if (minPrice !== undefined && maxPrice !== undefined && minPrice.gt(maxPrice)) {
+        fieldErrors.push({ field: "minPrice", message: "minPrice phải nhỏ hơn hoặc bằng maxPrice" });
+    }
+
+    let sortBy: SellerProductSortBy = "latest";
+    if (rawSortBy) {
+        if (!isSellerProductSortBy(rawSortBy)) {
+            fieldErrors.push({
+                field: "sortBy",
+                message: `sortBy phải là một trong các giá trị: ${SELLER_PRODUCT_SORT_OPTIONS.join(", ")}`,
+            });
+        } else {
+            sortBy = rawSortBy;
+        }
+    }
+
+    if (fieldErrors.length > 0) {
+        throw new HttpError(400, "Dữ liệu không hợp lệ", {
+            code: "VALIDATION_ERROR",
+            fieldErrors,
+        });
+    }
+
+    return {
+        page,
+        limit,
+        keyword: rawKeyword || undefined,
+        categoryId,
+        status,
+        minPrice,
+        maxPrice,
+        sortBy,
+    };
+}
+
+export async function listSellerProducts(sellerId: string, query: listProductQuery): Promise<SellerProductListResponse> {
+    const sellerIdAsBigInt = parsePositiveBigInt(sellerId, "sellerId");
+    const payload = assertSellerListProductQuery(query);
+
+    // Seller không được thấy product đã soft delete, nhưng có thể lọc các trạng thái còn quản trị được.
+    const where: Prisma.ProductWhereInput = {
+        deletedAt: null,
+        ...(payload.status ? { status: payload.status } : { status: { not: "DELETED" } }),
+        ...(payload.categoryId !== undefined ? { categoryId: payload.categoryId } : {}),
+        ...(payload.minPrice !== undefined || payload.maxPrice !== undefined
+            ? {
+                price: {
+                    ...(payload.minPrice !== undefined ? { gte: payload.minPrice } : {}),
+                    ...(payload.maxPrice !== undefined ? { lte: payload.maxPrice } : {}),
+                },
+            }
+            : {}),
+        shop: {
+            sellerId: sellerIdAsBigInt,
+        },
+        ...(payload.keyword
+            ? {
+                OR: [
+                    { name: { contains: payload.keyword, mode: "insensitive" } },
+                    { description: { contains: payload.keyword, mode: "insensitive" } },
+                    { slug: { contains: payload.keyword, mode: "insensitive" } },
+                ],
+            }
+            : {}),
+    };
+
+    const [total, products] = await prisma.$transaction([
+        prisma.product.count({ where }),
+        prisma.product.findMany({
+            where,
+            include: PRODUCT_INCLUDE,
+            orderBy: buildSellerProductOrderBy(payload.sortBy),
+            skip: (payload.page - 1) * payload.limit,
+            take: payload.limit,
+        }),
+    ]);
+
+    return {
+        products: products.map(toProductResponse),
+        pagination: {
+            page: payload.page,
+            limit: payload.limit,
+            total,
+            totalPages: total === 0 ? 0 : Math.ceil(total / payload.limit),
+        },
+        filters: {
+            keyword: payload.keyword ?? null,
+            categoryId: payload.categoryId !== undefined ? Number(payload.categoryId) : null,
+            status: payload.status ?? null,
+            minPrice: payload.minPrice !== undefined ? Number(payload.minPrice) : null,
+            maxPrice: payload.maxPrice !== undefined ? Number(payload.maxPrice) : null,
+            sortBy: payload.sortBy,
+        },
+    };
+}
+
+export async function getSellerProductDetail(sellerId: string, productId: string) {
+    const sellerIdAsBigInt = parsePositiveBigInt(sellerId, "sellerId");
+    const productIdAsBigInt = parsePositiveBigInt(productId, "productId");
+    const product = await findOwnedProduct(productIdAsBigInt, sellerIdAsBigInt);
+    assertProductNotDeleted(product);
+
+    return {
+        product: toProductResponse(product),
+    };
+}
 
 // Hàm này trả danh sách product public và cache theo query đã normalize.
 export async function listPublicProducts(query: listProductQuery): Promise<PublicProductListResponse & {
