@@ -7,6 +7,9 @@ export const orderService = {
   getOrderDetail: (id) => {
     return axiosClient.get(`/commerce/orders/${id}`);
   },
+  getPaymentUrl: (orderCode) => {
+    return axiosClient.get(`/commerce/orders/${orderCode}/payment-url`);
+  },
   cancelOrder: (orderCode) => {
     return axiosClient.post(`/commerce/orders/${orderCode}/cancel`);
   }

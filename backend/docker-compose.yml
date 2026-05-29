@@ -125,7 +125,7 @@ services:
       VNP_HASH_SECRET: "HRQHV5NUWC27Q3CG5IU554RCJSY9NFDL"
       VNP_URL: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
       CORS_ALLOWED_ORIGINS: "http://localhost:5173"
-      ROUTE_CHECKOUT: "/checkout"
+      ROUTE_CHECKOUT: "/payment-return"
       KAFKA_BROKERS: kafka:29092
       REDIS_URL: redis://redis:6379
     depends_on:

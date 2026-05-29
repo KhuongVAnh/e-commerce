@@ -245,6 +245,7 @@ export async function processIpn(vnpParams: Record<string, any>): Promise<{ code
 
     const orderCode = normalizedParams["vnp_TxnRef"]?.trim();
     const rspCode = normalizedParams["vnp_ResponseCode"];
+    const transactionStatus = normalizedParams["vnp_TransactionStatus"];
     const amountRaw = Number(normalizedParams["vnp_Amount"]);
 
     if (!orderCode) {
@@ -281,7 +282,7 @@ export async function processIpn(vnpParams: Record<string, any>): Promise<{ code
     }
 
     // 5. Cập nhật DB dựa trên kết quả
-    const isSuccess = rspCode === "00"; // "00" là thành công
+    const isSuccess = rspCode === "00" && transactionStatus === "00"; // VNPay chỉ thành công khi cả 2 mã đều là "00".
     const newTransactionStatus = isSuccess ? TransactionStatus.SUCCESS : TransactionStatus.FAILED;
 
     // Nếu thành công, chuyển đơn sang PROCESSING. Nếu lỗi, có thể giữ nguyên PENDING hoặc chuyển sang CANCELLED/AWAITING_PAYMENT
@@ -294,6 +295,8 @@ export async function processIpn(vnpParams: Record<string, any>): Promise<{ code
         // IPN có thể được VNPay retry hoặc có thể đến song song.
         // updateMany có điều kiện status=PENDING đóng vai trò "claim": chỉ request đầu tiên đổi được trạng thái payment.
         await prisma.$transaction(async (tx) => {
+            const transactionRef = normalizedParams["vnp_TransactionNo"]?.trim();
+
             const updatedPayment = await tx.payment.updateMany({
                 where: {
                     id: payment.id,
@@ -301,7 +304,7 @@ export async function processIpn(vnpParams: Record<string, any>): Promise<{ code
                 },
                 data: {
                     status: newTransactionStatus,
-                    transactionRef: normalizedParams["vnp_TransactionNo"],
+                    transactionRef: transactionRef && transactionRef !== "0" ? transactionRef : null,
                     providerResponse: JSON.stringify(normalizedParams), // Lưu response đã normalize để đối soát/debug khi cần.
                 },
             });
