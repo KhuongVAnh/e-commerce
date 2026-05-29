@@ -7,33 +7,28 @@ const useAuthStore = create((set) => ({
   isAuthReady: false,
 
   //1: Lưu thông tin khi Login thành công
-  setAuthData: (userData, accessToken) => {
-    localStorage.setItem('accessToken', accessToken);
+  setAuthData: (userData) => {
     localStorage.setItem('userRole', userData.role);
-    
     set({ user: userData, isAuthenticated: true });
   },
 
   //2: Xóa thông tin khi Logout
   clearAuthData: () => {
-    localStorage.removeItem('accessToken');
     localStorage.removeItem('userRole');
     set({ user: null, isAuthenticated: false, isAuthReady: true });
   },
 
   initializeAuth: async () => {
-    const token = localStorage.getItem('accessToken');
-
-    if (!token) {
-      set({ user: null, isAuthenticated: false, isAuthReady: true });
-      return;
-    }
-
     try {
       const res = await authService.getMe();
-      set({ user: res.data.user, isAuthenticated: true, isAuthReady: true });
+      // axiosClient trả về res.data là payload nghiệp vụ chứa user
+      const user = res.data?.user || res.data;
+      if (user) {
+        set({ user, isAuthenticated: true, isAuthReady: true });
+      } else {
+        throw new Error("No user data found");
+      }
     } catch {
-      localStorage.removeItem('accessToken');
       localStorage.removeItem('userRole');
       set({ user: null, isAuthenticated: false, isAuthReady: true });
     }

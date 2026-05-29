@@ -168,7 +168,7 @@ const Cart = () => {
       <div className="py-24 text-center min-h-screen">
         <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">shopping_cart_off</span>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Giỏ hàng của bạn đang trống</h2>
-        <p className="text-gray-500 mb-8">Hãy tiếp tục khám phá những sản phẩm thủ công độc đáo nhé.</p>
+        <p className="text-gray-500 mb-8">Hãy tiếp tục mua sắm những sản phẩm chất lượng nhé.</p>
         <Link to="/products" className="px-8 py-3 bg-[#2b3896] text-white font-bold rounded-full hover:bg-[#1f2970] transition-colors">
           Tiếp tục mua sắm
         </Link>

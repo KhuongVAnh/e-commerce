@@ -157,7 +157,7 @@ const NotificationBell = ({ className = '' }) => {
       >
         <Bell size={21} fill={isOpen ? 'currentColor' : 'none'} strokeWidth={2.3} />
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-extrabold leading-none text-white ring-2 ring-white">
+          <span className="absolute -top-1 -right-2 bg-[#2b3896] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white shadow-sm">
             {displayUnread}
           </span>
         )}

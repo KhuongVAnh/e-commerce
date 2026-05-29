@@ -42,9 +42,8 @@ const Login = () => {
       const res = await authService.login(formData.email, formData.password, role);
       
       const userData = res.data.user;
-      const accessToken = res.data.tokens.accessToken;
 
-      setAuthData(userData, accessToken);
+      setAuthData(userData);
 
       // Điều hướng theo Role
       if (userData.role === 'ADMIN') {

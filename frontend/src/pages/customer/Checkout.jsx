@@ -173,7 +173,7 @@ const Checkout = () => {
 
       <header className="mb-12">
         <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-[#2b3896] mb-2 font-headline">Thanh Toán</h1>
-        <p className="text-gray-500 font-medium">Hoàn tất các bước cuối cùng để sở hữu những sản phẩm thủ công tuyệt vời.</p>
+        <p className="text-gray-500 font-medium">Hoàn tất các bước cuối cùng để sở hữu những sản phẩm tuyệt vời của bạn.</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

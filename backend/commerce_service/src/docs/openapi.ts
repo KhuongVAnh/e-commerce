@@ -549,6 +549,8 @@ const openApiDocument = {
           { name: "paymentMethod", in: "query", schema: { type: "string" } },
           { name: "shopId", in: "query", schema: { type: "integer" } },
           { name: "customerId", in: "query", schema: { type: "integer" } },
+          { name: "from", in: "query", schema: { type: "string" }, description: "ISO 8601 Date/Datetime bat dau" },
+          { name: "to", in: "query", schema: { type: "string" }, description: "ISO 8601 Date/Datetime ket thuc" },
         ],
         responses: {
           "200": {
