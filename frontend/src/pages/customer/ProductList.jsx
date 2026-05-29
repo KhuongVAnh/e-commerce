@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/useAuthStore';
@@ -21,6 +21,80 @@ const ProductList = () => {
   const token = localStorage.getItem('accessToken') || '';
   const { fetchCartTotal } = useCartStore();
 
+  const absoluteMin = 0;
+  const absoluteMax = 10000;
+  
+  const [minPrice, setMinPrice] = useState(absoluteMin);
+  const [maxPrice, setMaxPrice] = useState(absoluteMax);
+
+  const parseSafeValue = (val, fallback) => {
+    if (val === '' || val === null || val === undefined) return fallback;
+    const num = Number(val);
+    return isNaN(num) ? fallback : num;
+  };
+
+  const handleMinSliderChange = (e) => {
+    const currentMax = parseSafeValue(maxPrice, absoluteMax);
+    const value = Math.min(Number(e.target.value), currentMax - 100); 
+    setMinPrice(value);
+  };
+
+  const handleMaxSliderChange = (e) => {
+    const currentMin = parseSafeValue(minPrice, absoluteMin);
+    const value = Math.max(Number(e.target.value), currentMin + 100); 
+    setMaxPrice(value);
+  };
+
+  const handleMinInputChange = (e) => {
+    const val = e.target.value;
+    if (val.includes('-')) return;
+
+    if (val === '') {
+      setMinPrice('');
+      return;
+    }
+
+    const numValue = Number(val);
+    if (!isNaN(numValue)) {
+      setMinPrice(numValue);
+    }
+  };
+
+  const handleMaxInputChange = (e) => {
+    const val = e.target.value;
+    if (val.includes('-')) return;
+
+    if (val === '') {
+      setMaxPrice('');
+      return;
+    }
+
+    const numValue = Number(val);
+    if (!isNaN(numValue)) {
+      setMaxPrice(numValue);
+    }
+  };
+
+  const handleInputBlur = () => {
+    let currentMin = parseSafeValue(minPrice, absoluteMin);
+    let currentMax = parseSafeValue(maxPrice, absoluteMax);
+
+    if (currentMin < absoluteMin) currentMin = absoluteMin;
+    if (currentMax > absoluteMax) currentMax = absoluteMax;
+
+    if (currentMin >= currentMax) {
+      currentMin = Math.max(absoluteMin, currentMax - 100);
+    }
+
+    setMinPrice(currentMin);
+    setMaxPrice(currentMax);
+  };
+
+  const safeMinForPercent = parseSafeValue(minPrice, absoluteMin);
+  const safeMaxForPercent = parseSafeValue(maxPrice, absoluteMax);
+  const minPercent = ((safeMinForPercent - absoluteMin) / (absoluteMax - absoluteMin)) * 100;
+  const maxPercent = ((safeMaxForPercent - absoluteMin) / (absoluteMax - absoluteMin)) * 100;
+
   const handleAddToCart = async (e, productId) => {
     e.preventDefault();
     
@@ -42,7 +116,7 @@ const ProductList = () => {
       const result = await res.json();
       if (res.ok && (result.success || result.data)) {
         toast.success("Đã thêm sản phẩm vào giỏ hàng!");
-        if (fetchCartTotal) fetchCartTotal(); // 👈 Gọi hàm này để số giỏ hàng tự động tăng
+        if (fetchCartTotal) fetchCartTotal(); 
       } else {
         toast.error(result.message || "Không thể thêm vào giỏ hàng");
       }
@@ -77,6 +151,12 @@ const ProductList = () => {
         if (searchFromUrl) queryParams.append('q', searchFromUrl);
         if (categoryIdFromUrl) queryParams.append('categoryId', categoryIdFromUrl);
 
+        const finalMin = parseSafeValue(minPrice, absoluteMin);
+        const finalMax = parseSafeValue(maxPrice, absoluteMax);
+        
+        queryParams.append('minPrice', finalMin * 1000);
+        queryParams.append('maxPrice', finalMax * 1000);
+
         const response = await fetch(`http://localhost:3000/api/catalog/products?${queryParams.toString()}`);
         const result = await response.json();
 
@@ -94,8 +174,12 @@ const ProductList = () => {
       }
     };
 
-    fetchProducts();
-  }, [searchFromUrl, categoryIdFromUrl]);
+    const delayDebounceFn = setTimeout(() => {
+      fetchProducts();
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchFromUrl, categoryIdFromUrl, minPrice, maxPrice]);
 
   const handleCategoryChange = (categoryId) => {
     const currentParams = new URLSearchParams(searchParams);
@@ -151,15 +235,87 @@ const ProductList = () => {
             )}
           </div>
 
-          {/* Khoảng giá (Giữ tĩnh tạm thời) */}
+          {/* KHOẢNG GIÁ KÉP */}
           <div className="space-y-4">
-            <h3 className="font-bold text-[#2b3896]">Khoảng giá</h3>
+            <h3 className="font-bold text-[#2b3896]">Khoảng giá (Nghìn ₫)</h3>
             <div className="px-2">
-              <input type="range" min="0" max="10000000" step="100000" className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#2b3896]" />
-              <div className="flex justify-between mt-2 text-xs font-semibold text-gray-500">
-                <span>0₫</span>
-                <span>10Tr₫</span>
+
+              <div className="relative h-2 rounded-lg bg-gray-200 w-full mb-6">
+                 <div 
+                    className="absolute h-full bg-[#2b3896] rounded-lg"
+                    style={{ left: `${minPercent}%`, right: `${100 - maxPercent}%` }}
+                 ></div>
+
+                 <input 
+                    type="range" 
+                    min={absoluteMin} 
+                    max={absoluteMax} 
+                    step="10" 
+                    value={minPrice}
+                    onChange={handleMinSliderChange}
+                    className="absolute w-full -top-1 h-4 appearance-none bg-transparent pointer-events-none z-20"
+                    style={{ WebkitAppearance: 'none' }}
+                 />
+
+                 <input 
+                    type="range" 
+                    min={absoluteMin} 
+                    max={absoluteMax} 
+                    step="10" 
+                    value={maxPrice}
+                    onChange={handleMaxSliderChange}
+                    className="absolute w-full -top-1 h-4 appearance-none bg-transparent pointer-events-none z-30"
+                    style={{ WebkitAppearance: 'none' }}
+                 />
+                 
+                 <style dangerouslySetInnerHTML={{__html: `
+                    input[type=range]::-webkit-slider-thumb {
+                        pointer-events: auto;
+                        -webkit-appearance: none;
+                        width: 16px;
+                        height: 16px;
+                        border-radius: 50%;
+                        background: #2b3896;
+                        cursor: pointer;
+                        box-shadow: 0 0 0 2px white;
+                    }
+                    input[type=range]::-moz-range-thumb {
+                        pointer-events: auto;
+                        width: 16px;
+                        height: 16px;
+                        border-radius: 50%;
+                        background: #2b3896;
+                        cursor: pointer;
+                        border: 2px solid white;
+                    }
+                 `}} />
               </div>
+
+              {/* Ô nhập liệu */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    value={minPrice} 
+                    onChange={handleMinInputChange}
+                    onBlur={handleInputBlur}
+                    className="w-full text-center text-sm font-semibold text-gray-700 border border-gray-300 rounded-md py-1.5 focus:border-[#2b3896] focus:ring-1 focus:ring-[#2b3896] outline-none"
+                  />
+                  <span className="absolute right-2 top-1.5 text-xs text-gray-400">k</span>
+                </div>
+                <span className="text-gray-400 font-bold">-</span>
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    value={maxPrice} 
+                    onChange={handleMaxInputChange}
+                    onBlur={handleInputBlur}
+                    className="w-full text-center text-sm font-semibold text-gray-700 border border-gray-300 rounded-md py-1.5 focus:border-[#2b3896] focus:ring-1 focus:ring-[#2b3896] outline-none"
+                  />
+                  <span className="absolute right-2 top-1.5 text-xs text-gray-400">k</span>
+                </div>
+              </div>
+
             </div>
           </div>
         </aside>
@@ -195,7 +351,7 @@ const ProductList = () => {
             <div className="py-20 text-center">
               <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">search_off</span>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Không tìm thấy sản phẩm</h2>
-              <p className="text-gray-500">Vui lòng thử lại với danh mục hoặc từ khóa khác.</p>
+              <p className="text-gray-500">Vui lòng thử lại với danh mục hoặc khoảng giá khác.</p>
             </div>
           )}
 
@@ -229,7 +385,7 @@ const ProductList = () => {
                         {Number(product.price).toLocaleString('vi-VN')}<span className="text-xs align-top ml-0.5 opacity-80">₫</span>
                       </div>
                       <button 
-                        onClick={(e) => handleAddToCart(e, product.id)} // GẮN HÀM VÀO ĐÂY
+                        onClick={(e) => handleAddToCart(e, product.id)}
                         disabled={product.stockQuantity === 0}
                         className="w-10 h-10 rounded-xl bg-[#2b3896] text-white flex items-center justify-center hover:bg-[#1f2970] active:scale-90 transition-transform shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                       >
