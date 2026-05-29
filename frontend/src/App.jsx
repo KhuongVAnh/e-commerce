@@ -37,6 +37,7 @@ import ShopList from './pages/customer/ShopList';
 import ShopDetail from './pages/customer/ShopDetail';
 import Notifications from './pages/notifications/Notifications';
 import NotificationDetail from './pages/notifications/NotificationDetail';
+import Profile from './pages/customer/Profile';
 
 const Unauthorized = () => (
   <div className="p-10 text-center text-red-500 font-bold text-2xl">
@@ -85,6 +86,7 @@ function App() {
           <Route path="shop" element={<ShopList />} />
           <Route path="shop/:slug" element={<ShopDetail />} />
           <Route element={<ProtectedRoute />}>
+            <Route path="profile" element={<Profile />} />
             <Route path="cart" element={<Cart />} />
             <Route path="checkout" element={<Checkout />} />
             <Route path="orders" element={<OrderList />} />
