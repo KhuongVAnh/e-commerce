@@ -4,6 +4,7 @@ import { sendSuccess } from "../utils/http";
 
 const REFRESH_TOKEN_COOKIE_NAME = process.env.REFRESH_TOKEN_COOKIE_NAME || "refreshToken";
 const REFRESH_TOKEN_COOKIE_PATH = process.env.REFRESH_TOKEN_COOKIE_PATH || "/api/auth";
+const ACCESS_TOKEN_COOKIE_NAME = "accessToken";
 
 function getBaseRefreshCookieOptions(): Pick<CookieOptions, "httpOnly" | "secure" | "sameSite" | "path"> {
   return {
@@ -11,6 +12,15 @@ function getBaseRefreshCookieOptions(): Pick<CookieOptions, "httpOnly" | "secure
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: REFRESH_TOKEN_COOKIE_PATH,
+  };
+}
+
+function getBaseAccessCookieOptions(): Pick<CookieOptions, "httpOnly" | "secure" | "sameSite" | "path"> {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/", // Cần gửi cookie này cho toàn bộ API Gateway
   };
 }
 
@@ -23,6 +33,20 @@ function getRefreshCookieOptions(refreshExpiresAtIso: string): CookieOptions {
 
   return {
     ...getBaseRefreshCookieOptions(),
+    expires: expiresAt,
+    maxAge: Math.max(0, expiresAt.getTime() - Date.now()),
+  };
+}
+
+function getAccessCookieOptions(accessExpiresAtIso: string): CookieOptions {
+  const expiresAt = new Date(accessExpiresAtIso);
+
+  if (Number.isNaN(expiresAt.getTime())) {
+    return getBaseAccessCookieOptions();
+  }
+
+  return {
+    ...getBaseAccessCookieOptions(),
     expires: expiresAt,
     maxAge: Math.max(0, expiresAt.getTime() - Date.now()),
   };
@@ -50,9 +74,10 @@ export async function registerController(req: Request, res: Response, _next: Nex
 
 export async function loginController(req: Request, res: Response, _next: NextFunction): Promise<void> {
   const data = await login(req.body);
-  const { refreshToken, ...safeTokens } = data.tokens;
+  const { refreshToken, accessToken, ...safeTokens } = data.tokens;
 
   res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, getRefreshCookieOptions(data.tokens.refreshExpiresAt));
+  res.cookie(ACCESS_TOKEN_COOKIE_NAME, accessToken, getAccessCookieOptions(data.tokens.accessExpiresAt));
 
   sendSuccess(res, {
     requestId: res.locals.requestId,
@@ -66,9 +91,10 @@ export async function loginController(req: Request, res: Response, _next: NextFu
 
 export async function refreshController(req: Request, res: Response, _next: NextFunction): Promise<void> {
   const data = await refresh({ refreshToken: getRefreshTokenFromRequest(req) });
-  const { refreshToken, ...safeTokens } = data.tokens;
+  const { refreshToken, accessToken, ...safeTokens } = data.tokens;
 
   res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, getRefreshCookieOptions(data.tokens.refreshExpiresAt));
+  res.cookie(ACCESS_TOKEN_COOKIE_NAME, accessToken, getAccessCookieOptions(data.tokens.accessExpiresAt));
 
   sendSuccess(res, {
     requestId: res.locals.requestId,
@@ -83,6 +109,7 @@ export async function logoutController(req: Request, res: Response, _next: NextF
   const data = await logout({ refreshToken: getRefreshTokenFromRequest(req) });
 
   res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, getBaseRefreshCookieOptions());
+  res.clearCookie(ACCESS_TOKEN_COOKIE_NAME, getBaseAccessCookieOptions());
 
   sendSuccess(res, {
     requestId: res.locals.requestId,

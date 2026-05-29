@@ -10,8 +10,21 @@ export function createServiceProxy(target: string) {
             // Gắn thêm header Authorization và x-request-id vào request gửi đi, nếu chúng tồn tại ở request gốc
             // thư viện sẽ tự gọi hàm này trước khi gửi req đi với 3 tham
             proxyReq(proxyReq: any, req: Request, res: Response) {
-                const authorization = req.header("authorization");
+                let authorization = req.header("authorization");
                 const requestId = req.header("x-request-id") || res.locals.requestId;
+                
+                // Kiểm tra xem header Authorization gửi lên từ client có hợp lệ không
+                const hasValidAuthHeader = 
+                    authorization && 
+                    authorization.startsWith("Bearer ") && 
+                    authorization.slice("Bearer ".length).trim() !== "" && 
+                    authorization !== "Bearer undefined" && 
+                    authorization !== "Bearer null";
+                
+                // Nếu không có header Authorization hợp lệ nhưng có cookie accessToken, tự động ghi đè bằng cookie
+                if (!hasValidAuthHeader && req.cookies && req.cookies.accessToken) {
+                    authorization = `Bearer ${req.cookies.accessToken}`;
+                }
                 
                 if (authorization) {
                     proxyReq.setHeader("authorization", authorization);

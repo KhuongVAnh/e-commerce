@@ -1,6 +1,7 @@
 import "./config/env";
 import cors from "cors";
 import express from "express";
+import cookieParser from "cookie-parser";
 import swaggerUi from "swagger-ui-express";
 import openApiDocument from "./docs/openapi";
 import { requestContextMiddleware } from "./middlewares/requestContext";
@@ -63,6 +64,7 @@ const corsOptions = corsEnabled
 
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(cookieParser());
 // gắn id cho mỗi req đi vào, để dễ dàng trace log sau này
 app.use(requestContextMiddleware);
 app.use("/api/uploads", uploadRoutes);
