@@ -64,6 +64,10 @@ export async function checkResultVNPAYController(req: Request, res: Response) {
 
     const orderCode = vnpParams["vnp_TxnRef"]?.trim();
 
+    // Return URL cũng là dữ liệu VNPay đã ký. Dùng nó làm fallback để cập nhật DB
+    // trong trường hợp IPN URL chưa public hoặc VNPay gọi IPN chậm.
+    await processIpn(vnpParams);
+
     const { order, payment, isPaid, isFailed, isPending } = await checkPaymentFromOrderCode(orderCode);
 
     return sendSuccess(res, {
@@ -74,7 +78,7 @@ export async function checkResultVNPAYController(req: Request, res: Response) {
                 ? "Thanh toán thất bại"
                 : "Thanh toán đang được xử lý",
 
-        data: {
+        data: serializeBigInt({
             order: {
                 id: order.id,
                 orderCode: order.orderCode,
@@ -97,7 +101,7 @@ export async function checkResultVNPAYController(req: Request, res: Response) {
                 isFailed,
                 isPending,
             },
-        },
+        }),
     });
 }
 

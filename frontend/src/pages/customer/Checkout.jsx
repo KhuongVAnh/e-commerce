@@ -230,7 +230,13 @@ const Checkout = () => {
               {previewData.items.map((item, index) => (
                 <div key={index} className="flex gap-4 items-center">
                   <div className="w-20 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-50">
-                    <img src={item.thumbnailUrl || 'https://via.placeholder.com/150'} alt={item.productName} className="w-full h-full object-cover" />
+                    {item.thumbnailUrl ? (
+                      <img src={item.thumbnailUrl} alt={item.productName} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="material-symbols-outlined text-3xl text-gray-300">inventory_2</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex-grow">
                     <h4 className="font-bold text-sm text-gray-900 leading-tight mb-1 line-clamp-2">{item.productName}</h4>

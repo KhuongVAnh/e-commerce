@@ -116,7 +116,7 @@ services:
       CATALOG_SERVICE_URL: http://catalog_service:3002
       CORS_ENABLED: "false"
       CORS_ALLOWED_ORIGINS: "http://localhost:5173"
-      ROUTE_CHECKOUT: "/checkout"
+      ROUTE_CHECKOUT: "/payment-return"
       KAFKA_BROKERS: kafka:29092
       REDIS_URL: redis://redis:6379
     depends_on:

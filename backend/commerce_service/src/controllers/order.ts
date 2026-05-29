@@ -258,7 +258,7 @@ export async function checkResultPaymentController(req: Request, res: Response) 
                 ? "Thanh toán thất bại"
                 : "Thanh toán đang được xử lý",
 
-        data: {
+        data: serializeBigInt({
             order: {
                 id: order.id,
                 orderCode: order.orderCode,
@@ -281,7 +281,7 @@ export async function checkResultPaymentController(req: Request, res: Response) 
                 isFailed,
                 isPending,
             },
-        },
+        }),
     });
 }
 

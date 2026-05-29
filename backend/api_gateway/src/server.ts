@@ -53,13 +53,13 @@ const corsOptions = corsEnabled
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-request-id", "idempotency-key"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-request-id", "Idempotency-Key"],
   }
   : {
     origin: true,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-request-id", "idempotency-key"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-request-id", "Idempotency-Key"],
   };
 
 app.use(cors(corsOptions));

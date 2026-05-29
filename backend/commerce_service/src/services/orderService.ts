@@ -4,7 +4,7 @@ import { prisma } from "../config/prisma";
 import { HttpError } from "../utils/http";
 import { buildCheckoutPreview } from "./checkoutPreview";
 import { createVNPayCheckoutSession } from "./paymentService";
-import { decrementProductsStock, getShopIdBySellerId, incrementProductsStock, getSellerIdByShopId } from "./catalogClient";
+import { decrementProductsStock, getProductsByIds, getShopById, getShopIdBySellerId, incrementProductsStock, getSellerIdByShopId } from "./catalogClient";
 import { publishEvent } from "../config/kafka";
 
 // ─────────────────────────────────────────────────────────────
@@ -478,11 +478,66 @@ export async function listCustomerOrders(customerId: bigint, input: ListOrdersIn
                 orderStatus: true,
                 createdAt: true,
                 updatedAt: true,
+                items: {
+                    orderBy: { id: "asc" },
+                    select: {
+                        id: true,
+                        productId: true,
+                        productNameSnapshot: true,
+                        quantity: true,
+                    },
+                },
             },
         }),
     ]);
 
-    return { total, orders };
+    const productIds = Array.from(
+        new Set(orders.flatMap((order) => order.items.map((item) => item.productId.toString()))),
+    ).map((id) => BigInt(id));
+
+    const products = await getProductsByIds(productIds).catch((error) => {
+        console.error("[commerce_service] Failed to enrich customer orders with products:", error);
+        return [];
+    });
+
+    const productById = new Map(products.map((product) => [product.id.toString(), product]));
+    const uniqueShopIds = Array.from(new Set(orders.map((order) => order.shopId.toString()))).map((id) => BigInt(id));
+    const shops = await Promise.all(uniqueShopIds.map((shopId) => getShopById(shopId)));
+    const shopById = new Map<string, NonNullable<(typeof shops)[number]>>();
+    for (const shop of shops) {
+        if (shop?.id) {
+            shopById.set(shop.id.toString(), shop);
+        }
+    }
+
+    return {
+        total,
+        orders: orders.map((order) => {
+            const items = order.items.map((item) => {
+                const product = productById.get(item.productId.toString());
+                return {
+                    id: item.id,
+                    productId: item.productId,
+                    productNameSnapshot: item.productNameSnapshot,
+                    quantity: item.quantity,
+                    thumbnailUrl: product?.thumbnailUrl ?? null,
+                };
+            });
+            const firstThumbnail = items.find((item) => item.thumbnailUrl)?.thumbnailUrl ?? null;
+            const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+            const shop = shopById.get(order.shopId.toString());
+
+            return {
+                ...order,
+                items,
+                itemCount: items.length,
+                totalItems,
+                thumbnailUrl: firstThumbnail,
+                shopName: shop?.name ?? null,
+                shopLogoUrl: shop?.logoUrl ?? null,
+            };
+        }),
+    };
 }
 
 export async function getCustomerOrderDetail(customerId: bigint, orderId: bigint) {
@@ -504,7 +559,19 @@ export async function getCustomerOrderDetail(customerId: bigint, orderId: bigint
         });
     }
 
-    return order;
+    const products = await getProductsByIds(order.items.map((item) => item.productId)).catch((error) => {
+        console.error("[commerce_service] Failed to enrich customer order detail with products:", error);
+        return [];
+    });
+    const productById = new Map(products.map((product) => [product.id.toString(), product]));
+
+    return {
+        ...order,
+        items: order.items.map((item) => ({
+            ...item,
+            thumbnailUrl: productById.get(item.productId.toString())?.thumbnailUrl ?? null,
+        })),
+    };
 }
 
 export async function resolveShopIdForSeller(input: { shopId?: string; userId: string }): Promise<bigint> {
@@ -586,7 +653,19 @@ export async function getSellerOrderDetail(shopId: bigint, orderId: bigint) {
         });
     }
 
-    return order;
+    const products = await getProductsByIds(order.items.map((item) => item.productId)).catch((error) => {
+        console.error("[commerce_service] Failed to enrich seller order detail with products:", error);
+        return [];
+    });
+    const productById = new Map(products.map((product) => [product.id.toString(), product]));
+
+    return {
+        ...order,
+        items: order.items.map((item) => ({
+            ...item,
+            thumbnailUrl: productById.get(item.productId.toString())?.thumbnailUrl ?? null,
+        })),
+    };
 }
 
 const SELLER_ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {

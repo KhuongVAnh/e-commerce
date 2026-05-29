@@ -28,9 +28,7 @@ const ProductManagement = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [stats, setStats] = useState({ total: 0, active: 0, outOfStock: 0, deleted: 0 });
 
   useEffect(() => {
     // Dropdown filter cần danh sách shop/category phụ trợ, tách khỏi API list product chính.
@@ -74,6 +72,26 @@ const ProductManagement = () => {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await axiosClient.get('/catalog/admin/products/stats');
+      const data = res?.data || {};
+
+      setStats({
+        total: data.total || 0,
+        active: data.statuses?.ACTIVE || 0,
+        outOfStock: data.statuses?.OUT_OF_STOCK || 0,
+        deleted: data.statuses?.DELETED || 0,
+      });
+    } catch (error) {
+      console.warn('Không thể tải product stats:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const updateFilter = (key, value) => {
     // Reset page để kết quả filter mới luôn bắt đầu từ đầu danh sách.
@@ -130,53 +148,12 @@ const ProductManagement = () => {
       setConfirmAction(null);
       setSelectedProduct(null);
       fetchProducts();
+      fetchStats();
     } catch (error) {
       alert(getErrorMessage(error, 'Không thể cập nhật sản phẩm.'));
     } finally {
       setActionLoading(false);
     }
-  };
-
-  const stats = {
-    // Total lấy từ server, status count là snapshot trên page hiện tại.
-    total: pagination.total,
-    active: products.filter((product) => product.status === 'ACTIVE').length,
-    outOfStock: products.filter((product) => product.status === 'OUT_OF_STOCK').length,
-    deleted: products.filter((product) => product.status === 'DELETED').length,
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Xóa sản phẩm này vĩnh viễn?")) return;
-    try {
-      await axiosClient.delete(`/catalog/admin/products/${id}`);
-      fetchProducts();
-    } catch (error) { alert("Lỗi khi xóa!"); }
-  };
-
-  const openEditModal = async (productId) => {
-    setIsModalOpen(true);
-    try {
-      const res = await axiosClient.get(`/catalog/admin/products/${productId}`);
-      setSelectedProduct(res?.data?.product || res?.product || res?.data);
-    } catch (error) {
-      alert("Lỗi tải chi tiết: " + error.message);
-      setIsModalOpen(false);
-    }
-  };
-
-  const handleUpdateProduct = async (e) => {
-    e.preventDefault();
-    try {
-      await axiosClient.put(`/catalog/admin/products/${selectedProduct.id}`, {
-        name: selectedProduct.name,
-        price: parseFloat(selectedProduct.price),
-        stockQuantity: parseInt(selectedProduct.stockQuantity),
-        status: selectedProduct.status
-      });
-      alert('Cập nhật thành công!');
-      setIsModalOpen(false);
-      fetchProducts();
-    } catch (error) { alert("Lỗi: " + (error.response?.data?.message || 'Không thể lưu.')); }
   };
 
   return (
@@ -187,10 +164,10 @@ const ProductManagement = () => {
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard icon="inventory_2" label="Total Results" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
-        <AdminStatCard icon="check_circle" label="Active On Page" value={stats.active} tone="success" />
-        <AdminStatCard icon="production_quantity_limits" label="Out Of Stock On Page" value={stats.outOfStock} tone="warning" />
-        <AdminStatCard icon="delete" label="Deleted On Page" value={stats.deleted} tone="danger" />
+        <AdminStatCard icon="inventory_2" label="Total System Products" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
+        <AdminStatCard icon="check_circle" label="Total Active" value={stats.active.toLocaleString('vi-VN')} tone="success" />
+        <AdminStatCard icon="production_quantity_limits" label="Total Out Of Stock" value={stats.outOfStock.toLocaleString('vi-VN')} tone="warning" />
+        <AdminStatCard icon="delete" label="Total Deleted" value={stats.deleted.toLocaleString('vi-VN')} tone="danger" />
       </div>
 
       <AdminToolbar>
