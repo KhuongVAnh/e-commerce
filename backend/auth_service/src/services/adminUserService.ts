@@ -145,6 +145,32 @@ export async function adminListUsers(query: ListUsersQuery) {
   };
 }
 
+export async function adminGetUserStats() {
+  const [total, customers, sellers, admins, active, inactive, blocked] = await Promise.all([
+    prisma.user.count(),
+    prisma.user.count({ where: { role: { name: UserRole.CUSTOMER } } }),
+    prisma.user.count({ where: { role: { name: UserRole.SELLER } } }),
+    prisma.user.count({ where: { role: { name: UserRole.ADMIN } } }),
+    prisma.user.count({ where: { status: UserStatus.ACTIVE } }),
+    prisma.user.count({ where: { status: UserStatus.INACTIVE } }),
+    prisma.user.count({ where: { status: UserStatus.BLOCKED } }),
+  ]);
+
+  return {
+    total,
+    roles: {
+      CUSTOMER: customers,
+      SELLER: sellers,
+      ADMIN: admins,
+    },
+    statuses: {
+      ACTIVE: active,
+      INACTIVE: inactive,
+      BLOCKED: blocked,
+    },
+  };
+}
+
 export async function adminGetUser(userId: string) {
   const id = parsePositiveBigInt(userId, "userId");
 

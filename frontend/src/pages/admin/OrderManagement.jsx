@@ -9,11 +9,9 @@ import {
   AdminModal,
   AdminPageHeader,
   AdminPagination,
-  AdminSearchInput,
   AdminSelect,
   AdminStatCard,
   AdminStatusBadge,
-  AdminToolbar,
 } from '../../components/admin/AdminComponents';
 
 const orderStatuses = ['PENDING', 'AWAITING_PAYMENT', 'CONFIRMED', 'PROCESSING', 'SHIPPING', 'DELIVERED', 'CANCELLED'];
@@ -44,6 +42,7 @@ const OrderManagement = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [stats, setStats] = useState({ total: 0, pending: 0, paid: 0, cancelled: 0 });
 
   const fetchOrders = useCallback(async () => {
     // Order admin API hỗ trợ nhiều filter; chỉ field có giá trị mới được đưa vào query.
@@ -71,6 +70,26 @@ const OrderManagement = () => {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await axiosClient.get('/commerce/admin/orders/stats');
+      const data = res?.data || {};
+
+      setStats({
+        total: data.total || 0,
+        pending: data.pending || 0,
+        paid: data.paid || 0,
+        cancelled: data.cancelled || 0,
+      });
+    } catch (error) {
+      console.warn('Không thể tải order stats:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const updateFilter = (key, value) => {
     // Filter mới reset page để tránh gọi page không tồn tại sau khi thu hẹp kết quả.
@@ -111,19 +130,12 @@ const OrderManagement = () => {
       setConfirmAction(null);
       setSelectedOrder(null);
       fetchOrders();
+      fetchStats();
     } catch (error) {
       alert(getErrorMessage(error, 'Không thể cập nhật trạng thái đơn hàng.'));
     } finally {
       setActionLoading(false);
     }
-  };
-
-  const stats = {
-    // Total là tổng kết quả backend; các count còn lại giúp admin scan nhanh page hiện tại.
-    total: pagination.total,
-    pending: orders.filter((order) => order.orderStatus === 'PENDING' || order.orderStatus === 'AWAITING_PAYMENT').length,
-    paid: orders.filter((order) => order.paymentStatus === 'PAID').length,
-    cancelled: orders.filter((order) => order.orderStatus === 'CANCELLED').length,
   };
 
   return (
@@ -134,75 +146,95 @@ const OrderManagement = () => {
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard icon="receipt_long" label="Total Results" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
-        <AdminStatCard icon="pending_actions" label="Pending On Page" value={stats.pending} tone="warning" />
-        <AdminStatCard icon="payments" label="Paid On Page" value={stats.paid} tone="success" />
-        <AdminStatCard icon="cancel" label="Cancelled On Page" value={stats.cancelled} tone="danger" />
+        <AdminStatCard icon="receipt_long" label="Total System Orders" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
+        <AdminStatCard icon="pending_actions" label="Total Pending" value={stats.pending.toLocaleString('vi-VN')} tone="warning" />
+        <AdminStatCard icon="payments" label="Total Paid" value={stats.paid.toLocaleString('vi-VN')} tone="success" />
+        <AdminStatCard icon="cancel" label="Total Cancelled" value={stats.cancelled.toLocaleString('vi-VN')} tone="danger" />
       </div>
 
-      <AdminToolbar>
-        <AdminSearchInput value={filters.q} onChange={(value) => updateFilter('q', value)} placeholder="Tìm mã đơn..." />
-        <AdminSelect label="Order Status" value={filters.status} onChange={(value) => updateFilter('status', value)}>
-          <option value="">Tất cả trạng thái</option>
-          {orderStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
-        </AdminSelect>
-        <AdminSelect label="Payment" value={filters.paymentStatus} onChange={(value) => updateFilter('paymentStatus', value)}>
-          <option value="">Tất cả thanh toán</option>
-          {paymentStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
-        </AdminSelect>
-        <AdminSelect label="Method" value={filters.paymentMethod} onChange={(value) => updateFilter('paymentMethod', value)}>
-          <option value="">Tất cả phương thức</option>
-          {paymentMethods.map((method) => <option key={method} value={method}>{method}</option>)}
-        </AdminSelect>
-        <div className="grid grid-cols-2 gap-2">
+      <div className="mb-5 rounded-lg border border-slate-100 bg-white p-4 shadow-sm">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <label className="relative md:col-span-2 xl:col-span-2">
+            <span className="mb-1 block text-[10px] font-black uppercase text-slate-400">Search</span>
+            <span className="material-symbols-outlined absolute left-3 top-[34px] text-[18px] text-slate-400">search</span>
+            <input
+              value={filters.q}
+              onChange={(event) => updateFilter('q', event.target.value)}
+              placeholder="Tìm mã đơn..."
+              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 pl-10 text-sm font-medium text-slate-700 outline-none transition focus:border-[#2e3785] focus:ring-2 focus:ring-indigo-100"
+            />
+          </label>
+
+          <AdminSelect label="Order Status" value={filters.status} onChange={(value) => updateFilter('status', value)}>
+            <option value="">Tất cả trạng thái</option>
+            {orderStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
+          </AdminSelect>
+          <AdminSelect label="Payment" value={filters.paymentStatus} onChange={(value) => updateFilter('paymentStatus', value)}>
+            <option value="">Tất cả thanh toán</option>
+            {paymentStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
+          </AdminSelect>
+          <AdminSelect label="Method" value={filters.paymentMethod} onChange={(value) => updateFilter('paymentMethod', value)}>
+            <option value="">Tất cả phương thức</option>
+            {paymentMethods.map((method) => <option key={method} value={method}>{method}</option>)}
+          </AdminSelect>
           <AdminDateInput label="From" value={filters.from} onChange={(value) => updateFilter('from', value)} />
           <AdminDateInput label="To" value={filters.to} onChange={(value) => updateFilter('to', value)} />
+
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="text-[10px] font-black uppercase text-slate-400">Shop ID</span>
+            <input
+              value={filters.shopId}
+              onChange={(event) => updateFilter('shopId', event.target.value)}
+              placeholder="VD: 3001"
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#2e3785] focus:ring-2 focus:ring-indigo-100"
+            />
+          </label>
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="text-[10px] font-black uppercase text-slate-400">Customer ID</span>
+            <input
+              value={filters.customerId}
+              onChange={(event) => updateFilter('customerId', event.target.value)}
+              placeholder="VD: 1003"
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#2e3785] focus:ring-2 focus:ring-indigo-100"
+            />
+          </label>
         </div>
-        <input
-          value={filters.shopId}
-          onChange={(event) => updateFilter('shopId', event.target.value)}
-          placeholder="Shop ID"
-          className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-[#2e3785] focus:ring-2 focus:ring-indigo-100"
-        />
-        <input
-          value={filters.customerId}
-          onChange={(event) => updateFilter('customerId', event.target.value)}
-          placeholder="Customer ID"
-          className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-[#2e3785] focus:ring-2 focus:ring-indigo-100"
-        />
-      </AdminToolbar>
+      </div>
 
       <AdminDataTable
+        tableClassName="w-full min-w-[1280px] text-left"
         columns={[
-          { key: 'order', label: 'Order' },
-          { key: 'customer', label: 'Customer' },
-          { key: 'shop', label: 'Shop' },
-          { key: 'payment', label: 'Payment' },
-          { key: 'date', label: 'Date' },
-          { key: 'total', label: 'Total' },
-          { key: 'status', label: 'Status' },
-          { key: 'actions', label: 'Actions' },
+          { key: 'order', label: 'Order', headerClassName: 'w-[230px]' },
+          { key: 'customer', label: 'Customer', headerClassName: 'w-[190px]' },
+          { key: 'shop', label: 'Shop', headerClassName: 'w-[120px]' },
+          { key: 'payment', label: 'Payment', headerClassName: 'w-[150px]' },
+          { key: 'date', label: 'Date', headerClassName: 'w-[120px]' },
+          { key: 'total', label: 'Total', headerClassName: 'w-[150px]' },
+          { key: 'status', label: 'Status', headerClassName: 'w-[170px]' },
+          { key: 'actions', label: 'Actions', headerClassName: 'w-[210px]' },
         ]}
         rows={orders}
         loading={loading}
         error={errorMsg}
         emptyMessage="Không có đơn hàng phù hợp."
         renderRow={(order) => (
-          <tr key={order.id} className="hover:bg-slate-50">
-            <td className="px-5 py-4 text-sm font-black text-[#2e3785]">#{order.orderCode}</td>
-            <td className="px-5 py-4">
-              <p className="text-sm font-black text-slate-900">{order.receiverName}</p>
+          <tr key={order.id} className="align-top hover:bg-slate-50">
+            <td className="px-5 py-5 text-sm font-black leading-6 text-[#2e3785]">
+              <span className="break-all">#{order.orderCode}</span>
+            </td>
+            <td className="px-5 py-5">
+              <p className="text-sm font-black leading-5 text-slate-900">{order.receiverName}</p>
               <p className="text-xs font-medium text-slate-400">Customer #{order.customerId}</p>
             </td>
-            <td className="px-5 py-4 text-sm font-bold text-slate-600">Shop #{order.shopId}</td>
-            <td className="px-5 py-4">
+            <td className="whitespace-nowrap px-5 py-5 text-sm font-bold text-slate-600">Shop #{order.shopId}</td>
+            <td className="px-5 py-5">
               <p className="text-xs font-black text-slate-700">{order.paymentMethod}</p>
-              <AdminStatusBadge status={order.paymentStatus} />
+              <div className="mt-2"><AdminStatusBadge status={order.paymentStatus} /></div>
             </td>
-            <td className="px-5 py-4 text-sm font-medium text-slate-500">{formatDate(order.createdAt)}</td>
-            <td className="px-5 py-4 text-sm font-black text-slate-900">{formatCurrency(order.totalAmount)}</td>
-            <td className="px-5 py-4"><AdminStatusBadge status={order.orderStatus} /></td>
-            <td className="px-5 py-4">
+            <td className="whitespace-nowrap px-5 py-5 text-sm font-medium text-slate-500">{formatDate(order.createdAt)}</td>
+            <td className="whitespace-nowrap px-5 py-5 text-sm font-black text-slate-900">{formatCurrency(order.totalAmount)}</td>
+            <td className="px-5 py-5"><AdminStatusBadge status={order.orderStatus} /></td>
+            <td className="px-5 py-5">
               <div className="flex items-center gap-2">
                 <button onClick={() => openOrderDetail(order)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-100">
                   <span className="material-symbols-outlined text-[18px]">visibility</span>
@@ -210,7 +242,7 @@ const OrderManagement = () => {
                 <select
                   value={order.orderStatus}
                   onChange={(event) => requestStatusChange(order, event.target.value)}
-                  className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600 outline-none"
+                  className="h-10 min-w-[150px] rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 outline-none"
                 >
                   {orderStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
                 </select>

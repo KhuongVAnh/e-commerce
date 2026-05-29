@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axiosClient from '../../utils/axiosClient';
-import { formatCurrency, formatDate, getDateRangeForCurrentMonth, getErrorMessage, getPagination } from '../../utils/adminApi';
+import { formatCurrency, formatDate, getDateRangeForCurrentMonth, getErrorMessage } from '../../utils/adminApi';
 import {
   AdminDataTable,
   AdminPageHeader,
@@ -32,8 +32,8 @@ const AdminDashboard = () => {
       try {
         const range = getDateRangeForCurrentMonth();
         const [usersRes, shopsRes, summaryRes, ordersRes] = await Promise.all([
-          axiosClient.get('/auth/admin/users?page=1&limit=1'),
-          axiosClient.get('/catalog/admin/shops?page=1&limit=1'),
+          axiosClient.get('/auth/admin/users/stats'),
+          axiosClient.get('/catalog/admin/shops/stats'),
           axiosClient.get(`/commerce/admin/dashboard-summary?from=${range.from}&to=${range.to}`),
           axiosClient.get('/commerce/admin/orders?page=1&limit=5'),
         ]);
@@ -41,8 +41,8 @@ const AdminDashboard = () => {
         // axiosClient trả thẳng body API; data mới là payload nghiệp vụ của sendSuccess.
         const summary = summaryRes?.data || {};
         setStats({
-          totalUsers: getPagination(usersRes).total,
-          totalShops: getPagination(shopsRes).total,
+          totalUsers: usersRes?.data?.total || 0,
+          totalShops: shopsRes?.data?.total || 0,
           totalOrders: summary.totalOrders || 0,
           totalRevenue: summary.totalRevenue || 0,
           monthlyRevenue: summary.monthlyRevenue || 0,

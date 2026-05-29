@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { createCategory, deleteCategory, listCategories, updateCategory } from "../services/categoryService";
+import { createCategory, deleteCategory, getCategoryStats, listCategories, updateCategory } from "../services/categoryService";
 import { sendSuccess } from "../utils/https";
 import { listCategoryQuery } from "../utils/inOutCategoryAPI";
 
@@ -31,6 +31,16 @@ export async function listCategoriesController(req: Request, res: Response, _nex
         requestId: res.locals.requestId,
         message: "Lấy danh sách danh mục thành công",
         data: data.categories,
+    });
+}
+
+export async function getCategoryStatsController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const data = await getCategoryStats();
+
+    sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Lấy thống kê danh mục thành công",
+        data,
     });
 }
 

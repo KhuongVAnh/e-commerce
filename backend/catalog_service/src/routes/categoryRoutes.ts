@@ -2,6 +2,7 @@ import { NextFunction, Request, Response, Router } from "express";
 import {
     createCategoryController,
     deleteCategoryController,
+    getCategoryStatsController,
     listCategoriesController,
     updateCategoryController,
 } from "../controllers/categoryController";
@@ -21,6 +22,13 @@ function asyncHandler(
 router.get(
     "/categories",
     asyncHandler(listCategoriesController),
+);
+
+router.get(
+    "/admin/categories/stats",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(getCategoryStatsController),
 );
 
 router.post(

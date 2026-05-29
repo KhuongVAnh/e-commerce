@@ -5,6 +5,10 @@ import { orderService } from '../../services/orderService';
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
 const OrderCard = ({ order }) => {
+  const thumbnailUrl = order.thumbnailUrl || order.items?.find((item) => item.thumbnailUrl)?.thumbnailUrl;
+  const itemTotal = order.totalItems ?? order.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) ?? 0;
+  const shopLabel = order.shopName || `Shop #${order.shopId}`;
+
   const statusConfig = {
     PENDING: { color: 'bg-orange-100 text-orange-700', label: 'Pending' },
     AWAITING_PAYMENT: { color: 'bg-yellow-100 text-yellow-700', label: 'Awaiting Payment' },
@@ -27,21 +31,26 @@ const OrderCard = ({ order }) => {
         {/* Left Info */}
         <div className="flex items-center gap-6">
           <div className={`w-24 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 ${order.orderStatus === 'CANCELLED' ? 'grayscale' : ''}`}>
-            {/* Lấy ảnh của sản phẩm đầu tiên làm ảnh đại diện đơn */}
-            <img 
-              src={order.items?.[0]?.thumbnailUrl || 'https://via.placeholder.com/150'} 
-              alt="Order thumbnail" 
-              className="w-full h-full object-cover" 
-            />
+            {thumbnailUrl ? (
+              <img
+                src={thumbnailUrl}
+                alt={order.items?.[0]?.productNameSnapshot || 'Order thumbnail'}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="material-symbols-outlined text-4xl text-gray-300">inventory_2</span>
+              </div>
+            )}
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-2 mb-1">
               <span className="material-symbols-outlined text-[#2b3896] text-sm">storefront</span>
-              <span className="text-sm font-semibold text-gray-600">{order.shopName || 'Shop Name'}</span>
+              <span className="text-sm font-semibold text-gray-600">{shopLabel}</span>
             </div>
             <h3 className="text-lg font-bold text-gray-900 mb-1">#{order.orderCode}</h3>
             <p className="text-sm text-gray-500">
-              {order.items?.length || 0} items ordered on {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+              {itemTotal} sản phẩm đặt ngày {new Date(order.createdAt).toLocaleDateString('vi-VN')}
             </p>
           </div>
         </div>
@@ -81,8 +90,6 @@ export default function OrderHistory() {
         const params = status !== 'ALL' ? { status } : {};
         const res = await orderService.getMyOrders(params); 
         
-        console.log("=== CHECK DATA ORDER LIST ===", res);
-
         setOrders(res.data?.orders || []);
     } catch (error) {
         console.error("Lỗi khi tải lịch sử đơn hàng:", error);

@@ -29,6 +29,7 @@ const ShopManagement = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [stats, setStats] = useState({ total: 0, pending: 0, active: 0, inactive: 0 });
 
   // Shop admin API hỗ trợ q/status/page/limit, nên bảng lấy dữ liệu trực tiếp từ server.
   const fetchShops = useCallback(async () => {
@@ -50,6 +51,26 @@ const ShopManagement = () => {
   useEffect(() => {
     fetchShops();
   }, [fetchShops]);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await axiosClient.get('/catalog/admin/shops/stats');
+      const data = res?.data || {};
+
+      setStats({
+        total: data.total || 0,
+        pending: data.statuses?.PENDING || 0,
+        active: data.statuses?.ACTIVE || 0,
+        inactive: data.statuses?.INACTIVE || 0,
+      });
+    } catch (error) {
+      console.warn('Không thể tải shop stats:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const updateFilter = (key, value) => {
     // Reset page khi filter đổi để tránh gọi một page không còn dữ liệu.
@@ -90,19 +111,12 @@ const ShopManagement = () => {
       setConfirmAction(null);
       setSelectedShop(null);
       fetchShops();
+      fetchStats();
     } catch (error) {
       alert(getErrorMessage(error, 'Không thể cập nhật trạng thái shop.'));
     } finally {
       setActionLoading(false);
     }
-  };
-
-  const stats = {
-    // Total là tổng kết quả từ backend; status count là số nhanh của trang hiện tại.
-    total: pagination.total,
-    pending: shops.filter((shop) => shop.status === 'PENDING').length,
-    active: shops.filter((shop) => shop.status === 'ACTIVE').length,
-    inactive: shops.filter((shop) => shop.status === 'INACTIVE').length,
   };
 
   return (
@@ -113,10 +127,10 @@ const ShopManagement = () => {
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard icon="storefront" label="Total Results" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
-        <AdminStatCard icon="pending_actions" label="Pending On Page" value={stats.pending} tone="warning" />
-        <AdminStatCard icon="verified" label="Active On Page" value={stats.active} tone="success" />
-        <AdminStatCard icon="pause_circle" label="Inactive On Page" value={stats.inactive} tone="danger" />
+        <AdminStatCard icon="storefront" label="Total System Shops" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
+        <AdminStatCard icon="pending_actions" label="Total Pending" value={stats.pending.toLocaleString('vi-VN')} tone="warning" />
+        <AdminStatCard icon="verified" label="Total Active" value={stats.active.toLocaleString('vi-VN')} tone="success" />
+        <AdminStatCard icon="pause_circle" label="Total Inactive" value={stats.inactive.toLocaleString('vi-VN')} tone="danger" />
       </div>
 
       <AdminToolbar>
