@@ -5,12 +5,16 @@ import useCartStore from '../../store/useCartStore';
 import axiosClient from '../../utils/axiosClient';
 
 const ProductDetail = () => {
-  const { id } = useParams(); 
+  const { slug } = useParams();
+  // Route dùng /product/:slug. Link hiện có thể là "123" hoặc "ten-san-pham-id123",
+  // nên cần tách productId trước khi gọi API catalog.
+  const productId = slug?.includes('-id') ? slug.split('-id').pop() : slug;
   const navigate = useNavigate();
   
   const [productData, setProductData] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [categories, setCategories] = useState([]);
+  const [selectedImageUrl, setSelectedImageUrl] = useState('');
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -82,10 +86,24 @@ const ProductDetail = () => {
 
   useEffect(() => {
     const fetchProduct = async () => {
+      if (!productId) {
+        setError('Không tìm thấy mã sản phẩm trong đường dẫn.');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const result = await axiosClient.get(`/catalog/products/${id}`);
-        setProductData(result.data);
+        const result = await axiosClient.get(`/catalog/products/${productId}`);
+        const nextProductData = result.data;
+        const productImages = Array.isArray(nextProductData?.images) ? nextProductData.images : [];
+        const firstGalleryImage = [...productImages]
+          .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0))
+          .find((image) => image.imageUrl)?.imageUrl;
+
+        setProductData(nextProductData);
+        // Ưu tiên ảnh gallery từ bảng product_images; nếu chưa có thì dùng thumbnail sản phẩm.
+        setSelectedImageUrl(firstGalleryImage || nextProductData?.product?.thumbnailUrl || '');
       } catch (err) {
         setError(err.message);
       } finally {
@@ -94,7 +112,7 @@ const ProductDetail = () => {
     };
 
     fetchProduct();
-  }, [id]);
+  }, [productId]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -131,6 +149,15 @@ const ProductDetail = () => {
   if (!productData) return null;
 
   const { product, images, shop } = productData;
+  const galleryImages = [
+    ...(Array.isArray(images)
+      ? [...images]
+        .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0))
+        .map((image) => image.imageUrl)
+      : []),
+    product.thumbnailUrl,
+  ].filter((imageUrl, index, list) => imageUrl && list.indexOf(imageUrl) === index);
+  const mainImageUrl = selectedImageUrl || galleryImages[0] || '';
 
   const categoryName = categories.find(c => Number(c.id) === Number(product.categoryId))?.name || 'Danh mục khác';
 
@@ -160,11 +187,39 @@ const ProductDetail = () => {
         <div className="lg:col-span-5 flex flex-col gap-4">
           <div className="aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden shadow-[0px_8px_24px_rgba(43,56,150,0.04)] border border-gray-100">
             <img 
-              src={product.thumbnailUrl || (images && images.length > 0 ? images[0].imageUrl : '')} 
+              src={mainImageUrl}
               alt={product.name} 
               className="w-full h-full object-cover"
             />
           </div>
+
+          {galleryImages.length > 1 && (
+            <div className="grid grid-cols-5 sm:grid-cols-6 gap-3">
+              {galleryImages.map((imageUrl, index) => {
+                const isSelected = imageUrl === mainImageUrl;
+
+                return (
+                  <button
+                    key={imageUrl}
+                    type="button"
+                    onClick={() => setSelectedImageUrl(imageUrl)}
+                    className={`aspect-square overflow-hidden rounded-lg border-2 bg-gray-50 transition-all ${
+                      isSelected
+                        ? 'border-[#2b3896] ring-2 ring-[#2b3896]/15'
+                        : 'border-gray-100 hover:border-[#2b3896]/40'
+                    }`}
+                    aria-label={`Xem ảnh sản phẩm ${index + 1}`}
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={`${product.name} ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Chi tiết & Nút Mua */}

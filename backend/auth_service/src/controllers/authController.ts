@@ -79,12 +79,17 @@ export async function loginController(req: Request, res: Response, _next: NextFu
   res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, getRefreshCookieOptions(data.tokens.refreshExpiresAt));
   res.cookie(ACCESS_TOKEN_COOKIE_NAME, accessToken, getAccessCookieOptions(data.tokens.accessExpiresAt));
 
+  // FE lưu accessToken trong localStorage để gửi Authorization header.
+  // Cookie vẫn được set để gateway có fallback và refreshToken vẫn là httpOnly cookie.
   sendSuccess(res, {
     requestId: res.locals.requestId,
     message: "Đăng nhập thành công",
     data: {
       ...data,
-      tokens: safeTokens,
+      tokens: {
+        ...safeTokens,
+        accessToken,
+      },
     },
   });
 }
@@ -96,11 +101,15 @@ export async function refreshController(req: Request, res: Response, _next: Next
   res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, getRefreshCookieOptions(data.tokens.refreshExpiresAt));
   res.cookie(ACCESS_TOKEN_COOKIE_NAME, accessToken, getAccessCookieOptions(data.tokens.accessExpiresAt));
 
+  // Trả accessToken mới để axiosClient cập nhật localStorage trước khi retry request cũ.
   sendSuccess(res, {
     requestId: res.locals.requestId,
     message: "Làm mới token thành công",
     data: {
-      tokens: safeTokens,
+      tokens: {
+        ...safeTokens,
+        accessToken,
+      },
     },
   });
 }

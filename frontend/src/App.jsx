@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import CustomerLayout from './layouts/CustomerLayout';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -58,6 +59,13 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          duration: 3000,
+          style: { borderRadius: '12px', fontWeight: 'bold', fontSize: '14px' },
+        }} 
+      />
       <Routes>
 
         {/* LOGIN / REGISTER */}
@@ -71,13 +79,11 @@ function App() {
           <Route path="unauthorized" element={<Unauthorized />} />
 
           <Route path="products" element={<ProductList />} />
-          <Route path="product/:id" element={<ProductDetail />} />
-
+          <Route path="product/:slug" element={<ProductDetail />} />
           <Route path="categories" element={<Categories />} />
 
           <Route path="shop" element={<ShopList />} />
-          <Route path="shop/:id" element={<ShopDetail />} />
-
+          <Route path="shop/:slug" element={<ShopDetail />} />
           <Route element={<ProtectedRoute />}>
             <Route path="cart" element={<Cart />} />
             <Route path="checkout" element={<Checkout />} />
