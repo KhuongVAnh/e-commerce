@@ -101,7 +101,13 @@ const openApiDocument = {
           success: { type: "boolean", example: true },
           message: { type: "string", example: "Thao tác thành công" },
           data: { type: "object", nullable: true },
-          requestId: { type: "string", example: "req-12345" },
+          meta: {
+            type: "object",
+            properties: {
+              requestId: { type: "string", example: "req-12345" },
+              timestamp: { type: "string", format: "date-time", example: "2026-05-28T03:30:00.000Z" },
+            },
+          }
         },
       },
     },
