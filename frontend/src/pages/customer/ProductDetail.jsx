@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import useAuthStore from '../../store/useAuthStore';
 import useCartStore from '../../store/useCartStore';
 
@@ -24,7 +25,7 @@ const ProductDetail = () => {
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
-      alert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
+      toast.error("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
       return;
     }
 
@@ -39,14 +40,15 @@ const ProductDetail = () => {
       });
       
       const result = await res.json();
-      if (res.ok && result.success) {
-        alert(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
+      if (res.ok && (result.success || result.data)) {
+        toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
+        if (fetchCartTotal) fetchCartTotal(); // 👈 Giúp số giỏ hàng tự nhảy
       } else {
-        alert(result.message || "Không thể thêm vào giỏ hàng");
+        toast.error(result.message || "Không thể thêm vào giỏ hàng");
       }
     } catch (err) {
       console.error(err);
-      alert("Có lỗi xảy ra khi kết nối đến server.");
+      toast.error("Có lỗi xảy ra khi kết nối đến server.");
     }
   };
 

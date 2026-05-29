@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import axiosClient from '../../utils/axiosClient';
 import useCartStore from '../../store/useCartStore';
 
@@ -17,19 +18,16 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // State cho Form
   const [formData, setFormData] = useState({
     fullName: '', phone: '', street: '', district: '', city: ''
   });
   const [paymentMethod, setPaymentMethod] = useState('COD'); 
 
-  // XỬ LÝ LẤY DỮ LIỆU ĐỂ HIỂN THỊ
   useEffect(() => {
     const loadCheckoutData = async () => {
       try {
         setLoading(true);
 
-        // LUỒNG 1: XỬ LÝ "MUA NGAY" TRỰC TIẾP TỪ TRANG SẢN PHẨM
         if (isBuyNowFlow && buyNowItems.length > 0) {
           const item = buyNowItems[0];
           const subtotal = Number(item.price) * Number(item.quantity);
@@ -55,9 +53,8 @@ const Checkout = () => {
           return;
         }
 
-        // LUỒNG 2: XỬ LÝ TỪ GIỎ HÀNG (Dựa vào shopIdParam)
         if (!shopIdParam) {
-          alert("Không tìm thấy thông tin cần thanh toán!");
+          toast.error("Không tìm thấy thông tin cần thanh toán!");
           navigate('/cart');
           return;
         }
@@ -96,7 +93,7 @@ const Checkout = () => {
 
       } catch (error) {
         console.error("Lỗi lấy dữ liệu checkout:", error);
-        alert(error.response?.data?.message || error.message || "Không thể tải thông tin đơn hàng. Vui lòng thử lại!");
+        toast.error(error.response?.data?.message || error.message || "Không thể tải thông tin đơn hàng!");
         navigate('/cart');
       } finally {
         setLoading(false);
@@ -106,10 +103,9 @@ const Checkout = () => {
     loadCheckoutData();
   }, [shopIdParam, navigate, isBuyNowFlow]);
 
-  // HÀM XỬ LÝ ĐẶT HÀNG CHUNG CHO CẢ 2 LUỒNG
   const handlePlaceOrder = async () => {
     if (!formData.fullName || !formData.phone || !formData.street || !formData.district || !formData.city) {
-      alert("Vui lòng điền đầy đủ địa chỉ giao hàng!");
+      toast.error("Vui lòng điền đầy đủ địa chỉ giao hàng!");
       return;
     }
 
@@ -143,7 +139,7 @@ const Checkout = () => {
       const responseData = orderRes.data || orderRes;
       const orderData = responseData.data || responseData;
 
-      if (!isBuyNowFlow) fetchCartTotal();
+      if (!isBuyNowFlow && fetchCartTotal) fetchCartTotal();
 
       if (paymentMethod === 'VNPAY') {
         const vnpayUrl = orderData.paymentUrl;
@@ -154,17 +150,17 @@ const Checkout = () => {
         if (vnpayUrl) {
           window.location.href = vnpayUrl;
         } else {
-          alert("Lỗi: Backend không trả về link VNPay. Đơn hàng đã được lưu dưới dạng Chờ thanh toán.");
+          toast.error("Lỗi: Backend không trả về link VNPay. Đơn hàng đã được lưu dưới dạng Chờ thanh toán.");
           navigate('/orders');
         }
       } else {
-        alert("Đặt hàng thành công!");
+        toast.success("Đặt hàng thành công!");
         navigate('/orders');
       }
 
     } catch (error) {
       console.error("Chi tiết lỗi đặt hàng:", error);
-      alert(error.response?.data?.message || "Có lỗi xảy ra khi tạo đơn!");
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi tạo đơn!");
     } finally {
       setSubmitting(false);
     }
