@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bell, ExternalLink, Loader2 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import { notificationService } from '../../services/notificationService';
 import { useToast } from '../../components/ToastProvider';
@@ -45,7 +44,7 @@ const NotificationDetail = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center gap-2 py-24 text-sm font-semibold text-slate-500">
-        <Loader2 size={20} className="animate-spin text-[#2b3896]" />
+        <span className="material-symbols-outlined animate-spin text-[20px] text-[#2b3896]">progress_activity</span>
         Đang tải chi tiết thông báo
       </div>
     );
@@ -55,11 +54,11 @@ const NotificationDetail = () => {
     return (
       <section className="mx-auto max-w-3xl px-6 py-16 text-center">
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-indigo-50 text-[#2b3896]">
-          <Bell size={30} />
+          <span className="material-symbols-outlined text-[30px]">notifications</span>
         </div>
         <h1 className="mt-4 text-2xl font-extrabold text-slate-950">Không tìm thấy thông báo</h1>
         <Link to={getNotificationListPath(location.pathname)} className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#2b3896] px-5 py-2.5 text-sm font-bold text-white">
-          <ArrowLeft size={16} />
+          <span className="material-symbols-outlined text-[16px]">arrow_back</span>
           Quay lại thông báo
         </Link>
       </section>
@@ -74,7 +73,7 @@ const NotificationDetail = () => {
   return (
     <section className="mx-auto max-w-4xl px-4 py-8 md:px-6">
       <Link to={listPath} className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-[#2b3896]">
-        <ArrowLeft size={16} />
+        <span className="material-symbols-outlined text-[16px]">arrow_back</span>
         Quay lại danh sách thông báo
       </Link>
 
@@ -135,7 +134,7 @@ const NotificationDetail = () => {
               className="inline-flex items-center gap-2 rounded-full bg-[#2b3896] px-5 py-3 text-sm font-bold text-white shadow-md shadow-[#2b3896]/20 transition hover:bg-[#1f2970]"
             >
               Mở nội dung liên quan
-              <ExternalLink size={16} />
+              <span className="material-symbols-outlined text-[16px]">open_in_new</span>
             </button>
           )}
         </div>

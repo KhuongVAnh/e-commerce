@@ -6,8 +6,6 @@ import axiosClient from '../../utils/axiosClient';
 
 const ProductDetail = () => {
   const { slug } = useParams();
-  // Route dùng /product/:slug. Link hiện có thể là "123" hoặc "ten-san-pham-id123",
-  // nên cần tách productId trước khi gọi API catalog.
   const productId = slug?.includes('-id') ? slug.split('-id').pop() : slug;
   const navigate = useNavigate();
   
