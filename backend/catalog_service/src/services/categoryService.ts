@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import {
     createCategoryRecord,
+    countCategoryRecords,
     countProductsByCategoryId,
     deleteCategoryRecord,
     findCategoryById,
@@ -30,6 +31,7 @@ import {
 
 const ALLOWED_CATEGORY_STATUSES = ["ACTIVE", "INACTIVE"] as const;
 type AllowedCategoryStatus = (typeof ALLOWED_CATEGORY_STATUSES)[number];
+type CategoryListStatus = AllowedCategoryStatus | "ALL";
 
 const CATEGORY_LIST_TTL_SECONDS = readCacheTtl("CACHE_CATEGORY_LIST_TTL_SECONDS", 300);
 
@@ -202,7 +204,7 @@ function parsePositiveBigInt(value: string | number, field: string): bigint {
 }
 
 // Hàm này chuẩn hóa query category để cache key không phụ thuộc vào field dư thừa từ request.
-function normalizeCategoryListQuery(params: { q?: string; status?: AllowedCategoryStatus }) {
+function normalizeCategoryListQuery(params: { q?: string; status?: CategoryListStatus }) {
     return {
         q: params.q ?? null,
         status: params.status ?? null,
@@ -211,7 +213,7 @@ function normalizeCategoryListQuery(params: { q?: string; status?: AllowedCatego
 
 function assertListCategoryQuery(query: listCategoryQuery): {
     q?: string;
-    status?: AllowedCategoryStatus;
+    status?: CategoryListStatus;
 } {
     const fieldErrors: Array<{ field: string; message: string }> = [];
 
@@ -220,13 +222,15 @@ function assertListCategoryQuery(query: listCategoryQuery): {
         ? query.status.trim()
         : undefined;
 
-    let status: AllowedCategoryStatus | undefined;
+    let status: CategoryListStatus | undefined;
 
     if (rawStatus !== undefined) {
-        if (!isAllowedCategoryStatus(rawStatus)) {
+        if (rawStatus === "ALL") {
+            status = rawStatus;
+        } else if (!isAllowedCategoryStatus(rawStatus)) {
             fieldErrors.push({
                 field: "status",
-                message: "status phải là ACTIVE hoặc INACTIVE",
+                message: "status phải là ACTIVE, INACTIVE hoặc ALL",
             });
         } else {
             status = rawStatus;
@@ -373,7 +377,11 @@ export async function listCategories(query: listCategoryQuery): Promise<{
         };
     }
 
-    const categories = await listCategoryRecords(params);
+    const categories = await listCategoryRecords({
+        q: params.q,
+        status: params.status === "ALL" ? undefined : params.status,
+        includeAllStatuses: params.status === "ALL",
+    });
     const response = categories.map(toCategoryResponse);
 
     // Chỉ ghi cache sau khi query DB thành công để không cache lỗi validation hoặc lỗi hệ thống.
@@ -382,6 +390,22 @@ export async function listCategories(query: listCategoryQuery): Promise<{
     return {
         categories: response,
         cacheStatus: cached.status,
+    };
+}
+
+export async function getCategoryStats() {
+    const [total, active, inactive] = await Promise.all([
+        countCategoryRecords(),
+        countCategoryRecords({ status: "ACTIVE" }),
+        countCategoryRecords({ status: "INACTIVE" }),
+    ]);
+
+    return {
+        total,
+        statuses: {
+            ACTIVE: active,
+            INACTIVE: inactive,
+        },
     };
 }
 

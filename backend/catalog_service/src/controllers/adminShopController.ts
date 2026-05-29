@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { sendSuccess } from "../utils/https";
 import {
   adminGetShop,
+  adminGetShopStats,
   adminListShops,
   adminUpdateShopStatus,
 } from "../services/adminShopService";
@@ -19,6 +20,16 @@ export async function adminListShopsController(req: Request, res: Response, _nex
     message: "Lấy danh sách shop thành công",
     data,
     pagination: data.pagination,
+  });
+}
+
+export async function adminGetShopStatsController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+  const data = await adminGetShopStats();
+
+  sendSuccess(res, {
+    requestId: res.locals.requestId,
+    message: "Lấy thống kê shop thành công",
+    data,
   });
 }
 

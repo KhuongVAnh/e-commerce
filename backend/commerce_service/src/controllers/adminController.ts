@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { sendSuccess } from "../utils/http";
 import {
   adminGetOrderDetail,
+  adminGetOrderStats,
   adminListOrders,
   adminUpdateOrderStatus,
 } from "../services/adminOrderService";
@@ -35,6 +36,16 @@ export async function adminGetOrderDetailController(req: Request, res: Response,
   sendSuccess(res, {
     requestId: res.locals.requestId,
     message: "Lấy chi tiết đơn hàng (admin) thành công",
+    data,
+  });
+}
+
+export async function adminGetOrderStatsController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+  const data = await adminGetOrderStats();
+
+  sendSuccess(res, {
+    requestId: res.locals.requestId,
+    message: "Lấy thống kê đơn hàng (admin) thành công",
     data,
   });
 }

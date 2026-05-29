@@ -34,7 +34,7 @@ const Home = () => {
       isChecking = true;
 
       try {
-        // Render có thể sleep từng service riêng. Home sẽ ping gateway, gateway ping tiếp 3 service phía sau.
+        // Render có thể sleep từng service riêng. Home ping trực tiếp /health của từng service.
         await wakeService.wakeGatewayAndServices();
         isStopped = true;
         setBackendReady(true);
