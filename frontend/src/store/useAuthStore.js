@@ -1,43 +1,30 @@
 import { create } from 'zustand';
-import { authService } from '../services/authService';
+import { persist } from 'zustand/middleware';
 
-const useAuthStore = create((set) => ({
-  user: null, // Sẽ chứa data user từ API { id, email, fullName, role }
-  isAuthenticated: false,
-  isAuthReady: false,
+const useAuthStore = create(
+  persist(
+    (set) => ({
+      user: null,
+      isAuthenticated: false,
 
-  //1: Lưu thông tin khi Login thành công
-  setAuthData: (userData, accessToken) => {
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('userRole', userData.role);
-    
-    set({ user: userData, isAuthenticated: true });
-  },
-
-  //2: Xóa thông tin khi Logout
-  clearAuthData: () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userRole');
-    set({ user: null, isAuthenticated: false, isAuthReady: true });
-  },
-
-  initializeAuth: async () => {
-    const token = localStorage.getItem('accessToken');
-
-    if (!token) {
-      set({ user: null, isAuthenticated: false, isAuthReady: true });
-      return;
+      // Nhận 2 tham số: user và token. Lưu token ra ngoài LocalStorage
+      setAuthData: (user, token) => {
+        if (token) {
+          localStorage.setItem('accessToken', token);
+        }
+        set({ user: user, isAuthenticated: true });
+      },
+      
+      // Khi đăng xuất thì xóa hết
+      logout: () => {
+        localStorage.removeItem('accessToken');
+        set({ user: null, isAuthenticated: false });
+      },
+    }),
+    {
+      name: 'auth-storage',
     }
-
-    try {
-      const res = await authService.getMe();
-      set({ user: res.data.user, isAuthenticated: true, isAuthReady: true });
-    } catch {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('userRole');
-      set({ user: null, isAuthenticated: false, isAuthReady: true });
-    }
-  },
-}));
+  )
+);
 
 export default useAuthStore;

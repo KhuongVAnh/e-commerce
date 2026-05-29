@@ -1,9 +1,28 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axiosClient from '../../utils/axiosClient';
+import toast from 'react-hot-toast';
+import useAuthStore from '../../store/useAuthStore';
+import useCartStore from '../../store/useCartStore';
+
+const createSlug = (str) => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+};
 
 const Cart = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const { fetchCartTotal } = useCartStore();
+  
+  const token = localStorage.getItem('accessToken') || '';
+
   const [cartData, setCartData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -11,14 +30,22 @@ const Cart = () => {
   const [selectedShopId, setSelectedShopId] = useState(null);
   const [selectedItemIds, setSelectedItemIds] = useState([]);
 
+  const [deleteModal, setDeleteModal] = useState({ show: false, itemId: null });
+
   // 1. LẤY GIỎ HÀNG
   const fetchCart = async () => {
     try {
       setLoading(true);
-      const res = await axiosClient.get('/commerce/cart');
-      setCartData(res.data);
+      const res = await fetch('http://localhost:3000/api/commerce/cart', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const result = await res.json();
+      
+      if (!res.ok || !result.success) throw new Error(result.message || "Lỗi khi tải giỏ hàng");
+      setCartData(result.data);
     } catch (err) {
-      setError(err.message || "Lỗi khi tải giỏ hàng");
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -33,9 +60,7 @@ const Cart = () => {
     const newQuantity = currentQuantity + change;
     
     if (newQuantity < 1) {
-      if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?")) {
-        handleRemoveItem(itemId);
-      }
+      setDeleteModal({ show: true, itemId: itemId });
       return;
     }
 
@@ -48,10 +73,22 @@ const Cart = () => {
         }))
       }));
 
-      await axiosClient.patch(`/commerce/cart/items/${itemId}`, { quantity: newQuantity });
+      const res = await fetch(`http://localhost:3000/api/commerce/cart/items/${itemId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ quantity: newQuantity })
+      });
+      
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        fetchCart(); 
+        toast.error(result.message || "Lỗi cập nhật số lượng");
+      }
     } catch (err) {
       fetchCart();
-      alert(err.message || "Lỗi cập nhật số lượng");
     }
   };
 
@@ -66,20 +103,35 @@ const Cart = () => {
         return { ...prev, shops: newShops };
       });
 
-      // Nếu sp bị xóa đang được chọn, loại nó ra khỏi danh sách
       setSelectedItemIds(prev => {
         const newIds = prev.filter(id => id !== itemId);
         if (newIds.length === 0) setSelectedShopId(null);
         return newIds;
       });
 
-      await axiosClient.delete(`/commerce/cart/items/${itemId}`);
-    } catch {
+      const res = await fetch(`http://localhost:3000/api/commerce/cart/items/${itemId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!res.ok) {
+        fetchCart();
+      } else {
+        toast.success("Đã xóa sản phẩm khỏi giỏ hàng!");
+        if (fetchCartTotal) fetchCartTotal();
+      }
+    } catch (err) {
       fetchCart();
     }
   };
 
-  // LOGIC ĐỘC QUYỀN 1 SHOP: Tích chọn Item
+  const confirmDelete = () => {
+    if (deleteModal.itemId) {
+      handleRemoveItem(deleteModal.itemId);
+    }
+    setDeleteModal({ show: false, itemId: null });
+  };
+
   const handleToggleItem = (itemId, shopId) => {
     if (selectedShopId !== null && selectedShopId !== shopId) {
       setSelectedShopId(shopId);
@@ -87,7 +139,6 @@ const Cart = () => {
       return;
     }
 
-    // Đang ở cùng 1 Shop
     setSelectedItemIds(prev => {
       const newIds = prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId];
       if (newIds.length === 0) {
@@ -99,7 +150,6 @@ const Cart = () => {
     });
   };
 
-  // LOGIC ĐỘC QUYỀN 1 SHOP: Tích chọn nguyên Shop
   const handleToggleShop = (shop) => {
     const shopId = shop.shopId;
     const shopItemIds = shop.items.map(item => item.id);
@@ -121,7 +171,7 @@ const Cart = () => {
   // 4. XỬ LÝ THANH TOÁN
   const handleGlobalCheckout = () => {
     if (!selectedShopId || selectedItemIds.length === 0) {
-      alert("Vui lòng chọn sản phẩm cần thanh toán!");
+      toast.error("Vui lòng chọn sản phẩm cần thanh toán!");
       return;
     }
     
@@ -149,7 +199,6 @@ const Cart = () => {
 
   const isCartEmpty = !cartData || !cartData.shops || cartData.shops.length === 0;
 
-  // Tính tiền những món được chọn
   let globalSelectedSubtotal = 0;
   if (!isCartEmpty) {
     cartData.shops.forEach(shop => {
@@ -192,7 +241,6 @@ const Cart = () => {
           <h1 className="text-3xl font-black tracking-tighter text-[#2b3896] mb-2 font-headline">Giỏ hàng của bạn</h1>
           
           {cartData.shops.map((shop, index) => {
-            // Kiểm tra trạng thái tích chọn của Shop
             const isThisShopSelected = selectedShopId === shop.shopId;
             const shopItemIds = shop.items.map(i => i.id);
             const isShopAllSelected = isThisShopSelected && shopItemIds.every(id => selectedItemIds.includes(id));
@@ -242,11 +290,14 @@ const Cart = () => {
                         
                         <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 w-full pl-2">
                           <div>
-                            <Link to={`/product/${item.productId}`} className="text-lg font-bold text-gray-900 mb-1 hover:text-[#2b3896] transition-colors line-clamp-2">
+                            <Link 
+                              to={`/product/${createSlug(item.productName)}-id${item.productId}`} 
+                              className="text-lg font-bold text-gray-900 mb-1 hover:text-[#2b3896] transition-colors line-clamp-2"
+                            >
                               {item.productName}
                             </Link>
                             <button 
-                              onClick={() => handleRemoveItem(item.id)}
+                              onClick={() => setDeleteModal({ show: true, itemId: item.id })}
                               className="mt-4 text-red-500 flex items-center space-x-1 text-sm hover:underline opacity-60 hover:opacity-100 transition-opacity font-medium"
                             >
                               <span className="material-symbols-outlined text-sm">delete</span>
@@ -281,7 +332,6 @@ const Cart = () => {
           })}
         </div>
 
-        {/* CỤC TỔNG QUAN NẰM BÊN PHẢI VỚI NÚT THANH TOÁN DUY NHẤT */}
         <aside className="lg:col-span-4 sticky top-32">
           <div className="bg-white p-8 rounded-3xl shadow-[0px_12px_32px_rgba(43,56,150,0.06)] border border-gray-100">
             <h2 className="text-2xl font-black text-[#2b3896] mb-8 font-headline">Tổng quan</h2>
@@ -303,7 +353,6 @@ const Cart = () => {
                 </div>
               </div>
 
-              {/* Nút Thanh toán gom chung */}
               <button 
                 onClick={handleGlobalCheckout}
                 disabled={selectedItemIds.length === 0}
@@ -312,12 +361,45 @@ const Cart = () => {
                 Tiến hành thanh toán
                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
               </button>
-
             </div>
           </div>
         </aside>
 
       </div>
+
+      {/* POPUP XÁC NHẬN XÓA SẢN PHẨM KHỎI GIỎ */}
+      {deleteModal.show && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-red-600 text-3xl">delete_sweep</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-800">Xóa sản phẩm</h3>
+                <p className="text-sm text-slate-500 font-medium mt-1">
+                  Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button 
+                onClick={() => setDeleteModal({ show: false, itemId: null })}
+                className="flex-1 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20"
+              >
+                Xóa ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

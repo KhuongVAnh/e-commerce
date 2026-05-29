@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import useAuthStore from '../../store/useAuthStore';
 import useCartStore from '../../store/useCartStore';
-import axiosClient from '../../utils/axiosClient';
 
 const ProductDetail = () => {
-  const { id } = useParams(); 
+  const { slug } = useParams(); 
+  const id = slug?.includes('-id') ? slug.split('-id').pop() : slug;
   const navigate = useNavigate();
   
   const [productData, setProductData] = useState(null);
@@ -17,37 +18,41 @@ const ProductDetail = () => {
   const [error, setError] = useState(null);
 
   const { isAuthenticated } = useAuthStore();
+  const token = localStorage.getItem('accessToken') || '';
   const { fetchCartTotal } = useCartStore();
 
   const fallbackShopLogo = 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=150&auto=format&fit=crop';
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
-      alert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
+      toast.error("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
       return;
     }
 
     try {
-      await axiosClient.post('/commerce/cart/items', {
-        productId: productData.product.id,
-        quantity,
+      const res = await fetch('http://localhost:3000/api/commerce/cart/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ productId: productData.product.id, quantity: quantity }) 
       });
-      fetchCartTotal();
-      alert(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
+      
+      const result = await res.json();
+      if (res.ok && (result.success || result.data)) {
+        toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
+        if (fetchCartTotal) fetchCartTotal(); // 👈 Giúp số giỏ hàng tự nhảy
+      } else {
+        toast.error(result.message || "Không thể thêm vào giỏ hàng");
+      }
     } catch (err) {
       console.error(err);
-      alert(err.message || "Không thể thêm vào giỏ hàng");
+      toast.error("Có lỗi xảy ra khi kết nối đến server.");
     }
   };
 
-  const findCartItemId = async (productId, shopId) => {
-    const cartRes = await axiosClient.get('/commerce/cart');
-    const shop = cartRes.data.shops?.find((entry) => Number(entry.shopId) === Number(shopId));
-    const item = shop?.items?.find((entry) => Number(entry.productId) === Number(productId));
-    return item?.id;
-  };
-
-  const handleBuyNow = async () => {
+  const handleBuyNow = () => {
     if (!isAuthenticated) {
       alert("Vui lòng đăng nhập để mua hàng!");
       return;
@@ -55,37 +60,34 @@ const ProductDetail = () => {
     
     if (!productData) return;
 
-    try {
-      const shopId = productData.shop?.id || productData.product.shopId;
-      const addRes = await axiosClient.post('/commerce/cart/items', {
-        productId: productData.product.id,
-        quantity,
-      });
-      const cartItemId = addRes.data?.id || await findCartItemId(productData.product.id, shopId);
-
-      if (!cartItemId) {
-        throw new Error('Không tìm thấy sản phẩm trong giỏ hàng sau khi thêm.');
+    navigate('/checkout', {
+      state: {
+        isBuyNow: true,
+        items: [
+          {
+            productId: productData.product.id,
+            name: productData.product.name,
+            price: productData.product.price,
+            thumbnailUrl: productData.product.thumbnailUrl,
+            quantity: quantity,
+            shopId: productData.shop?.id || productData.product.shopId
+          }
+        ]
       }
-
-      await axiosClient.patch(`/commerce/cart/items/${cartItemId}`, { quantity });
-      fetchCartTotal();
-      navigate(`/checkout?shopId=${shopId}`, {
-        state: {
-          shopId: Number(shopId),
-          cartItemIds: [cartItemId],
-        },
-      });
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Không thể tạo đơn mua ngay.");
-    }
+    });
   };
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const result = await axiosClient.get(`/catalog/products/${id}`);
+        const response = await fetch(`http://localhost:3000/api/catalog/products/${id}`);
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error?.details?.[0] || result.message || "Không thể tải thông tin sản phẩm");
+        }
+
         setProductData(result.data);
         
         const defaultImage = result.data.product.thumbnailUrl || (result.data.images?.length > 0 ? result.data.images[0].imageUrl : '');
@@ -244,7 +246,7 @@ const ProductDetail = () => {
           {/* Cập nhật UI Thông tin Cửa hàng */}
           <div className="bg-white p-6 rounded-2xl shadow-[0px_8px_24px_rgba(43,56,150,0.05)] border border-gray-100 mb-8 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link to={`/shop/${shop?.id}`} className="w-14 h-14 rounded-full overflow-hidden border-2 border-[#2b3896]/10 bg-gray-100 flex items-center justify-center shrink-0">
+              <Link to={`/shop/${shop?.slug ? `${shop.slug}-id${shop.id}` : shop?.id}`} className="w-14 h-14 rounded-full overflow-hidden border-2 border-[#2b3896]/10 bg-gray-100 flex items-center justify-center shrink-0">
                 <img 
                   src={shop?.logoUrl || fallbackShopLogo} 
                   alt={shop?.name || 'Shop Logo'}
@@ -256,7 +258,7 @@ const ProductDetail = () => {
                 />
               </Link>
               <div>
-                <Link to={`/shop/${shop?.id}`}>
+                <Link to={`/shop/${shop?.slug ? `${shop.slug}-id${shop.id}` : shop?.id}`}>
                   <h3 className="font-extrabold text-gray-900 hover:text-[#2b3896] transition-colors">{shop?.name || 'Gian hàng'}</h3>
                 </Link>
                 <div className="flex items-center gap-1 text-xs font-bold text-gray-500 mt-0.5">
@@ -265,7 +267,7 @@ const ProductDetail = () => {
                 </div>
               </div>
             </div>
-            <Link to={`/shop/${shop?.id}`} className="shrink-0 text-sm font-bold text-[#2b3896] px-5 py-2 rounded-full border border-[#2b3896]/20 hover:bg-[#2b3896] hover:text-white transition-all">
+            <Link to={`/shop/${shop?.slug ? `${shop.slug}-id${shop.id}` : shop?.id}`} className="shrink-0 text-sm font-bold text-[#2b3896] px-5 py-2 rounded-full border border-[#2b3896]/20 hover:bg-[#2b3896] hover:text-white transition-all">
               Xem Shop
             </Link>
           </div>

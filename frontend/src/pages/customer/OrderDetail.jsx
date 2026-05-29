@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { orderService } from '../../services/orderService';
+import toast from 'react-hot-toast';
 
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
 export default function OrderDetail() {
     const { id } = useParams(); 
+    const navigate = useNavigate();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isCancelling, setIsCancelling] = useState(false);
-    const [isPaying, setIsPaying] = useState(false);
     
     // Popup thông báo
     const [popup, setPopup] = useState({ isOpen: false, message: '', type: 'error' });
@@ -18,14 +19,20 @@ export default function OrderDetail() {
         const fetchDetail = async () => {
             try {
                 const res = await orderService.getOrderDetail(id); 
-                if (res.data?.order) {
-                    setOrder(res.data.order);
+                const responseData = res.data || res;
+
+                if (responseData?.success && responseData?.data?.order) {
+                    setOrder(responseData.data.order);
+                } else if (responseData?.success && responseData?.order) {
+                    setOrder(responseData.order);
+                } else if (responseData?.order) {
+                    setOrder(responseData.order);
                 } else {
                     setPopup({ isOpen: true, message: 'Không thể tải dữ liệu đơn hàng. Cấu trúc dữ liệu không khớp.', type: 'error' });
                 }
             } catch (error) {
                 console.error("Lỗi lấy chi tiết đơn hàng:", error);
-                setPopup({ isOpen: true, message: error.message || 'Có lỗi xảy ra khi lấy thông tin đơn hàng.', type: 'error' });
+                setPopup({ isOpen: true, message: error.response?.data?.message || 'Có lỗi xảy ra khi lấy thông tin đơn hàng.', type: 'error' });
             } finally {
                 setLoading(false);
             }
@@ -35,46 +42,20 @@ export default function OrderDetail() {
 
     const closePopup = () => setPopup({ isOpen: false, message: '', type: 'error' });
 
-    const handleContinuePayment = async () => {
-        if (!order?.orderCode) return;
-
-        setIsPaying(true);
-        try {
-            const res = await orderService.getPaymentUrl(order.orderCode);
-            const paymentUrl = res.data?.paymentUrl;
-
-            if (!paymentUrl) {
-                setPopup({ isOpen: true, message: 'Không lấy được link thanh toán cho đơn hàng này.', type: 'error' });
-                return;
-            }
-
-            sessionStorage.setItem('currentOrderCode', order.orderCode);
-            window.location.href = paymentUrl;
-        } catch (error) {
-            console.error("Lỗi lấy link thanh toán:", error);
-            setPopup({ isOpen: true, message: error.message || 'Không thể tiếp tục thanh toán. Vui lòng thử lại.', type: 'error' });
-        } finally {
-            setIsPaying(false);
-        }
-    };
-
     // HÀM XỬ LÝ HỦY ĐƠN HÀNG
     const handleCancelOrder = async () => {
         if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác.")) return;
         
         setIsCancelling(true);
         try {
-            const res = await orderService.cancelOrder(order.orderCode);
+            await orderService.cancelOrder(order.orderCode);
 
-            if (res.success) {
-                setOrder(prev => ({ ...prev, orderStatus: 'CANCELLED' }));
-                setPopup({ isOpen: true, message: 'Đã hủy đơn hàng thành công!', type: 'success' });
-            } else {
-                setPopup({ isOpen: true, message: res.message || 'Không thể hủy đơn hàng.', type: 'error' });
-            }
+            setOrder(prev => ({ ...prev, orderStatus: 'CANCELLED' }));
+            toast.success('Đã hủy đơn hàng thành công!');
+            
         } catch (error) {
             console.error("Lỗi khi hủy đơn:", error);
-            setPopup({ isOpen: true, message: error.message || 'Có lỗi xảy ra khi hủy đơn hàng.', type: 'error' });
+            toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi hủy đơn hàng.');
         } finally {
             setIsCancelling(false);
         }
@@ -98,10 +79,7 @@ export default function OrderDetail() {
         );
     }
 
-    const canCancel = ['PENDING', 'AWAITING_PAYMENT', 'CONFIRMED'].includes(order.orderStatus);
-    const canContinuePayment = order.paymentMethod === 'VNPAY'
-        && ['PENDING', 'FAILED'].includes(order.paymentStatus)
-        && !['CANCELLED', 'PROCESSING', 'SHIPPING', 'DELIVERED'].includes(order.orderStatus);
+    const canCancel = ['PENDING', 'AWAITING_PAYMENT'].includes(order.orderStatus);
 
     const getStepStatus = (status) => {
         if (status === 'CANCELLED') return -1;
@@ -132,21 +110,6 @@ export default function OrderDetail() {
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-4">
-                    {canContinuePayment && (
-                        <button
-                            onClick={handleContinuePayment}
-                            disabled={isPaying}
-                            className="bg-[#2b3896] text-white px-6 py-3 rounded-full font-semibold transition-all duration-300 hover:bg-[#1f2970] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                        >
-                            {isPaying ? (
-                                <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-                            ) : (
-                                <span className="material-symbols-outlined text-sm">payments</span>
-                            )}
-                            {isPaying ? 'Đang lấy link...' : 'Tiếp tục thanh toán'}
-                        </button>
-                    )}
-
                     {/* NÚT HỦY ĐƠN HÀNG */}
                     {canCancel && (
                         <button 
@@ -293,17 +256,11 @@ export default function OrderDetail() {
                             {order.items?.map((item, index) => (
                                 <div key={index} className="p-8 flex flex-col sm:flex-row items-center gap-8 group">
                                     <div className="w-24 h-32 flex-shrink-0 bg-gray-50 overflow-hidden rounded-lg border border-gray-100">
-                                        {item.thumbnailUrl ? (
-                                            <img
-                                                src={item.thumbnailUrl}
-                                                alt={item.productNameSnapshot}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-4xl text-gray-300">inventory_2</span>
-                                            </div>
-                                        )}
+                                        <img 
+                                            src={item.thumbnailUrl || 'https://via.placeholder.com/150'} 
+                                            alt={item.productNameSnapshot} 
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                        />
                                     </div>
                                     <div className="flex-grow text-center sm:text-left">
                                         <h4 className="text-lg font-bold text-indigo-900 mb-1 group-hover:text-[#2b3896] transition-colors line-clamp-2">
