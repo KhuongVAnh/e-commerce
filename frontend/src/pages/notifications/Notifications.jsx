@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Bell, CheckCheck, ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import { notificationService } from '../../services/notificationService';
 import { useToast } from '../../components/ToastProvider';
@@ -118,7 +117,7 @@ const Notifications = () => {
             onClick={loadNotifications}
             className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:border-[#2b3896]/30 hover:text-[#2b3896]"
           >
-            <RefreshCw size={16} />
+            <span className="material-symbols-outlined text-[16px]">refresh</span>
             Làm mới
           </button>
           <button
@@ -126,7 +125,7 @@ const Notifications = () => {
             onClick={handleReadAll}
             className="inline-flex items-center gap-2 rounded-full bg-[#2b3896] px-4 py-2 text-sm font-bold text-white shadow-md shadow-[#2b3896]/20 transition hover:bg-[#1f2970]"
           >
-            <CheckCheck size={16} />
+            <span className="material-symbols-outlined text-[16px]">done_all</span>
             Đánh dấu tất cả đã đọc
           </button>
         </div>
@@ -151,13 +150,13 @@ const Notifications = () => {
       <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl shadow-[#2b3896]/5">
         {isLoading ? (
           <div className="flex items-center justify-center gap-2 py-20 text-sm font-semibold text-slate-500">
-            <Loader2 size={20} className="animate-spin text-[#2b3896]" />
+            <span className="material-symbols-outlined animate-spin text-[20px] text-[#2b3896]">progress_activity</span>
             Đang tải thông báo
           </div>
         ) : notifications.length === 0 ? (
           <div className="px-6 py-20 text-center">
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-indigo-50 text-[#2b3896]">
-              <Bell size={30} />
+              <span className="material-symbols-outlined text-[30px]">notifications</span>
             </div>
             <h2 className="mt-4 text-lg font-extrabold text-slate-900">Không có thông báo</h2>
             <p className="mt-1 text-sm text-slate-500">Các cập nhật về tài khoản, đơn hàng và thanh toán sẽ hiển thị tại đây.</p>
@@ -215,7 +214,7 @@ const Notifications = () => {
               onClick={() => setPage(currentPage - 1)}
               className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:text-[#2b3896]"
             >
-              <ChevronLeft size={18} />
+              <span className="material-symbols-outlined text-[18px]">chevron_left</span>
             </button>
             {pageNumbers.map((pageNumber) => (
               <button
@@ -233,7 +232,7 @@ const Notifications = () => {
               onClick={() => setPage(currentPage + 1)}
               className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:text-[#2b3896]"
             >
-              <ChevronRight size={18} />
+              <span className="material-symbols-outlined text-[18px]">chevron_right</span>
             </button>
           </div>
         </div>
