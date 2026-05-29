@@ -14,7 +14,7 @@ const useCartStore = create((set) => ({
 
     try {
       const res = await axiosClient.get('/commerce/cart');
-      set({ totalQuantity: res.data.totalQuantity || 0 });
+      set({ totalQuantity: res.totalQuantity || 0 });
     } catch (error) {
       console.error("Lỗi lấy tổng giỏ hàng:", error);
     }
