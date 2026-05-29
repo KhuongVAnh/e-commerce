@@ -27,13 +27,14 @@ const CategoryManagement = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
 
   // Category API hiện chưa có page/limit, nên lấy list theo filter rồi phân trang ở client.
   const fetchCategories = useCallback(async () => {
     setLoading(true);
     setErrorMsg('');
     try {
-      const query = buildQueryString(filters);
+      const query = buildQueryString({ ...filters, status: filters.status || 'ALL' });
       const res = await axiosClient.get(`/catalog/categories${query ? `?${query}` : ''}`);
       const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
       setCategories(list);
@@ -53,6 +54,25 @@ const CategoryManagement = () => {
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await axiosClient.get('/catalog/admin/categories/stats');
+      const data = res?.data || {};
+
+      setStats({
+        total: data.total || 0,
+        active: data.statuses?.ACTIVE || 0,
+        inactive: data.statuses?.INACTIVE || 0,
+      });
+    } catch (error) {
+      console.warn('Không thể tải category stats:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const pagedCategories = useMemo(() => {
     // Cắt dữ liệu theo page hiện tại để category vẫn có UX giống các bảng admin khác.
@@ -90,6 +110,7 @@ const CategoryManagement = () => {
       setFormOpen(false);
       setForm(emptyForm);
       fetchCategories();
+      fetchStats();
     } catch (error) {
       alert(getErrorMessage(error, 'Không thể lưu danh mục.'));
     } finally {
@@ -132,18 +153,12 @@ const CategoryManagement = () => {
       }
       setConfirmAction(null);
       fetchCategories();
+      fetchStats();
     } catch (error) {
       alert(getErrorMessage(error, 'Không thể thao tác danh mục.'));
     } finally {
       setActionLoading(false);
     }
-  };
-
-  const stats = {
-    // Vì category phân trang client-side nên thống kê lấy trên toàn bộ list đã filter.
-    total: categories.length,
-    active: categories.filter((category) => category.status === 'ACTIVE').length,
-    inactive: categories.filter((category) => category.status === 'INACTIVE').length,
   };
 
   return (
@@ -160,9 +175,9 @@ const CategoryManagement = () => {
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <AdminStatCard icon="category" label="Total Results" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
-        <AdminStatCard icon="visibility" label="Active" value={stats.active} tone="success" />
-        <AdminStatCard icon="visibility_off" label="Inactive" value={stats.inactive} />
+        <AdminStatCard icon="category" label="Total System Categories" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
+        <AdminStatCard icon="visibility" label="Total Active" value={stats.active.toLocaleString('vi-VN')} tone="success" />
+        <AdminStatCard icon="visibility_off" label="Total Inactive" value={stats.inactive.toLocaleString('vi-VN')} />
       </div>
 
       <AdminToolbar>

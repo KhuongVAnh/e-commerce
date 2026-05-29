@@ -36,6 +36,7 @@ export function isProtectedCatalogService(req: Request): boolean {
         pathname.startsWith("/api/catalog/admin/shops") ||
 
         // ===== CATEGORY (admin) =====
+        pathname.startsWith("/api/catalog/admin/categories") ||
         (req.method === "POST" && pathname === "/api/catalog/categories") ||
         (req.method === "PUT" && pathname.startsWith("/api/catalog/categories/")) ||
         (req.method === "DELETE" && pathname.startsWith("/api/catalog/categories/")) ||

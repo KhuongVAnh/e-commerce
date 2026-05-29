@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { sendSuccess } from "../utils/http";
 import {
   adminBlockUser,
+  adminGetUserStats,
   adminGetUser,
   adminListUsers,
   adminUpdateUser,
@@ -29,6 +30,16 @@ export async function adminGetUserController(req: Request, res: Response, _next:
   sendSuccess(res, {
     requestId: res.locals.requestId,
     message: "Lấy thông tin người dùng thành công",
+    data,
+  });
+}
+
+export async function adminGetUserStatsController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+  const data = await adminGetUserStats();
+
+  sendSuccess(res, {
+    requestId: res.locals.requestId,
+    message: "Lấy thống kê người dùng thành công",
     data,
   });
 }

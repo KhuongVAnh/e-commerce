@@ -10,6 +10,7 @@ import {
 } from "../controllers/shopController";
 import {
     adminGetShopController,
+    adminGetShopStatsController,
     adminListShopsController,
     adminUpdateShopStatusController,
 } from "../controllers/adminShopController";
@@ -79,6 +80,13 @@ router.get(
     authMiddleware,
     roleMiddleware(["ADMIN"]),
     asyncHandler(adminListShopsController),
+);
+
+router.get(
+    "/admin/shops/stats",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(adminGetShopStatsController),
 );
 
 router.get(

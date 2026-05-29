@@ -4,6 +4,7 @@ import { roleMiddleware } from "../middlewares/role";
 import {
   adminDashboardSummaryController,
   adminGetOrderDetailController,
+  adminGetOrderStatsController,
   adminListOrdersController,
   adminUpdateOrderStatusController,
 } from "../controllers/adminController";
@@ -23,6 +24,7 @@ router.use(roleMiddleware(["ADMIN"]));
 
 // Orders
 router.get("/admin/orders", asyncHandler(adminListOrdersController));
+router.get("/admin/orders/stats", asyncHandler(adminGetOrderStatsController));
 router.get("/admin/orders/:orderId", asyncHandler(adminGetOrderDetailController));
 router.patch("/admin/orders/:orderId/status", asyncHandler(adminUpdateOrderStatusController));
 

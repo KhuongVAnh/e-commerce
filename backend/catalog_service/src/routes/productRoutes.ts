@@ -12,6 +12,7 @@ import {
 } from "../controllers/productController";
 import {
     adminDeleteProductController,
+    adminGetProductStatsController,
     adminGetProductController,
     adminListProductsController,
     adminUpdateProductController,
@@ -92,6 +93,13 @@ router.get(
     authMiddleware,
     roleMiddleware(["ADMIN"]),
     asyncHandler(adminListProductsController),
+);
+
+router.get(
+    "/admin/products/stats",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    asyncHandler(adminGetProductStatsController),
 );
 
 router.get(
