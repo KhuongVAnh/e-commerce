@@ -314,7 +314,7 @@ const ProductDetail = () => {
           <div className="space-y-3">
             <div className="flex items-center gap-2.5 text-xs font-medium text-gray-600">
               <span className="material-symbols-outlined text-[#2b3896] text-[18px]">local_shipping</span>
-              <span>Miễn phí vận chuyển toàn quốc cho đơn từ 1.000.000đ</span>
+              <span>Dịch vụ vận chuyển nhanh và tiết kiệm chi phí</span>
             </div>
             <div className="flex items-center gap-2.5 text-xs font-medium text-gray-600">
               <span className="material-symbols-outlined text-[#2b3896] text-[18px]">verified</span>

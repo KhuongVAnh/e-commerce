@@ -144,13 +144,6 @@ const CustomerLayout = () => {
                           <span className="material-symbols-outlined text-[20px]">receipt_long</span>
                           Đơn mua của tôi
                         </Link>
-
-                        {(user?.role === 'ADMIN' || user?.role === 'SELLER') && (
-                          <Link to={user.role === 'ADMIN' ? '/admin' : '/seller'} onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-orange-600 hover:bg-orange-50 transition-colors border-t border-gray-50 mt-1 pt-2">
-                            <span className="material-symbols-outlined text-[20px]">dashboard</span>
-                            {user.role === 'ADMIN' ? 'Trang quản trị' : 'Kênh người bán'}
-                          </Link>
-                        )}
                       </div>
 
                       <div className="border-t border-gray-100 pt-1 pb-1">
