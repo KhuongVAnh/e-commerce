@@ -113,7 +113,6 @@ const DashboardLayout = ({ roleTitle }) => {
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-end px-4 md:px-8 z-10 shrink-0">
           <div className="flex items-center gap-5 relative">
             <NotificationBell />
-            <span className="material-symbols-outlined text-slate-400 cursor-pointer hover:text-indigo-600 hidden md:block">help</span>
             
             {/* AVATAR CÓ MENU DROPDOWN */}
             <div className="relative" ref={dropdownRef}>
@@ -136,9 +135,6 @@ const DashboardLayout = ({ roleTitle }) => {
                   <div className="py-1">
                     <Link to="/profile" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-[#2e3785] transition-colors">
                       <span className="material-symbols-outlined text-[20px]">account_circle</span> Thông tin cá nhân
-                    </Link>
-                    <Link to="/orders" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-[#2e3785] transition-colors">
-                      <span className="material-symbols-outlined text-[20px]">receipt_long</span> Đơn mua của tôi
                     </Link>
 
                     {/* Nút thoát ra trang ngoài (Khách hàng) */}
