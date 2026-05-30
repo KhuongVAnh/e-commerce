@@ -8,7 +8,15 @@ const SellerProductList = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
-  const [filters, setFilters] = useState({ q: '' });
+  
+  const [filters, setFilters] = useState({
+    keyword: '', categoryId: '', status: '', minPrice: '', maxPrice: '', sortBy: 'latest'
+  });
+  
+  const [appliedFilters, setAppliedFilters] = useState({
+    keyword: '', categoryId: '', status: '', minPrice: '', maxPrice: '', sortBy: 'latest'
+  });
+
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [shopId, setShopId] = useState(null);
 
@@ -31,12 +39,17 @@ const SellerProductList = () => {
     setLoading(true);
     try {
       const queryParams = new URLSearchParams();
-      queryParams.append('shopId', shopId);
       queryParams.append('page', pagination.page);
       queryParams.append('limit', pagination.limit);
-      if (filters.q) queryParams.append('q', filters.q);
+      
+      if (appliedFilters.keyword) queryParams.append('keyword', appliedFilters.keyword);
+      if (appliedFilters.categoryId) queryParams.append('categoryId', appliedFilters.categoryId);
+      if (appliedFilters.status) queryParams.append('status', appliedFilters.status);
+      if (appliedFilters.minPrice) queryParams.append('minPrice', appliedFilters.minPrice);
+      if (appliedFilters.maxPrice) queryParams.append('maxPrice', appliedFilters.maxPrice);
+      if (appliedFilters.sortBy) queryParams.append('sortBy', appliedFilters.sortBy);
 
-      const res = await axiosClient.get(`/catalog/products?${queryParams.toString()}`);
+      const res = await axiosClient.get(`/catalog/seller/products?${queryParams.toString()}`);
       const pData = res?.data?.products || res?.products || res?.data || [];
       setProducts(Array.isArray(pData) ? pData : []);
       
@@ -45,12 +58,19 @@ const SellerProductList = () => {
     } catch (error) {
       setErrorMsg("Không thể tải danh sách sản phẩm.");
     } finally { setLoading(false); }
-  }, [shopId, filters.q, pagination.page, pagination.limit]);
+  }, [shopId, pagination.page, pagination.limit, appliedFilters]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
-  const handleSearch = (e) => {
-    setFilters({ q: e.target.value });
+  const handleApplyFilters = () => {
+    setAppliedFilters(filters);
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handleResetFilters = () => {
+    const reset = { keyword: '', categoryId: '', status: '', minPrice: '', maxPrice: '', sortBy: 'latest' };
+    setFilters(reset);
+    setAppliedFilters(reset);
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
@@ -59,12 +79,12 @@ const SellerProductList = () => {
     try {
       await axiosClient.delete(`/catalog/products/${id}`);
       fetchProducts();
-    } catch (error) { alert("Lỗi khi xóa sản phẩm: " + (error.response?.data?.message || 'Có lỗi xảy ra')); }
+    } catch (error) { alert("Lỗi khi xóa sản phẩm"); }
   };
 
   const handleAddProduct = () => {
     if (!shopId) {
-      alert("Bạn cần khởi tạo gian hàng trước khi có thể đăng sản phẩm mới!");
+      alert("Bạn cần khởi tạo gian hàng trước khi đăng sản phẩm!");
       navigate('/seller/shop/settings');
     } else {
       navigate('/seller/products/new');
@@ -93,14 +113,43 @@ const SellerProductList = () => {
           <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">Product Inventory</h1>
           <p className="text-slate-500 text-xs md:text-sm font-medium">Manage your curated collection and stock levels.</p>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
-          <div className="relative w-full sm:w-64">
+        <button onClick={handleAddProduct} className="w-full lg:w-auto shrink-0 px-6 py-2.5 text-sm font-bold bg-[#313b8e] hover:bg-[#252d70] text-white rounded-xl shadow-md transition flex items-center justify-center gap-2">
+          <span className="material-symbols-outlined text-[18px]">add</span> Add New Product
+        </button>
+      </div>
+
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div className="relative">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
-            <input type="text" value={filters.q} onChange={handleSearch} placeholder="Filter products..." className="w-full bg-white border border-slate-200 py-2.5 pl-10 pr-4 rounded-xl text-sm focus:ring-2 focus:ring-[#2e3785]/20 outline-none" />
+            <input type="text" value={filters.keyword} onChange={(e) => setFilters({...filters, keyword: e.target.value})} placeholder="Tìm theo tên, mô tả..." className="w-full bg-slate-50 border border-slate-200 py-2.5 pl-10 pr-4 rounded-xl text-sm focus:ring-2 focus:ring-[#2e3785]/20 outline-none" />
           </div>
-          <button onClick={handleAddProduct} className="w-full sm:w-auto shrink-0 px-6 py-2.5 text-sm font-bold bg-[#313b8e] hover:bg-[#252d70] text-white rounded-xl shadow-md transition flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">add</span> Add New Product
-          </button>
+          <select value={filters.categoryId} onChange={(e) => setFilters({...filters, categoryId: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm outline-none cursor-pointer">
+            <option value="">Tất cả danh mục</option>
+            {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+          </select>
+          <select value={filters.status} onChange={(e) => setFilters({...filters, status: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm outline-none cursor-pointer">
+            <option value="">Tất cả trạng thái</option>
+            <option value="ACTIVE">ACTIVE (Mở bán)</option>
+            <option value="INACTIVE">INACTIVE (Tạm ẩn)</option>
+            <option value="OUT_OF_STOCK">OUT OF STOCK (Hết hàng)</option>
+          </select>
+          <select value={filters.sortBy} onChange={(e) => setFilters({...filters, sortBy: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm outline-none cursor-pointer">
+            <option value="latest">Mới nhất</option>
+            <option value="oldest">Cũ nhất</option>
+            <option value="price_asc">Giá tăng dần</option>
+            <option value="price_desc">Giá giảm dần</option>
+            <option value="stock_asc">Tồn kho tăng dần</option>
+            <option value="stock_desc">Tồn kho giảm dần</option>
+            <option value="name_asc">Tên A-Z</option>
+            <option value="name_desc">Tên Z-A</option>
+          </select>
+          <input type="number" placeholder="Giá tối thiểu" value={filters.minPrice} onChange={(e) => setFilters({...filters, minPrice: e.target.value})} className="w-full bg-slate-50 border border-slate-200 py-2.5 px-4 rounded-xl text-sm focus:ring-2 focus:ring-[#2e3785]/20 outline-none" />
+          <input type="number" placeholder="Giá tối đa" value={filters.maxPrice} onChange={(e) => setFilters({...filters, maxPrice: e.target.value})} className="w-full bg-slate-50 border border-slate-200 py-2.5 px-4 rounded-xl text-sm focus:ring-2 focus:ring-[#2e3785]/20 outline-none" />
+        </div>
+        <div className="flex justify-end gap-3">
+          <button onClick={handleResetFilters} className="px-5 py-2 text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Xóa bộ lọc</button>
+          <button onClick={handleApplyFilters} className="px-5 py-2 text-sm font-bold text-white bg-[#2e3785] hover:bg-[#1f2970] rounded-xl transition">Áp dụng</button>
         </div>
       </div>
 
@@ -126,7 +175,13 @@ const SellerProductList = () => {
                 <tr key={product.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-100 flex items-center justify-center">
-                      {product.thumbnailUrl ? <img src={product.thumbnailUrl} className="w-full h-full object-cover" /> : <span className="material-symbols-outlined text-slate-300">image</span>}
+                      {product.thumbnailUrl ? (
+                        <img 
+                          src={product.thumbnailUrl} 
+                          onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/150x150?text=Error'; }} 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : <span className="material-symbols-outlined text-slate-300">image</span>}
                     </div>
                   </td>
                   <td className="px-6 py-4">
