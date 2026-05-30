@@ -68,7 +68,7 @@ const OrderCard = ({ order }) => {
           </div>
           
           <Link 
-            to={`/orders/${order.id}`} // Link sang trang chi tiết
+            to={`/orders/${order.id}`} 
             className="flex items-center justify-center gap-2 bg-gray-100 text-[#2f3f92] px-6 py-2.5 rounded-full font-semibold text-sm hover:bg-[#2b3896] hover:text-white transition-all"
           >
             View Details
@@ -84,13 +84,30 @@ export default function OrderHistory() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('ALL');
 
-  const fetchOrders = async (status) => {
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [limit] = useState(10);
+
+  const fetchOrders = async (status, currentPage) => {
     setLoading(true);
     try {
-        const params = status !== 'ALL' ? { status } : {};
+        const params = {
+          page: currentPage,
+          limit: limit,
+        };
+        if (status !== 'ALL') {
+          params.status = status;
+        }
+
         const res = await orderService.getMyOrders(params); 
         
         setOrders(res.data?.orders || []);
+        
+        if (res.meta && res.meta.pagination) {
+          setTotalPages(res.meta.pagination.totalPages || 1);
+        } else {
+           setTotalPages(1);
+        }
     } catch (error) {
         console.error("Lỗi khi tải lịch sử đơn hàng:", error);
     } finally {
@@ -99,8 +116,22 @@ export default function OrderHistory() {
   };
 
   useEffect(() => {
-    fetchOrders(activeTab);
+    setPage(1);
+    fetchOrders(activeTab, 1);
   }, [activeTab]);
+
+  useEffect(() => {
+    if (page > 1 || (page === 1 && orders.length > 0)) {
+        fetchOrders(activeTab, page);
+    }
+  }, [page]);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   const tabs = [
     { key: 'ALL', label: 'All' },
@@ -136,17 +167,56 @@ export default function OrderHistory() {
       </div>
 
       {/* Order List */}
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-6 mb-10">
         {loading ? (
-          <p className="text-center text-gray-500 py-10">Đang tải dữ liệu...</p>
+          <div className="flex justify-center py-20">
+             <span className="material-symbols-outlined animate-spin text-4xl text-[#2b3896]">progress_activity</span>
+          </div>
         ) : orders.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-xl shadow-sm">
+          <div className="text-center py-24 bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+            <span className="material-symbols-outlined text-6xl text-gray-200 mb-4">receipt_long</span>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Chưa có đơn hàng</h3>
             <p className="text-gray-500">Chưa có đơn hàng nào ở trạng thái này.</p>
           </div>
         ) : (
           orders.map(order => <OrderCard key={order.id} order={order} />)
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-8">
+          <button
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page === 1}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-[#2b3896] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+          </button>
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+            <button
+              key={pageNum}
+              onClick={() => handlePageChange(pageNum)}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold transition-all ${
+                page === pageNum
+                  ? 'bg-[#2b3896] text-white shadow-md shadow-[#2b3896]/20 border-none'
+                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 shadow-sm'
+              }`}
+            >
+              {pageNum}
+            </button>
+          ))}
+
+          <button
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page === totalPages}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-[#2b3896] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+          </button>
+        </div>
+      )}
     </main>
   );
 }
