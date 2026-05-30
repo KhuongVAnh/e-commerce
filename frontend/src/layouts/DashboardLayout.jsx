@@ -142,13 +142,13 @@ const DashboardLayout = ({ roleTitle }) => {
                     </Link>
 
                     {/* Nút thoát ra trang ngoài (Khách hàng) */}
-                    <Link to="/" className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-emerald-600 hover:bg-emerald-50 transition-colors border-t border-gray-50 mt-1 pt-2">
+                    <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-emerald-600 hover:bg-emerald-50 transition-colors border-t border-gray-50 mt-1 pt-2 text-left cursor-pointer">
                       <span className="material-symbols-outlined text-[20px]">storefront</span> Về trang mua sắm
-                    </Link>
+                    </button>
                   </div>
 
                   <div className="border-t border-gray-100 pt-1 pb-1">
-                    <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors text-left">
+                    <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors text-left cursor-pointer">
                       <span className="material-symbols-outlined text-[20px]">logout</span> Đăng xuất
                     </button>
                   </div>

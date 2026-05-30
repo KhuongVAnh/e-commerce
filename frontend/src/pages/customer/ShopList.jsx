@@ -42,7 +42,7 @@ const ShopList = () => {
             {/* Header */}
             <header className="mb-16 md:mb-24 flex flex-col items-center text-center">
                 <h1 className="font-['Be_Vietnam_Pro'] text-5xl md:text-7xl font-extrabold tracking-tighter text-[#2b3896] mb-6">
-                    Shop Directory
+                    Danh sách cửa hàng
                 </h1>
                 <p className="text-gray-500 text-lg md:text-xl max-w-2xl font-light leading-relaxed">
                     Kết nối trực tiếp đến các nhà phân phối và cửa hàng uy tín hàng đầu. Nơi mang lại trải nghiệm mua sắm đáng tin cậy với chất lượng dịch vụ tốt nhất.
@@ -64,13 +64,6 @@ const ShopList = () => {
                             placeholder="Tìm kiếm cửa hàng theo tên..."
                         />
                     </div>
-                    <div className="h-8 w-px bg-gray-200 hidden md:block"></div>
-                    <button className="flex items-center gap-2 px-6 py-3 bg-gray-100 text-[#2b3896] font-bold rounded-full hover:bg-[#bcc2ff]/40 transition-colors w-full md:w-auto justify-center">
-                        <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                            star
-                        </span>
-                        Nổi bật
-                    </button>
                 </div>
             </section>
 
