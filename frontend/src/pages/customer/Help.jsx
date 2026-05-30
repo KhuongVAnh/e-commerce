@@ -62,7 +62,7 @@ const Help = () => {
         <div className="bg-gray-50 p-6 rounded-2xl text-gray-600 space-y-3">
           <p>- <strong>Nội thành:</strong> Nhận hàng trong 1-2 ngày làm việc.</p>
           <p>- <strong>Ngoại thành & Tỉnh khác:</strong> Nhận hàng từ 3-5 ngày làm việc.</p>
-          <p>- Miễn phí vận chuyển cho các đơn hàng có giá trị trên 1.000.000đ.</p>
+          <p>- Dịch vụ vận chuyển nhanh và tiết kiệm chi phí.</p>
         </div>
       </section>
 
