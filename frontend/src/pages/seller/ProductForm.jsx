@@ -30,7 +30,8 @@ const SellerProductForm = () => {
         setShopId(shopRes?.data?.shop?.id || shopRes?.shop?.id);
 
         if (isUpdate) {
-          const prodRes = await axiosClient.get(`/catalog/products/${id}`);
+          // Đã sửa API ở đây thành API dành cho Seller
+          const prodRes = await axiosClient.get(`/catalog/seller/products/${id}`);
           
           // Lấy đúng vị trí của mảng images nằm song song với product theo API Docs
           const responseData = prodRes?.data?.data || prodRes?.data || prodRes;
