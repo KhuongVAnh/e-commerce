@@ -68,7 +68,7 @@ model Product {
   name          String
   slug          String         @unique
   description   String?        @db.Text
-  price         Decimal        @db.Decimal(10, 2)
+  price         Decimal        @db.Decimal(15, 2)
   stockQuantity Int            @default(0) @map("stock_quantity")
   thumbnailUrl  String?        @map("thumbnail_url")
   status        ProductStatus  @default(ACTIVE)

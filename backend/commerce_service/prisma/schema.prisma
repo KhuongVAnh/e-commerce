@@ -79,8 +79,8 @@ model Order {
   idempotencyKey  String?       @map("idempotency_key")
   customerId      BigInt        @map("customer_id")
   shopId          BigInt        @map("shop_id")
-  totalAmount     Decimal       @map("total_amount") @db.Decimal(10, 2)
-  shippingFee     Decimal       @default(0) @map("shipping_fee") @db.Decimal(10, 2)
+  totalAmount     Decimal       @map("total_amount") @db.Decimal(15, 2)
+  shippingFee     Decimal       @default(0) @map("shipping_fee") @db.Decimal(15, 2)
   paymentMethod   PaymentMethod @map("payment_method")
   paymentStatus   PaymentStatus @map("payment_status")
   orderStatus     OrderStatus   @map("order_status")
@@ -106,9 +106,9 @@ model OrderItem {
   orderId             BigInt  @map("order_id")
   productId           BigInt  @map("product_id")
   productNameSnapshot String  @map("product_name_snapshot")
-  priceSnapshot       Decimal @map("price_snapshot") @db.Decimal(10, 2)
+  priceSnapshot       Decimal @map("price_snapshot") @db.Decimal(15, 2)
   quantity            Int
-  subtotal            Decimal @db.Decimal(10, 2)
+  subtotal            Decimal @db.Decimal(15, 2)
   order               Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
@@ -121,7 +121,7 @@ model Payment {
   id                   BigInt            @id @default(autoincrement())
   orderId              BigInt            @map("order_id")
   method               PaymentMethod
-  amount               Decimal           @db.Decimal(10, 2)
+  amount               Decimal           @db.Decimal(15, 2)
   status               TransactionStatus
   transactionRef       String?           @unique @map("transaction_ref") // mã giao dịch do VNPay trả về, dùng để tra cứu, đối chiếu khi xử lý IPN
   providerResponse     String?           @map("provider_response") @db.Text // lưu trữ toàn bộ dữ liệu trả về từ VNPay để phục vụ việc tra cứu, xử lý sau này
