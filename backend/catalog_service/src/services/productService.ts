@@ -549,6 +549,46 @@ function deriveStatusByStock(
     return currentStatus;
 }
 
+function resolveSellerProductState(
+    currentStatus: SellerEditableStatus,
+    currentStock: number,
+    requestedStatus?: SellerEditableStatus,
+    requestedStock?: number,
+): { stockQuantity: number; status: SellerEditableStatus } {
+    // Chuẩn hóa rule tồn kho/trạng thái ở backend để client không thể gửi payload lệch.
+    let stockQuantity = requestedStock ?? currentStock;
+
+    if (requestedStatus !== undefined) {
+        // Khi tồn kho đã bằng 0, status chỉ được là OUT_OF_STOCK.
+        if (stockQuantity === 0 && requestedStatus !== "OUT_OF_STOCK") {
+            throw new HttpError(400, "Không thể cập nhật trạng thái khi tồn kho bằng 0", {
+                code: "PRODUCT_ZERO_STOCK_STATUS_LOCKED",
+                fieldErrors: [
+                    {
+                        field: "status",
+                        message: "Sản phẩm có tồn kho bằng 0 chỉ được ở trạng thái OUT_OF_STOCK",
+                    },
+                ],
+            });
+        }
+
+        // Seller chọn hết hàng thì hệ thống tự reset tồn kho về 0.
+        if (requestedStatus === "OUT_OF_STOCK") {
+            stockQuantity = 0;
+        }
+
+        return {
+            stockQuantity,
+            status: requestedStatus,
+        };
+    }
+
+    return {
+        stockQuantity,
+        status: deriveStatusByStock(currentStatus, stockQuantity),
+    };
+}
+
 function isPublicProductSortBy(value: string): value is PublicProductSortBy {
     return PUBLIC_PRODUCT_SORT_OPTIONS.includes(value as PublicProductSortBy);
 }
@@ -1209,7 +1249,12 @@ export async function createProduct(sellerId: string, input: createProductInput)
     await assertCategoryExistsAndActive(payload.categoryId);
 
     const slug = await generateUniqueSlug(payload.name);
-    const status: SellerEditableStatus = payload.status ?? (payload.stockQuantity === 0 ? "OUT_OF_STOCK" : "ACTIVE");
+    const initialState = resolveSellerProductState(
+        "ACTIVE",
+        payload.stockQuantity,
+        payload.status,
+        payload.stockQuantity,
+    );
 
     const createdProduct = await prisma.product.create({
         data: {
@@ -1219,9 +1264,9 @@ export async function createProduct(sellerId: string, input: createProductInput)
             slug,
             description: payload.description,
             price: payload.price,
-            stockQuantity: payload.stockQuantity,
+            stockQuantity: initialState.stockQuantity,
             thumbnailUrl: payload.thumbnailUrl ?? payload.images[0]?.imageUrl ?? null,
-            status,
+            status: initialState.status,
             deletedAt: null,
             images: payload.images.length
                 ? {
@@ -1255,9 +1300,13 @@ export async function updateProduct(sellerId: string, productId: string, input: 
         await assertCategoryExistsAndActive(payload.categoryId);
     }
 
-    const nextStock = payload.stockQuantity ?? existingProduct.stockQuantity;
-    const nextStatus = payload.status
-        ?? deriveStatusByStock(existingProduct.status as SellerEditableStatus, nextStock);
+    const nextState = resolveSellerProductState(
+        existingProduct.status as SellerEditableStatus,
+        existingProduct.stockQuantity,
+        payload.status,
+        payload.stockQuantity,
+    );
+    const shouldUpdateStock = payload.stockQuantity !== undefined || nextState.stockQuantity !== existingProduct.stockQuantity;
 
     const updatedProduct = await prisma.$transaction(async (tx) => {
         const nextSlug = payload.name
@@ -1273,13 +1322,13 @@ export async function updateProduct(sellerId: string, productId: string, input: 
                 ...(nextSlug !== undefined ? { slug: nextSlug } : {}),
                 ...(payload.description !== undefined ? { description: payload.description } : {}),
                 ...(payload.price !== undefined ? { price: payload.price } : {}),
-                ...(payload.stockQuantity !== undefined ? { stockQuantity: payload.stockQuantity } : {}),
+                ...(shouldUpdateStock ? { stockQuantity: nextState.stockQuantity } : {}),
                 ...(payload.thumbnailUrl !== undefined
                     ? { thumbnailUrl: payload.thumbnailUrl }
                     : payload.images !== undefined
                         ? { thumbnailUrl: payload.images[0]?.imageUrl ?? null }
                         : {}),
-                status: nextStatus,
+                status: nextState.status,
                 ...(payload.images !== undefined
                     ? {
                         images: {

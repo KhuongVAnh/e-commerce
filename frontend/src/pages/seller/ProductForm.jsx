@@ -111,6 +111,38 @@ const SellerProductForm = () => {
     return urls;
   };
 
+  const normalizeStockValue = (value) => {
+    const parsed = parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  };
+
+  const handleStockQuantityChange = (value) => {
+    const stock = normalizeStockValue(value);
+    // Stock bằng 0 thì khóa sản phẩm ở trạng thái hết hàng ngay trên form.
+    setFormData(prev => ({
+      ...prev,
+      stockQuantity: value,
+      status: stock === 0 ? 'OUT_OF_STOCK' : prev.status === 'OUT_OF_STOCK' ? 'ACTIVE' : prev.status
+    }));
+  };
+
+  const handleStatusChange = (value) => {
+    setFormData(prev => {
+      const stock = normalizeStockValue(prev.stockQuantity);
+      // Không cho đổi trạng thái khi stock bằng 0; backend cũng enforce rule này.
+      if (stock === 0 && value !== 'OUT_OF_STOCK') {
+        return prev;
+      }
+
+      // Seller chọn hết hàng thì form tự reset số lượng về 0 trước khi submit.
+      return {
+        ...prev,
+        status: value,
+        stockQuantity: value === 'OUT_OF_STOCK' ? '0' : prev.stockQuantity
+      };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -124,9 +156,10 @@ const SellerProductForm = () => {
       }
 
       let currentStatus = formData.status;
-      const stock = parseInt(formData.stockQuantity) || 0;
-      if (stock === 0 && currentStatus === 'ACTIVE') currentStatus = 'OUT_OF_STOCK';
-      if (stock > 0 && currentStatus === 'OUT_OF_STOCK') currentStatus = 'ACTIVE';
+      let stock = normalizeStockValue(formData.stockQuantity);
+      // Chốt lại rule trước khi gửi API để payload không lệch nếu state form bị thay đổi bất thường.
+      if (stock === 0) currentStatus = 'OUT_OF_STOCK';
+      if (currentStatus === 'OUT_OF_STOCK') stock = 0;
 
       const payload = {
         name: formData.name,
@@ -231,13 +264,13 @@ const SellerProductForm = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             <div>
               <label className="block text-xs font-black text-slate-700 mb-2 uppercase tracking-widest">Stock Quantity</label>
-              <input required type="number" min="0" value={formData.stockQuantity} onChange={e => setFormData({...formData, stockQuantity: e.target.value})} className="w-full bg-white border border-slate-200 p-4 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-[#2e3785]/20 outline-none" />
+              <input required type="number" min="0" value={formData.stockQuantity} onChange={e => handleStockQuantityChange(e.target.value)} className="w-full bg-white border border-slate-200 p-4 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-[#2e3785]/20 outline-none" />
             </div>
             {isUpdate && (
               <div>
                 <label className="block text-xs font-black text-slate-700 mb-2 uppercase tracking-widest">Status</label>
                 <div className="relative">
-                  <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full appearance-none bg-white border border-slate-200 p-4 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-[#2e3785]/20 outline-none cursor-pointer">
+                  <select value={formData.status} disabled={normalizeStockValue(formData.stockQuantity) === 0} onChange={e => handleStatusChange(e.target.value)} className="w-full appearance-none bg-white border border-slate-200 p-4 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-[#2e3785]/20 outline-none cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
                     <option value="ACTIVE">ACTIVE (Mở bán)</option>
                     <option value="INACTIVE">INACTIVE (Tạm ẩn)</option>
                     <option value="OUT_OF_STOCK">OUT OF STOCK (Hết hàng)</option>
