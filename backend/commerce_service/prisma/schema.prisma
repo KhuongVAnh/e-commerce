@@ -110,10 +110,31 @@ model OrderItem {
   quantity            Int
   subtotal            Decimal @db.Decimal(15, 2)
   order               Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  review              ProductReview?
 
   @@index([orderId])
   @@index([productId])
   @@map("order_items")
+  @@schema("commerce_service")
+}
+
+model ProductReview {
+  id          BigInt    @id @default(autoincrement())
+  customerId  BigInt    @map("customer_id")
+  shopId      BigInt    @map("shop_id")
+  productId   BigInt    @map("product_id")
+  orderItemId BigInt    @unique @map("order_item_id")
+  rating      Int       @db.SmallInt
+  commentText String?   @map("comment_text") @db.Text
+  imageUrls   String[]  @default([]) @map("image_urls")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  @@index([productId, createdAt])
+  @@index([customerId])
+  @@index([shopId])
+  @@map("product_reviews")
   @@schema("commerce_service")
 }
 

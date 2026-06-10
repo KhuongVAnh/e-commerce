@@ -331,6 +331,7 @@ flowchart LR
 | Order | Tạo đơn, xem lịch sử đơn, cập nhật trạng thái đơn |
 | Payment | Xử lý COD và VNPay |
 | Revenue / Statistics | Thống kê doanh thu cơ bản cho seller/admin |
+| Review | Customer đánh giá sản phẩm đã mua sau khi đơn hàng đã giao |
 
 #### 4.4.1. Quản lý giỏ hàng
 
@@ -460,7 +461,34 @@ flowchart LR
 | `payment_status` | `PENDING`, `PAID`, `FAILED`, `COD_PENDING` |
 | `order_status` | `PENDING`, `AWAITING_PAYMENT`, `CONFIRMED`, `PROCESSING`, `SHIPPING`, `DELIVERED`, `CANCELLED` |
 
-#### 4.4.4. Thống kê doanh thu cơ bản
+#### 4.4.4. Đánh giá sản phẩm sau khi mua
+
+##### Ràng buộc nghiệp vụ
+
+| Ràng buộc | Mô tả |
+| --- | --- |
+| Chỉ customer đã mua sản phẩm mới được đánh giá | Kiểm tra qua `order_items` và order phải thuộc customer hiện tại |
+| Chỉ đánh giá khi đơn đã giao | Order phải có `order_status = DELIVERED` |
+| Mỗi order item chỉ được đánh giá một lần | Dùng unique constraint trên `order_item_id` |
+| Rating giới hạn từ 0 đến 5 | Dùng check constraint ở database |
+| Bình luận chỉ hỗ trợ text và ảnh | Ảnh lưu bằng danh sách URL, không lưu video |
+
+##### Bảng `product_reviews`
+
+| Trường | Kiểu dữ liệu gợi ý | Ý nghĩa |
+| --- | --- | --- |
+| `id` | `bigint` | ID đánh giá |
+| `customer_id` | `bigint` | Người mua viết đánh giá |
+| `shop_id` | `bigint` | Shop bán sản phẩm |
+| `product_id` | `bigint` | Sản phẩm được đánh giá |
+| `order_item_id` | `bigint` | Sản phẩm trong đơn hàng đã mua |
+| `rating` | `smallint` | Số sao từ 0 đến 5 |
+| `comment_text` | `text` | Nội dung bình luận |
+| `image_urls` | `text[]` | Danh sách URL ảnh bình luận |
+| `created_at` | `datetime` | Thời gian tạo |
+| `updated_at` | `datetime` | Thời gian cập nhật |
+
+#### 4.4.5. Thống kê doanh thu cơ bản
 
 ##### Chức năng
 
@@ -542,7 +570,7 @@ Phần này có thể triển khai ở mức cơ bản bằng query tổng hợp
 | --- | --- |
 | Auth Service | `users`, `refresh_tokens` |
 | Catalog Service | `shops`, `categories`, `products`, `product_images` |
-| Commerce Service | `carts`, `cart_items`, `orders`, `order_items`, `payments` |
+| Commerce Service | `carts`, `cart_items`, `orders`, `order_items`, `payments`, `product_reviews` |
 | Notification Service | `notifications` |
 
 Để đơn giản khi triển khai, có thể dùng 1 MySQL server chung, nhưng mỗi service chỉ thao tác với các bảng thuộc quyền sở hữu của service đó.
