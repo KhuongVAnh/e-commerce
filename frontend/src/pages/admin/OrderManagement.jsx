@@ -18,7 +18,6 @@ const orderStatuses = ['PENDING', 'AWAITING_PAYMENT', 'CONFIRMED', 'PROCESSING',
 const paymentStatuses = ['PENDING', 'PAID', 'FAILED', 'COD_PENDING'];
 const paymentMethods = ['COD', 'VNPAY'];
 
-// Date input chỉ có yyyy-mm-dd; API cần ISO datetime để lọc đủ đầu/cuối ngày.
 const toIsoDateStart = (value) => (value ? new Date(`${value}T00:00:00`).toISOString() : '');
 const toIsoDateEnd = (value) => (value ? new Date(`${value}T23:59:59.999`).toISOString() : '');
 
@@ -45,7 +44,6 @@ const OrderManagement = () => {
   const [stats, setStats] = useState({ total: 0, pending: 0, paid: 0, cancelled: 0 });
 
   const fetchOrders = useCallback(async () => {
-    // Order admin API hỗ trợ nhiều filter; chỉ field có giá trị mới được đưa vào query.
     setLoading(true);
     setErrorMsg('');
     try {
@@ -83,7 +81,7 @@ const OrderManagement = () => {
         cancelled: data.cancelled || 0,
       });
     } catch (error) {
-      console.warn('Không thể tải order stats:', error);
+      console.warn('Không thể tải thống kê đơn hàng:', error);
     }
   }, []);
 
@@ -92,13 +90,11 @@ const OrderManagement = () => {
   }, [fetchStats]);
 
   const updateFilter = (key, value) => {
-    // Filter mới reset page để tránh gọi page không tồn tại sau khi thu hẹp kết quả.
     setFilters((current) => ({ ...current, [key]: value }));
     setPagination((current) => ({ ...current, page: 1 }));
   };
 
   const openOrderDetail = async (order) => {
-    // Modal mở ngay với dữ liệu row, sau đó hydrate items/payments từ detail endpoint.
     setSelectedOrder(order);
     setDetailLoading(true);
     try {
@@ -112,7 +108,6 @@ const OrderManagement = () => {
   };
 
   const requestStatusChange = (order, nextStatus) => {
-    // Đổi trạng thái đơn hàng là thao tác nghiệp vụ quan trọng nên luôn cần confirm.
     setConfirmAction({
       order,
       nextStatus,
@@ -141,21 +136,21 @@ const OrderManagement = () => {
   return (
     <div className="min-h-full bg-[#f8fafc] p-4 font-sans md:p-6 lg:p-8">
       <AdminPageHeader
-        title="Order Management"
+        title="Quản lý đơn hàng"
         description="Theo dõi, lọc và cập nhật trạng thái đơn hàng toàn hệ thống."
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard icon="receipt_long" label="Total System Orders" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
-        <AdminStatCard icon="pending_actions" label="Total Pending" value={stats.pending.toLocaleString('vi-VN')} tone="warning" />
-        <AdminStatCard icon="payments" label="Total Paid" value={stats.paid.toLocaleString('vi-VN')} tone="success" />
-        <AdminStatCard icon="cancel" label="Total Cancelled" value={stats.cancelled.toLocaleString('vi-VN')} tone="danger" />
+        <AdminStatCard icon="receipt_long" label="Tổng đơn hệ thống" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
+        <AdminStatCard icon="pending_actions" label="Đơn chờ xử lý" value={stats.pending.toLocaleString('vi-VN')} tone="warning" />
+        <AdminStatCard icon="payments" label="Đã thanh toán" value={stats.paid.toLocaleString('vi-VN')} tone="success" />
+        <AdminStatCard icon="cancel" label="Đã hủy" value={stats.cancelled.toLocaleString('vi-VN')} tone="danger" />
       </div>
 
       <div className="mb-5 rounded-lg border border-slate-100 bg-white p-4 shadow-sm">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
           <label className="relative md:col-span-2 xl:col-span-2">
-            <span className="mb-1 block text-[10px] font-black uppercase text-slate-400">Search</span>
+            <span className="mb-1 block text-[10px] font-black uppercase text-slate-400">Tìm kiếm</span>
             <span className="material-symbols-outlined absolute left-3 top-[34px] text-[18px] text-slate-400">search</span>
             <input
               value={filters.q}
@@ -165,23 +160,23 @@ const OrderManagement = () => {
             />
           </label>
 
-          <AdminSelect label="Order Status" value={filters.status} onChange={(value) => updateFilter('status', value)}>
+          <AdminSelect label="Trạng thái đơn" value={filters.status} onChange={(value) => updateFilter('status', value)}>
             <option value="">Tất cả trạng thái</option>
             {orderStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
           </AdminSelect>
-          <AdminSelect label="Payment" value={filters.paymentStatus} onChange={(value) => updateFilter('paymentStatus', value)}>
+          <AdminSelect label="Thanh toán" value={filters.paymentStatus} onChange={(value) => updateFilter('paymentStatus', value)}>
             <option value="">Tất cả thanh toán</option>
             {paymentStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
           </AdminSelect>
-          <AdminSelect label="Method" value={filters.paymentMethod} onChange={(value) => updateFilter('paymentMethod', value)}>
+          <AdminSelect label="Phương thức" value={filters.paymentMethod} onChange={(value) => updateFilter('paymentMethod', value)}>
             <option value="">Tất cả phương thức</option>
             {paymentMethods.map((method) => <option key={method} value={method}>{method}</option>)}
           </AdminSelect>
-          <AdminDateInput label="From" value={filters.from} onChange={(value) => updateFilter('from', value)} />
-          <AdminDateInput label="To" value={filters.to} onChange={(value) => updateFilter('to', value)} />
+          <AdminDateInput label="Từ ngày" value={filters.from} onChange={(value) => updateFilter('from', value)} />
+          <AdminDateInput label="Đến ngày" value={filters.to} onChange={(value) => updateFilter('to', value)} />
 
           <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-[10px] font-black uppercase text-slate-400">Shop ID</span>
+            <span className="text-[10px] font-black uppercase text-slate-400">Mã Cửa hàng</span>
             <input
               value={filters.shopId}
               onChange={(event) => updateFilter('shopId', event.target.value)}
@@ -190,7 +185,7 @@ const OrderManagement = () => {
             />
           </label>
           <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-[10px] font-black uppercase text-slate-400">Customer ID</span>
+            <span className="text-[10px] font-black uppercase text-slate-400">Mã Khách hàng</span>
             <input
               value={filters.customerId}
               onChange={(event) => updateFilter('customerId', event.target.value)}
@@ -204,14 +199,14 @@ const OrderManagement = () => {
       <AdminDataTable
         tableClassName="w-full min-w-[1280px] text-left"
         columns={[
-          { key: 'order', label: 'Order', headerClassName: 'w-[230px]' },
-          { key: 'customer', label: 'Customer', headerClassName: 'w-[190px]' },
-          { key: 'shop', label: 'Shop', headerClassName: 'w-[120px]' },
-          { key: 'payment', label: 'Payment', headerClassName: 'w-[150px]' },
-          { key: 'date', label: 'Date', headerClassName: 'w-[120px]' },
-          { key: 'total', label: 'Total', headerClassName: 'w-[150px]' },
-          { key: 'status', label: 'Status', headerClassName: 'w-[170px]' },
-          { key: 'actions', label: 'Actions', headerClassName: 'w-[210px]' },
+          { key: 'order', label: 'Đơn hàng', headerClassName: 'w-[230px]' },
+          { key: 'customer', label: 'Khách hàng', headerClassName: 'w-[190px]' },
+          { key: 'shop', label: 'Cửa hàng', headerClassName: 'w-[120px]' },
+          { key: 'payment', label: 'Thanh toán', headerClassName: 'w-[150px]' },
+          { key: 'date', label: 'Ngày đặt', headerClassName: 'w-[120px]' },
+          { key: 'total', label: 'Tổng tiền', headerClassName: 'w-[150px]' },
+          { key: 'status', label: 'Trạng thái', headerClassName: 'w-[170px]' },
+          { key: 'actions', label: 'Thao tác', headerClassName: 'w-[210px]' },
         ]}
         rows={orders}
         loading={loading}
@@ -224,9 +219,9 @@ const OrderManagement = () => {
             </td>
             <td className="px-5 py-5">
               <p className="text-sm font-black leading-5 text-slate-900">{order.receiverName}</p>
-              <p className="text-xs font-medium text-slate-400">Customer #{order.customerId}</p>
+              <p className="text-xs font-medium text-slate-400">Khách hàng #{order.customerId}</p>
             </td>
-            <td className="whitespace-nowrap px-5 py-5 text-sm font-bold text-slate-600">Shop #{order.shopId}</td>
+            <td className="whitespace-nowrap px-5 py-5 text-sm font-bold text-slate-600">Cửa hàng #{order.shopId}</td>
             <td className="px-5 py-5">
               <p className="text-xs font-black text-slate-700">{order.paymentMethod}</p>
               <div className="mt-2"><AdminStatusBadge status={order.paymentStatus} /></div>
@@ -258,7 +253,7 @@ const OrderManagement = () => {
         onLimitChange={(limit) => setPagination((current) => ({ ...current, page: 1, limit }))}
       />
 
-      <AdminModal open={Boolean(selectedOrder)} title="Order Detail" onClose={() => setSelectedOrder(null)}>
+      <AdminModal open={Boolean(selectedOrder)} title="Chi tiết đơn hàng" onClose={() => setSelectedOrder(null)}>
         {detailLoading ? (
           <p className="text-sm font-bold text-slate-400">Đang tải chi tiết...</p>
         ) : (
@@ -274,22 +269,22 @@ const OrderManagement = () => {
               </div>
             </div>
             <div className="grid gap-4 rounded-lg bg-slate-50 p-4 md:grid-cols-2">
-              <div><p className="text-[10px] font-black uppercase text-slate-400">Total</p><p className="text-sm font-black text-slate-700">{formatCurrency(selectedOrder?.totalAmount)}</p></div>
-              <div><p className="text-[10px] font-black uppercase text-slate-400">Shipping Fee</p><p className="text-sm font-black text-slate-700">{formatCurrency(selectedOrder?.shippingFee)}</p></div>
-              <div><p className="text-[10px] font-black uppercase text-slate-400">Shop</p><p className="text-sm font-bold text-slate-700">#{selectedOrder?.shopId}</p></div>
-              <div><p className="text-[10px] font-black uppercase text-slate-400">Customer</p><p className="text-sm font-bold text-slate-700">#{selectedOrder?.customerId}</p></div>
-              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">Address</p><p className="text-sm font-medium text-slate-600">{selectedOrder?.receiverAddress}</p></div>
-              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">Note</p><p className="text-sm font-medium text-slate-600">{selectedOrder?.note || 'N/A'}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">Tổng tiền</p><p className="text-sm font-black text-slate-700">{formatCurrency(selectedOrder?.totalAmount)}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">Phí vận chuyển</p><p className="text-sm font-black text-slate-700">{formatCurrency(selectedOrder?.shippingFee)}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">Cửa hàng</p><p className="text-sm font-bold text-slate-700">#{selectedOrder?.shopId}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">Khách hàng</p><p className="text-sm font-bold text-slate-700">#{selectedOrder?.customerId}</p></div>
+              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">Địa chỉ</p><p className="text-sm font-medium text-slate-600">{selectedOrder?.receiverAddress}</p></div>
+              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">Ghi chú</p><p className="text-sm font-medium text-slate-600">{selectedOrder?.note || 'Không có'}</p></div>
             </div>
             {Array.isArray(selectedOrder?.items) && (
               <div>
-                <h4 className="mb-3 text-sm font-black uppercase text-slate-500">Items</h4>
+                <h4 className="mb-3 text-sm font-black uppercase text-slate-500">Sản phẩm</h4>
                 <div className="overflow-hidden rounded-lg border border-slate-100">
                   {selectedOrder.items.map((item) => (
                     <div key={item.id} className="flex items-center justify-between border-b border-slate-50 px-4 py-3 last:border-b-0">
                       <div>
                         <p className="text-sm font-black text-slate-900">{item.productNameSnapshot}</p>
-                        <p className="text-xs font-medium text-slate-400">Product #{item.productId} x {item.quantity}</p>
+                        <p className="text-xs font-medium text-slate-400">Sản phẩm #{item.productId} x {item.quantity}</p>
                       </div>
                       <p className="text-sm font-black text-slate-700">{formatCurrency(item.subtotal)}</p>
                     </div>
