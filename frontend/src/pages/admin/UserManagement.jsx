@@ -34,7 +34,6 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Danh sách user là API phân trang thật, nên filters/page/limit đều gửi thẳng xuống backend.
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setErrorMsg('');
@@ -56,14 +55,12 @@ const UserManagement = () => {
   }, [fetchUsers]);
 
   const updateFilter = (key, value) => {
-    // Đổi filter phải quay về trang 1 để tránh page hiện tại vượt quá số trang mới.
     setFilters((current) => ({ ...current, [key]: value }));
     setPagination((current) => ({ ...current, page: 1 }));
   };
 
   const requestStatusChange = (user, nextStatus) => {
     const isSelf = String(user.id) === String(currentUser?.id);
-    // Chỉ mở dialog ở bước này; request thật chỉ chạy khi admin xác nhận.
     setConfirmAction({
       user,
       nextStatus,
@@ -101,7 +98,7 @@ const UserManagement = () => {
         admins: data.roles?.ADMIN || 0,
       });
     } catch (error) {
-      console.warn('Không thể tải Stats:', error);
+      console.warn('Không thể tải thống kê người dùng:', error);
     }
   }, []);
 
@@ -149,61 +146,61 @@ const UserManagement = () => {
   return (
     <div className="min-h-full bg-[#f8fafc] p-4 font-sans md:p-6 lg:p-8">
       <AdminPageHeader
-        title="User Management"
+        title="Quản lý người dùng"
         description="Quản lý tài khoản, vai trò và trạng thái truy cập của người dùng."
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <AdminStatCard
           icon="group"
-          label="Total System Users"
+          label="Tổng người dùng hệ thống"
           value={stats.total.toLocaleString('vi-VN')}
           tone="primary"
         />
 
         <AdminStatCard
           icon="storefront"
-          label="Total Sellers"
+          label="Tổng người bán"
           value={stats.sellers.toLocaleString('vi-VN')}
           tone="success"
         />
 
         <AdminStatCard
           icon="admin_panel_settings"
-          label="Total Admins"
+          label="Tổng quản trị viên"
           value={stats.admins.toLocaleString('vi-VN')}
         />
 
         <AdminStatCard
           icon="groups"
-          label="Users In Current Page"
+          label="Người dùng trang hiện tại"
           value={users.length.toLocaleString('vi-VN')}
         />
       </div>
 
       <AdminToolbar>
         <AdminSearchInput value={filters.q} onChange={(value) => updateFilter('q', value)} placeholder="Tìm tên hoặc email..." />
-        <AdminSelect label="Role" value={filters.role} onChange={(value) => updateFilter('role', value)}>
-          <option value="">Tất cả role</option>
-          <option value="CUSTOMER">Customer</option>
-          <option value="SELLER">Seller</option>
-          <option value="ADMIN">Admin</option>
+        <AdminSelect label="Vai trò" value={filters.role} onChange={(value) => updateFilter('role', value)}>
+          <option value="">Tất cả vai trò</option>
+          <option value="CUSTOMER">Khách hàng</option>
+          <option value="SELLER">Người bán</option>
+          <option value="ADMIN">Quản trị viên</option>
         </AdminSelect>
-        <AdminSelect label="Status" value={filters.status} onChange={(value) => updateFilter('status', value)}>
+        <AdminSelect label="Trạng thái" value={filters.status} onChange={(value) => updateFilter('status', value)}>
           <option value="">Tất cả trạng thái</option>
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
-          <option value="BLOCKED">Blocked</option>
+          <option value="ACTIVE">Hoạt động</option>
+          <option value="INACTIVE">Tạm ẩn</option>
+          <option value="BLOCKED">Bị khóa</option>
         </AdminSelect>
       </AdminToolbar>
 
       <AdminDataTable
         columns={[
-          { key: 'identity', label: 'User Identity' },
-          { key: 'role', label: 'Role' },
-          { key: 'status', label: 'Status' },
-          { key: 'createdAt', label: 'Created' },
-          { key: 'actions', label: 'Actions' },
+          { key: 'identity', label: 'Thông tin người dùng' },
+          { key: 'role', label: 'Vai trò' },
+          { key: 'status', label: 'Trạng thái' },
+          { key: 'createdAt', label: 'Ngày tạo' },
+          { key: 'actions', label: 'Thao tác' },
         ]}
         rows={users}
         loading={loading}
@@ -307,7 +304,7 @@ const UserManagement = () => {
 
                   <div>
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-500">
-                      Full Name
+                      Họ và tên
                     </label>
                     <input
                       type="text"
@@ -323,7 +320,7 @@ const UserManagement = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-500">
-                        Role
+                        Vai trò
                       </label>
                       <select
                         value={selectedUser.role || 'CUSTOMER'}
@@ -332,15 +329,15 @@ const UserManagement = () => {
                         }
                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-bold text-slate-700 outline-none"
                       >
-                        <option value="CUSTOMER">Customer</option>
-                        <option value="SELLER">Seller</option>
-                        <option value="ADMIN">Admin</option>
+                        <option value="CUSTOMER">Khách hàng</option>
+                        <option value="SELLER">Người bán</option>
+                        <option value="ADMIN">Quản trị viên</option>
                       </select>
                     </div>
 
                     <div>
                       <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-500">
-                        Status
+                        Trạng thái
                       </label>
                       <select
                         value={selectedUser.status || 'ACTIVE'}
@@ -349,9 +346,9 @@ const UserManagement = () => {
                         }
                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-bold text-slate-700 outline-none"
                       >
-                        <option value="ACTIVE">ACTIVE</option>
-                        <option value="INACTIVE">INACTIVE</option>
-                        <option value="BLOCKED">BLOCKED</option>
+                        <option value="ACTIVE">Hoạt động</option>
+                        <option value="INACTIVE">Tạm ẩn</option>
+                        <option value="BLOCKED">Bị khóa</option>
                       </select>
                     </div>
                   </div>

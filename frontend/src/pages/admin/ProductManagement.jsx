@@ -31,7 +31,6 @@ const ProductManagement = () => {
   const [stats, setStats] = useState({ total: 0, active: 0, outOfStock: 0, deleted: 0 });
 
   useEffect(() => {
-    // Dropdown filter cần danh sách shop/category phụ trợ, tách khỏi API list product chính.
     const fetchFilters = async () => {
       try {
         const [shopsRes, categoriesRes] = await Promise.allSettled([
@@ -53,7 +52,6 @@ const ProductManagement = () => {
   }, []);
 
   const fetchProducts = useCallback(async () => {
-    // Product admin API hỗ trợ filter + pagination thật, nên query được build từ state UI.
     setLoading(true);
     setErrorMsg('');
     try {
@@ -85,7 +83,7 @@ const ProductManagement = () => {
         deleted: data.statuses?.DELETED || 0,
       });
     } catch (error) {
-      console.warn('Không thể tải product stats:', error);
+      console.warn('Không thể tải thống kê sản phẩm:', error);
     }
   }, []);
 
@@ -94,13 +92,11 @@ const ProductManagement = () => {
   }, [fetchStats]);
 
   const updateFilter = (key, value) => {
-    // Reset page để kết quả filter mới luôn bắt đầu từ đầu danh sách.
     setFilters((current) => ({ ...current, [key]: value }));
     setPagination((current) => ({ ...current, page: 1 }));
   };
 
   const openProductDetail = async (product) => {
-    // Hiển thị tạm row đang có trước, sau đó thay bằng detail đầy đủ từ API.
     setSelectedProduct(product);
     setDetailLoading(true);
     try {
@@ -114,7 +110,6 @@ const ProductManagement = () => {
   };
 
   const requestStatusChange = (product, nextStatus) => {
-    // Đổi status qua PUT admin product; DELETED dùng endpoint delete mềm riêng.
     setConfirmAction({
       type: 'status',
       product,
@@ -126,7 +121,6 @@ const ProductManagement = () => {
   };
 
   const requestDelete = (product) => {
-    // Delete trong catalog là soft delete, không xóa record vật lý.
     setConfirmAction({
       type: 'delete',
       product,
@@ -159,28 +153,28 @@ const ProductManagement = () => {
   return (
     <div className="min-h-full bg-[#f8fafc] p-4 font-sans md:p-6 lg:p-8">
       <AdminPageHeader
-        title="Product Management"
+        title="Quản lý sản phẩm"
         description="Kiểm duyệt và quản lý danh sách sản phẩm toàn hệ thống."
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard icon="inventory_2" label="Total System Products" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
-        <AdminStatCard icon="check_circle" label="Total Active" value={stats.active.toLocaleString('vi-VN')} tone="success" />
-        <AdminStatCard icon="production_quantity_limits" label="Total Out Of Stock" value={stats.outOfStock.toLocaleString('vi-VN')} tone="warning" />
-        <AdminStatCard icon="delete" label="Total Deleted" value={stats.deleted.toLocaleString('vi-VN')} tone="danger" />
+        <AdminStatCard icon="inventory_2" label="Tổng sản phẩm hệ thống" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
+        <AdminStatCard icon="check_circle" label="Tổng đang bán" value={stats.active.toLocaleString('vi-VN')} tone="success" />
+        <AdminStatCard icon="production_quantity_limits" label="Tổng hết hàng" value={stats.outOfStock.toLocaleString('vi-VN')} tone="warning" />
+        <AdminStatCard icon="delete" label="Tổng đã xóa" value={stats.deleted.toLocaleString('vi-VN')} tone="danger" />
       </div>
 
       <AdminToolbar>
         <AdminSearchInput value={filters.q} onChange={(value) => updateFilter('q', value)} placeholder="Tìm sản phẩm..." />
-        <AdminSelect label="Shop" value={filters.shopId} onChange={(value) => updateFilter('shopId', value)}>
-          <option value="">Tất cả shop</option>
+        <AdminSelect label="Cửa hàng" value={filters.shopId} onChange={(value) => updateFilter('shopId', value)}>
+          <option value="">Tất cả cửa hàng</option>
           {filterShops.map((shop) => <option key={shop.id} value={shop.id}>{shop.name}</option>)}
         </AdminSelect>
-        <AdminSelect label="Category" value={filters.categoryId} onChange={(value) => updateFilter('categoryId', value)}>
+        <AdminSelect label="Danh mục" value={filters.categoryId} onChange={(value) => updateFilter('categoryId', value)}>
           <option value="">Tất cả danh mục</option>
           {filterCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
         </AdminSelect>
-        <AdminSelect label="Status" value={filters.status} onChange={(value) => updateFilter('status', value)}>
+        <AdminSelect label="Trạng thái" value={filters.status} onChange={(value) => updateFilter('status', value)}>
           <option value="">Tất cả trạng thái</option>
           {productStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
         </AdminSelect>
@@ -188,12 +182,12 @@ const ProductManagement = () => {
 
       <AdminDataTable
         columns={[
-          { key: 'product', label: 'Product' },
-          { key: 'shop', label: 'Shop' },
-          { key: 'category', label: 'Category' },
-          { key: 'price', label: 'Price / Stock' },
-          { key: 'status', label: 'Status' },
-          { key: 'actions', label: 'Actions' },
+          { key: 'product', label: 'Sản phẩm' },
+          { key: 'shop', label: 'Cửa hàng' },
+          { key: 'category', label: 'Danh mục' },
+          { key: 'price', label: 'Giá / Tồn kho' },
+          { key: 'status', label: 'Trạng thái' },
+          { key: 'actions', label: 'Thao tác' },
         ]}
         rows={products}
         loading={loading}
@@ -212,7 +206,7 @@ const ProductManagement = () => {
                 </div>
               </div>
             </td>
-            <td className="px-5 py-4 text-sm font-bold text-[#2e3785]">{product.shop?.name || `Shop #${product.shopId}`}</td>
+            <td className="px-5 py-4 text-sm font-bold text-[#2e3785]">{product.shop?.name || `Cửa hàng #${product.shopId}`}</td>
             <td className="px-5 py-4 text-sm font-bold text-slate-600">{product.category?.name || product.categoryId}</td>
             <td className="px-5 py-4">
               <p className="text-sm font-black text-slate-900">{formatCurrency(product.price)}</p>
@@ -252,7 +246,7 @@ const ProductManagement = () => {
         onLimitChange={(limit) => setPagination((current) => ({ ...current, page: 1, limit }))}
       />
 
-      <AdminModal open={Boolean(selectedProduct)} title="Product Detail" onClose={() => setSelectedProduct(null)}>
+      <AdminModal open={Boolean(selectedProduct)} title="Chi tiết sản phẩm" onClose={() => setSelectedProduct(null)}>
         {detailLoading ? (
           <p className="text-sm font-bold text-slate-400">Đang tải chi tiết...</p>
         ) : (
@@ -268,11 +262,11 @@ const ProductManagement = () => {
               </div>
             </div>
             <div className="grid gap-4 rounded-lg bg-slate-50 p-4 md:grid-cols-2">
-              <div><p className="text-[10px] font-black uppercase text-slate-400">Price</p><p className="text-sm font-black text-slate-700">{formatCurrency(selectedProduct?.price)}</p></div>
-              <div><p className="text-[10px] font-black uppercase text-slate-400">Stock</p><p className="text-sm font-black text-slate-700">{selectedProduct?.stockQuantity || 0}</p></div>
-              <div><p className="text-[10px] font-black uppercase text-slate-400">Created</p><p className="text-sm font-bold text-slate-700">{formatDate(selectedProduct?.createdAt)}</p></div>
-              <div><p className="text-[10px] font-black uppercase text-slate-400">Updated</p><p className="text-sm font-bold text-slate-700">{formatDate(selectedProduct?.updatedAt)}</p></div>
-              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">Description</p><p className="text-sm font-medium text-slate-600">{selectedProduct?.description || 'N/A'}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">Giá</p><p className="text-sm font-black text-slate-700">{formatCurrency(selectedProduct?.price)}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">Tồn kho</p><p className="text-sm font-black text-slate-700">{selectedProduct?.stockQuantity || 0}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">Ngày tạo</p><p className="text-sm font-bold text-slate-700">{formatDate(selectedProduct?.createdAt)}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">Cập nhật</p><p className="text-sm font-bold text-slate-700">{formatDate(selectedProduct?.updatedAt)}</p></div>
+              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">Mô tả</p><p className="text-sm font-medium text-slate-600">{selectedProduct?.description || 'Không có'}</p></div>
             </div>
           </div>
         )}
