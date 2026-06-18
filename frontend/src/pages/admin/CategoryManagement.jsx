@@ -29,7 +29,6 @@ const CategoryManagement = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
 
-  // Category API hiện chưa có page/limit, nên lấy list theo filter rồi phân trang ở client.
   const fetchCategories = useCallback(async () => {
     setLoading(true);
     setErrorMsg('');
@@ -66,7 +65,7 @@ const CategoryManagement = () => {
         inactive: data.statuses?.INACTIVE || 0,
       });
     } catch (error) {
-      console.warn('Không thể tải category stats:', error);
+      console.warn('Không thể tải thống kê danh mục:', error);
     }
   }, []);
 
@@ -75,13 +74,11 @@ const CategoryManagement = () => {
   }, [fetchStats]);
 
   const pagedCategories = useMemo(() => {
-    // Cắt dữ liệu theo page hiện tại để category vẫn có UX giống các bảng admin khác.
     const start = (pagination.page - 1) * pagination.limit;
     return categories.slice(start, start + pagination.limit);
   }, [categories, pagination.page, pagination.limit]);
 
   const updateFilter = (key, value) => {
-    // Filter mới làm thay đổi tổng list, vì vậy luôn quay về page đầu.
     setFilters((current) => ({ ...current, [key]: value }));
     setPagination((current) => ({ ...current, page: 1 }));
   };
@@ -100,7 +97,6 @@ const CategoryManagement = () => {
     event.preventDefault();
     setFormLoading(true);
     try {
-      // Cùng một form phục vụ cả create và update; form.id quyết định HTTP method.
       const payload = { name: form.name.trim(), status: form.status };
       if (form.id) {
         await axiosClient.put(`/catalog/categories/${form.id}`, payload);
@@ -119,20 +115,18 @@ const CategoryManagement = () => {
   };
 
   const requestStatusChange = (category) => {
-    // ACTIVE/INACTIVE là toggle nhẹ, nhưng vẫn confirm vì ảnh hưởng public catalog.
     const nextStatus = category.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     setConfirmAction({
       type: 'status',
       category,
       nextStatus,
       danger: nextStatus === 'INACTIVE',
-      title: nextStatus === 'ACTIVE' ? 'Bật danh mục?' : 'Tắt danh mục?',
-      description: `${category.name} sẽ được chuyển sang trạng thái ${nextStatus}.`,
+      title: nextStatus === 'ACTIVE' ? 'Mở lại danh mục?' : 'Ẩn danh mục?',
+      description: `Danh mục ${category.name} sẽ được chuyển sang trạng thái ${nextStatus}.`,
     });
   };
 
   const requestDelete = (category) => {
-    // Backend sẽ chặn xóa nếu category còn product; UI chỉ cảnh báo trước cho admin.
     setConfirmAction({
       type: 'delete',
       category,
@@ -164,7 +158,7 @@ const CategoryManagement = () => {
   return (
     <div className="min-h-full bg-[#f8fafc] p-4 font-sans md:p-6 lg:p-8">
       <AdminPageHeader
-        title="Category Management"
+        title="Quản lý danh mục"
         description="Tổ chức danh mục sản phẩm và trạng thái hiển thị."
         action={(
           <button onClick={openCreate} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2e3785] px-4 text-sm font-black text-white hover:bg-[#252d70]">
@@ -175,26 +169,26 @@ const CategoryManagement = () => {
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <AdminStatCard icon="category" label="Total System Categories" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
-        <AdminStatCard icon="visibility" label="Total Active" value={stats.active.toLocaleString('vi-VN')} tone="success" />
-        <AdminStatCard icon="visibility_off" label="Total Inactive" value={stats.inactive.toLocaleString('vi-VN')} />
+        <AdminStatCard icon="category" label="Tổng danh mục hệ thống" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
+        <AdminStatCard icon="visibility" label="Tổng đang hoạt động" value={stats.active.toLocaleString('vi-VN')} tone="success" />
+        <AdminStatCard icon="visibility_off" label="Tổng đang ẩn" value={stats.inactive.toLocaleString('vi-VN')} />
       </div>
 
       <AdminToolbar>
         <AdminSearchInput value={filters.q} onChange={(value) => updateFilter('q', value)} placeholder="Tìm danh mục..." />
-        <AdminSelect label="Status" value={filters.status} onChange={(value) => updateFilter('status', value)}>
+        <AdminSelect label="Trạng thái" value={filters.status} onChange={(value) => updateFilter('status', value)}>
           <option value="">Tất cả trạng thái</option>
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
+          <option value="ACTIVE">Hoạt động</option>
+          <option value="INACTIVE">Tạm ẩn</option>
         </AdminSelect>
       </AdminToolbar>
 
       <AdminDataTable
         columns={[
-          { key: 'name', label: 'Category' },
-          { key: 'slug', label: 'Slug' },
-          { key: 'status', label: 'Status' },
-          { key: 'actions', label: 'Actions' },
+          { key: 'name', label: 'Danh mục' },
+          { key: 'slug', label: 'Đường dẫn (Slug)' },
+          { key: 'status', label: 'Trạng thái' },
+          { key: 'actions', label: 'Thao tác' },
         ]}
         rows={pagedCategories}
         loading={loading}
@@ -251,8 +245,8 @@ const CategoryManagement = () => {
               onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}
               className="h-11 w-full rounded-lg border border-slate-200 px-4 text-sm font-bold outline-none focus:border-[#2e3785] focus:ring-2 focus:ring-indigo-100"
             >
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
+              <option value="ACTIVE">Hoạt động</option>
+              <option value="INACTIVE">Tạm ẩn</option>
             </select>
           </div>
           <div className="flex justify-end gap-3">
