@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosClient from '../../utils/axiosClient';
 import useAuthStore from '../../store/useAuthStore';
 import useCartStore from '../../store/useCartStore';
@@ -7,31 +8,33 @@ import { wakeService } from '../../services/wakeService';
 
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
-const slides = [
-  {
-    title: "Đa dạng Deal chất lượng",
-    description: "Nơi hội tụ hàng ngàn sản phẩm chất lượng cao, từ công nghệ, thời trang đến phong cách sống hiện đại.",
-    link: "/products",
-    gradient: "from-[#2b3896] to-[#4551af]",
-    image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1200&auto=format&fit=crop"
-  },
-  {
-    title: "Bùng nổ Deal Công nghệ",
-    description: "Khám phá các thiết bị thông minh, điện thoại, máy tính với ưu đãi cực khủng lên đến 50%.",
-    link: "/products",
-    gradient: "from-[#1f2937] to-[#111827]",
-    image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1200&auto=format&fit=crop"
-  },
-  {
-    title: "Xu hướng Thời trang mới",
-    description: "Đón đầu phong cách mới nhất mùa hè năm nay. Mua sắm quần áo, phụ kiện cao cấp.",
-    link: "/products",
-    gradient: "from-[#6366f1] to-[#d946ef]",
-    image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=1200&auto=format&fit=crop"
-  }
-];
-
 const Home = () => {
+  const { t } = useTranslation();
+
+  const slides = [
+    {
+      title: t("Đa dạng Deal chất lượng"),
+      description: t("Nơi hội tụ hàng ngàn sản phẩm chất lượng cao, từ công nghệ, thời trang đến phong cách sống hiện đại."),
+      link: "/products",
+      gradient: "from-[#2b3896] to-[#4551af]",
+      image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1200&auto=format&fit=crop"
+    },
+    {
+      title: t("Bùng nổ Deal Công nghệ"),
+      description: t("Khám phá các thiết bị thông minh, điện thoại, máy tính với ưu đãi cực khủng lên đến 50%."),
+      link: "/products",
+      gradient: "from-[#1f2937] to-[#111827]",
+      image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1200&auto=format&fit=crop"
+    },
+    {
+      title: t("Xu hướng Thời trang mới"),
+      description: t("Đón đầu phong cách mới nhất mùa hè năm nay. Mua sắm quần áo, phụ kiện cao cấp."),
+      link: "/products",
+      gradient: "from-[#6366f1] to-[#d946ef]",
+      image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=1200&auto=format&fit=crop"
+    }
+  ];
+
   // Lấy state đăng nhập và hàm cập nhật giỏ hàng từ global store
   const { isAuthenticated } = useAuthStore();
   const { fetchCartTotal } = useCartStore();
@@ -118,7 +121,7 @@ const Home = () => {
         console.error("Lỗi khi tải sản phẩm trang chủ:", err);
         setErrorPopup({ 
           isOpen: true, 
-          message: err.response?.data?.message || 'Không thể kết nối đến máy chủ để tải sản phẩm. Vui lòng thử lại sau.' 
+          message: err.response?.data?.message || t('Không thể kết nối đến máy chủ để tải sản phẩm. Vui lòng thử lại sau.') 
         });
       } finally {
         setLoadingProducts(false);
@@ -135,7 +138,7 @@ const Home = () => {
     e.stopPropagation();
 
     if (!isAuthenticated) {
-      setErrorPopup({ isOpen: true, message: 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!' });
+      setErrorPopup({ isOpen: true, message: t('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!') });
       return;
     }
 
@@ -146,12 +149,12 @@ const Home = () => {
       });
 
       if (fetchCartTotal) fetchCartTotal();
-      alert(`Đã thêm "${product.name}" vào giỏ hàng!`);
+      alert(`${t('Đã thêm')} "${product.name}" ${t('vào giỏ hàng!')}`);
     } catch (err) {
       console.error("Chi tiết lỗi API giỏ hàng:", err);
       setErrorPopup({ 
         isOpen: true, 
-        message: err.response?.data?.message || err.message || 'Có lỗi xảy ra khi kết nối đến server.' 
+        message: err.response?.data?.message || err.message || t('Có lỗi xảy ra khi kết nối đến server.') 
       });
     }
   };
@@ -189,7 +192,7 @@ const Home = () => {
                   to={slide.link} 
                   className="inline-flex items-center gap-2 bg-white text-[#2b3896] px-8 py-4 rounded-full font-bold hover:bg-gray-50 hover:scale-105 active:scale-95 transition-all shadow-lg"
                 >
-                  Mua sắm ngay
+                  {t('Mua sắm ngay')}
                   <span className="material-symbols-outlined text-sm">arrow_forward</span>
                 </Link>
               </div>
@@ -230,7 +233,7 @@ const Home = () => {
 
       {/* 2. DANH MỤC NỔI BẬT */}
       <section className="max-w-screen-2xl mx-auto px-6 md:px-12 pt-16">
-        <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-8 font-['Be_Vietnam_Pro']">Danh mục nổi bật</h2>
+        <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-8 font-['Be_Vietnam_Pro']">{t('Danh mục nổi bật')}</h2>
         
         {loadingCategories ? (
           <div className="flex gap-4 overflow-hidden">
@@ -267,9 +270,9 @@ const Home = () => {
       {/* 3. SẢN PHẨM MỚI NHẤT */}
       <section className="max-w-screen-2xl mx-auto px-6 md:px-12 py-20">
         <div className="flex items-center justify-between mb-12">
-          <h2 className="text-2xl md:text-3xl font-black text-gray-900 font-['Be_Vietnam_Pro']">Sản phẩm mới nhất</h2>
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 font-['Be_Vietnam_Pro']">{t('Sản phẩm mới nhất')}</h2>
           <Link to="/products" className="hidden md:flex items-center gap-1 text-[#2b3896] font-bold hover:underline">
-            Xem tất cả
+            {t('Xem tất cả')}
             <span className="material-symbols-outlined text-sm">arrow_forward</span>
           </Link>
         </div>
@@ -282,8 +285,8 @@ const Home = () => {
         ) : products.length === 0 ? (
           <div className="text-center py-24 bg-white rounded-3xl border border-gray-100 shadow-sm">
             <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">inventory_2</span>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Chưa có sản phẩm nào</h3>
-            <p className="text-gray-500">Các gian hàng hiện đang cập nhật sản phẩm. Vui lòng quay lại sau!</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">{t('Chưa có sản phẩm nào')}</h3>
+            <p className="text-gray-500">{t('Các gian hàng hiện đang cập nhật sản phẩm. Vui lòng quay lại sau!')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-6">
@@ -333,7 +336,7 @@ const Home = () => {
         
         <div className="mt-10 text-center md:hidden">
           <Link to="/products" className="inline-flex items-center gap-2 text-[#2b3896] font-bold px-6 py-3 bg-white rounded-full border border-gray-200 shadow-sm">
-            Xem tất cả sản phẩm
+            {t('Xem tất cả sản phẩm')}
             <span className="material-symbols-outlined text-sm">arrow_forward</span>
           </Link>
         </div>
@@ -346,13 +349,13 @@ const Home = () => {
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="material-symbols-outlined text-3xl text-red-600" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2 font-['Be_Vietnam_Pro']">Thông báo</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-2 font-['Be_Vietnam_Pro']">{t('Thông báo')}</h3>
             <p className="text-gray-600 mb-8 text-sm leading-relaxed">{errorPopup.message}</p>
             <button 
               onClick={closeErrorPopup} 
               className="w-full bg-gray-100 text-gray-800 font-bold py-3.5 rounded-xl hover:bg-gray-200 active:scale-95 transition-all"
             >
-              Đóng
+              {t('Đóng')}
             </button>
           </div>
         </div>
