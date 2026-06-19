@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import axiosClient from '../../utils/axiosClient';
 import useCartStore from '../../store/useCartStore'; 
 
 const Cart = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { fetchCartTotal } = useCartStore();
 
   const [cartData, setCartData] = useState(null);
@@ -24,7 +26,7 @@ const Cart = () => {
       const res = await axiosClient.get('/commerce/cart');
       setCartData(res.data);
     } catch (err) {
-      setError(err.message || "Lỗi khi tải giỏ hàng");
+      setError(err.message || t("Lỗi khi tải giỏ hàng"));
     } finally {
       setLoading(false);
     }
@@ -56,10 +58,11 @@ const Cart = () => {
       if (fetchCartTotal) fetchCartTotal();
     } catch (err) {
       fetchCart();
-      toast.error(err.message || "Lỗi cập nhật số lượng");
+      toast.error(err.message || t("Lỗi cập nhật số lượng"));
     }
   };
 
+  
   // 3. XÓA SẢN PHẨM KHỎI GIỎ
   const handleRemoveItem = async (itemId) => {
     try {
@@ -78,10 +81,10 @@ const Cart = () => {
       });
 
       await axiosClient.delete(`/commerce/cart/items/${itemId}`);
-      toast.success("Đã xóa sản phẩm khỏi giỏ hàng!");
+      toast.success(t("Đã xóa sản phẩm khỏi giỏ hàng!"));
       if (fetchCartTotal) fetchCartTotal();
     } catch {
-      toast.error("Có lỗi xảy ra khi xóa sản phẩm.");
+      toast.error(t("Có lỗi xảy ra khi xóa sản phẩm."));
       fetchCart();
     }
   };
@@ -135,7 +138,7 @@ const Cart = () => {
   // 4. XỬ LÝ THANH TOÁN
   const handleGlobalCheckout = () => {
     if (!selectedShopId || selectedItemIds.length === 0) {
-      toast.error("Vui lòng chọn sản phẩm cần thanh toán!");
+      toast.error(t("Vui lòng chọn sản phẩm cần thanh toán!"));
       return;
     }
     
@@ -152,7 +155,7 @@ const Cart = () => {
     return (
       <div className="py-24 text-center min-h-screen">
         <span className="material-symbols-outlined animate-spin text-4xl text-[#2b3896]">progress_activity</span>
-        <p className="mt-4 text-gray-500 font-medium">Đang tải giỏ hàng...</p>
+        <p className="mt-4 text-gray-500 font-medium">{t('Đang tải giỏ hàng...')}</p>
       </div>
     );
   }
@@ -180,10 +183,10 @@ const Cart = () => {
     return (
       <div className="py-24 text-center min-h-screen">
         <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">shopping_cart_off</span>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Giỏ hàng của bạn đang trống</h2>
-        <p className="text-gray-500 mb-8">Hãy tiếp tục mua sắm những sản phẩm chất lượng nhé.</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('Giỏ hàng của bạn đang trống')}</h2>
+        <p className="text-gray-500 mb-8">{t('Hãy tiếp tục mua sắm những sản phẩm chất lượng nhé.')}</p>
         <Link to="/products" className="px-8 py-3 bg-[#2b3896] text-white font-bold rounded-full hover:bg-[#1f2970] transition-colors">
-          Tiếp tục mua sắm
+          {t('Tiếp tục mua sắm')}
         </Link>
       </div>
     );
@@ -193,16 +196,16 @@ const Cart = () => {
     <>
       <nav className="mb-8 px-6 lg:px-0 pt-8">
         <ol className="flex items-center space-x-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
-          <li><Link to="/" className="hover:text-[#2b3896] transition-colors">Trang chủ</Link></li>
+          <li><Link to="/" className="hover:text-[#2b3896] transition-colors">{t('Trang chủ')}</Link></li>
           <li><span className="material-symbols-outlined text-sm">chevron_right</span></li>
-          <li className="text-[#2b3896]">Giỏ hàng</li>
+          <li className="text-[#2b3896]">{t('Giỏ hàng')}</li>
         </ol>
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start px-6 lg:px-0 pb-24">
         
         <div className="lg:col-span-8 space-y-12">
-          <h1 className="text-3xl font-black tracking-tighter text-[#2b3896] mb-2 font-headline">Giỏ hàng của bạn</h1>
+          <h1 className="text-3xl font-black tracking-tighter text-[#2b3896] mb-2 font-headline">{t('Giỏ hàng của bạn')}</h1>
           
           {cartData.shops.map((shop, index) => {
             const isThisShopSelected = selectedShopId === shop.shopId;
@@ -262,7 +265,7 @@ const Cart = () => {
                               className="mt-4 text-red-500 flex items-center space-x-1 text-sm hover:underline opacity-60 hover:opacity-100 transition-opacity font-medium"
                             >
                               <span className="material-symbols-outlined text-sm">delete</span>
-                              <span>Xóa bỏ</span>
+                              <span>{t('Xóa bỏ')}</span>
                             </button>
                           </div>
                           
@@ -295,11 +298,11 @@ const Cart = () => {
 
         <aside className="lg:col-span-4 sticky top-32">
           <div className="bg-white p-8 rounded-3xl shadow-[0px_12px_32px_rgba(43,56,150,0.06)] border border-gray-100">
-            <h2 className="text-2xl font-black text-[#2b3896] mb-8 font-headline">Tổng quan</h2>
+            <h2 className="text-2xl font-black text-[#2b3896] mb-8 font-headline">{t('Tổng quan')}</h2>
             
             <div className="space-y-6">
               <div className="flex justify-between items-center text-gray-600 font-medium">
-                <span>Đã chọn ({selectedItemIds.length} sản phẩm)</span>
+                <span>{t('Đã chọn')} ({selectedItemIds.length} {t('sản phẩm')})</span>
                 <div className="font-bold text-gray-900">
                   {globalSelectedSubtotal.toLocaleString('vi-VN')} <span className="text-[10px] ml-0.5 opacity-70 italic">₫</span>
                 </div>
@@ -309,7 +312,7 @@ const Cart = () => {
               
               <div className="flex justify-between items-end mb-8">
                 <div>
-                  <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-1">Tổng tiền hàng</p>
+                  <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-1">{t('Tổng tiền hàng')}</p>
                   <p className="text-3xl font-black text-[#2b3896]">{globalSelectedSubtotal.toLocaleString('vi-VN')}<span className="text-sm font-medium ml-1">₫</span></p>
                 </div>
               </div>
@@ -319,7 +322,7 @@ const Cart = () => {
                 disabled={selectedItemIds.length === 0}
                 className="w-full bg-gradient-to-br from-[#2b3896] to-[#4551af] text-white px-8 py-4 rounded-xl font-bold active:scale-95 transition-all shadow-lg hover:shadow-xl hover:shadow-[#2b3896]/20 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
               >
-                Tiến hành thanh toán
+                {t('Tiến hành thanh toán')}
                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
               </button>
             </div>
@@ -327,7 +330,6 @@ const Cart = () => {
         </aside>
       </div>
 
-      {/* POPUP XÁC NHẬN XÓA SẢN PHẨM */}
       {deleteModal.show && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 animate-in zoom-in-95 duration-200">
@@ -336,9 +338,9 @@ const Cart = () => {
                 <span className="material-symbols-outlined text-red-600 text-3xl">delete_sweep</span>
               </div>
               <div>
-                <h3 className="text-lg font-black text-slate-800">Xóa sản phẩm</h3>
+                <h3 className="text-lg font-black text-slate-800">{t('Xóa sản phẩm')}</h3>
                 <p className="text-sm text-slate-500 font-medium mt-1">
-                  Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?
+                  {t('Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?')}
                 </p>
               </div>
             </div>
@@ -348,13 +350,13 @@ const Cart = () => {
                 onClick={() => setDeleteModal({ show: false, itemId: null })}
                 className="flex-1 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
               >
-                Hủy bỏ
+                {t('Hủy bỏ')}
               </button>
               <button 
                 onClick={confirmDelete}
                 className="flex-1 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20"
               >
-                Xóa ngay
+                {t('Xóa ngay')}
               </button>
             </div>
           </div>
