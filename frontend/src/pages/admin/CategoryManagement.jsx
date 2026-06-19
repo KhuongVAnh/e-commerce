@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import axiosClient from '../../utils/axiosClient';
 import { buildQueryString, DEFAULT_PAGINATION, getErrorMessage } from '../../utils/adminApi';
 import {
@@ -17,6 +18,7 @@ import {
 const emptyForm = { id: null, name: '', status: 'ACTIVE' };
 
 const CategoryManagement = () => {
+  const { t } = useTranslation();
   const [categories, setCategories] = useState([]);
   const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
   const [filters, setFilters] = useState({ q: '', status: '' });
@@ -44,11 +46,11 @@ const CategoryManagement = () => {
       }));
     } catch (error) {
       setCategories([]);
-      setErrorMsg(getErrorMessage(error, 'Không thể tải danh mục.'));
+      setErrorMsg(getErrorMessage(error, t('Không thể tải danh mục.')));
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, t]);
 
   useEffect(() => {
     fetchCategories();
@@ -108,7 +110,7 @@ const CategoryManagement = () => {
       fetchCategories();
       fetchStats();
     } catch (error) {
-      alert(getErrorMessage(error, 'Không thể lưu danh mục.'));
+      alert(getErrorMessage(error, t('Không thể lưu danh mục.')));
     } finally {
       setFormLoading(false);
     }
@@ -121,8 +123,8 @@ const CategoryManagement = () => {
       category,
       nextStatus,
       danger: nextStatus === 'INACTIVE',
-      title: nextStatus === 'ACTIVE' ? 'Mở lại danh mục?' : 'Ẩn danh mục?',
-      description: `Danh mục ${category.name} sẽ được chuyển sang trạng thái ${nextStatus}.`,
+      title: nextStatus === 'ACTIVE' ? t('Mở lại danh mục?') : t('Ẩn danh mục?'),
+      description: `${t('Danh mục')} ${category.name} ${t('sẽ được chuyển sang trạng thái')} ${nextStatus}.`,
     });
   };
 
@@ -131,8 +133,8 @@ const CategoryManagement = () => {
       type: 'delete',
       category,
       danger: true,
-      title: 'Xóa danh mục?',
-      description: `Danh mục ${category.name} chỉ xóa được khi không còn sản phẩm liên kết.`,
+      title: t('Xóa danh mục?'),
+      description: `${t('Danh mục')} ${category.name} ${t('chỉ xóa được khi không còn sản phẩm liên kết.')}`,
     });
   };
 
@@ -149,7 +151,7 @@ const CategoryManagement = () => {
       fetchCategories();
       fetchStats();
     } catch (error) {
-      alert(getErrorMessage(error, 'Không thể thao tác danh mục.'));
+      alert(getErrorMessage(error, t('Không thể thao tác danh mục.')));
     } finally {
       setActionLoading(false);
     }
@@ -158,42 +160,42 @@ const CategoryManagement = () => {
   return (
     <div className="min-h-full bg-[#f8fafc] p-4 font-sans md:p-6 lg:p-8">
       <AdminPageHeader
-        title="Quản lý danh mục"
-        description="Tổ chức danh mục sản phẩm và trạng thái hiển thị."
+        title={t('Quản lý danh mục')}
+        description={t('Tổ chức danh mục sản phẩm và trạng thái hiển thị.')}
         action={(
           <button onClick={openCreate} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2e3785] px-4 text-sm font-black text-white hover:bg-[#252d70]">
             <span className="material-symbols-outlined text-[18px]">add</span>
-            Thêm danh mục
+            {t('Thêm danh mục')}
           </button>
         )}
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <AdminStatCard icon="category" label="Tổng danh mục hệ thống" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
-        <AdminStatCard icon="visibility" label="Tổng đang hoạt động" value={stats.active.toLocaleString('vi-VN')} tone="success" />
-        <AdminStatCard icon="visibility_off" label="Tổng đang ẩn" value={stats.inactive.toLocaleString('vi-VN')} />
+        <AdminStatCard icon="category" label={t('Tổng danh mục hệ thống')} value={stats.total.toLocaleString('vi-VN')} tone="primary" />
+        <AdminStatCard icon="visibility" label={t('Tổng đang hoạt động')} value={stats.active.toLocaleString('vi-VN')} tone="success" />
+        <AdminStatCard icon="visibility_off" label={t('Tổng đang ẩn')} value={stats.inactive.toLocaleString('vi-VN')} />
       </div>
 
       <AdminToolbar>
-        <AdminSearchInput value={filters.q} onChange={(value) => updateFilter('q', value)} placeholder="Tìm danh mục..." />
-        <AdminSelect label="Trạng thái" value={filters.status} onChange={(value) => updateFilter('status', value)}>
-          <option value="">Tất cả trạng thái</option>
-          <option value="ACTIVE">Hoạt động</option>
-          <option value="INACTIVE">Tạm ẩn</option>
+        <AdminSearchInput value={filters.q} onChange={(value) => updateFilter('q', value)} placeholder={t('Tìm danh mục...')} />
+        <AdminSelect label={t('Trạng thái')} value={filters.status} onChange={(value) => updateFilter('status', value)}>
+          <option value="">{t('Tất cả trạng thái')}</option>
+          <option value="ACTIVE">{t('Hoạt động')}</option>
+          <option value="INACTIVE">{t('Tạm ẩn')}</option>
         </AdminSelect>
       </AdminToolbar>
 
       <AdminDataTable
         columns={[
-          { key: 'name', label: 'Danh mục' },
-          { key: 'slug', label: 'Đường dẫn (Slug)' },
-          { key: 'status', label: 'Trạng thái' },
-          { key: 'actions', label: 'Thao tác' },
+          { key: 'name', label: t('Danh mục') },
+          { key: 'slug', label: t('Đường dẫn (Slug)') },
+          { key: 'status', label: t('Trạng thái') },
+          { key: 'actions', label: t('Thao tác') },
         ]}
         rows={pagedCategories}
         loading={loading}
         error={errorMsg}
-        emptyMessage="Không có danh mục phù hợp."
+        emptyMessage={t('Không có danh mục phù hợp.')}
         renderRow={(category) => (
           <tr key={category.id} className="hover:bg-slate-50">
             <td className="px-5 py-4 text-sm font-black text-[#2e3785]">{category.name}</td>
@@ -227,10 +229,10 @@ const CategoryManagement = () => {
         }))}
       />
 
-      <AdminModal open={formOpen} title={form.id ? 'Sửa danh mục' : 'Thêm danh mục'} onClose={() => setFormOpen(false)}>
+      <AdminModal open={formOpen} title={form.id ? t('Sửa danh mục') : t('Thêm danh mục')} onClose={() => setFormOpen(false)}>
         <form onSubmit={submitForm} className="space-y-5">
           <div>
-            <label className="mb-2 block text-[10px] font-black uppercase text-slate-400">Tên danh mục</label>
+            <label className="mb-2 block text-[10px] font-black uppercase text-slate-400">{t('Tên danh mục')}</label>
             <input
               value={form.name}
               onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
@@ -239,20 +241,20 @@ const CategoryManagement = () => {
             />
           </div>
           <div>
-            <label className="mb-2 block text-[10px] font-black uppercase text-slate-400">Trạng thái</label>
+            <label className="mb-2 block text-[10px] font-black uppercase text-slate-400">{t('Trạng thái')}</label>
             <select
               value={form.status}
               onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}
               className="h-11 w-full rounded-lg border border-slate-200 px-4 text-sm font-bold outline-none focus:border-[#2e3785] focus:ring-2 focus:ring-indigo-100"
             >
-              <option value="ACTIVE">Hoạt động</option>
-              <option value="INACTIVE">Tạm ẩn</option>
+              <option value="ACTIVE">{t('Hoạt động')}</option>
+              <option value="INACTIVE">{t('Tạm ẩn')}</option>
             </select>
           </div>
           <div className="flex justify-end gap-3">
-            <button type="button" onClick={() => setFormOpen(false)} className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">Hủy</button>
+            <button type="button" onClick={() => setFormOpen(false)} className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">{t('Hủy')}</button>
             <button type="submit" disabled={formLoading} className="rounded-lg bg-[#2e3785] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
-              {formLoading ? 'Đang lưu...' : 'Lưu'}
+              {formLoading ? t('Đang lưu...') : t('Lưu')}
             </button>
           </div>
         </form>
@@ -263,7 +265,7 @@ const CategoryManagement = () => {
         title={confirmAction?.title}
         description={confirmAction?.description}
         danger={confirmAction?.danger}
-        confirmText={confirmAction?.type === 'delete' ? 'Xóa' : 'Cập nhật'}
+        confirmText={confirmAction?.type === 'delete' ? t('Xóa') : t('Cập nhật')}
         loading={actionLoading}
         onCancel={() => setConfirmAction(null)}
         onConfirm={confirmCategoryAction}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosClient from '../../utils/axiosClient';
 import useAuthStore from '../../store/useAuthStore';
 import { buildQueryString, DEFAULT_PAGINATION, formatDate, getErrorMessage, getPagination } from '../../utils/adminApi';
@@ -16,6 +17,7 @@ import {
 } from '../../components/admin/AdminComponents';
 
 const UserManagement = () => {
+  const { t } = useTranslation();
   const currentUser = useAuthStore((state) => state.user);
   const [searchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
@@ -44,11 +46,11 @@ const UserManagement = () => {
       setPagination(getPagination(res));
     } catch (error) {
       setUsers([]);
-      setErrorMsg(getErrorMessage(error, 'Không thể tải danh sách người dùng.'));
+      setErrorMsg(getErrorMessage(error, t('Không thể tải danh sách người dùng.')));
     } finally {
       setLoading(false);
     }
-  }, [filters, pagination.page, pagination.limit]);
+  }, [filters, pagination.page, pagination.limit, t]);
 
   useEffect(() => {
     fetchUsers();
@@ -65,10 +67,10 @@ const UserManagement = () => {
       user,
       nextStatus,
       danger: nextStatus !== 'ACTIVE',
-      title: nextStatus === 'ACTIVE' ? 'Mở khóa người dùng?' : 'Khóa người dùng?',
+      title: nextStatus === 'ACTIVE' ? t('Mở khóa người dùng?') : t('Khóa người dùng?'),
       description: isSelf
-        ? 'Bạn đang thao tác trên chính tài khoản đang đăng nhập. Backend sẽ chặn thao tác tự khóa.'
-        : `${user.fullName} sẽ được chuyển sang trạng thái ${nextStatus}.`,
+        ? t('Bạn đang thao tác trên chính tài khoản đang đăng nhập. Backend sẽ chặn thao tác tự khóa.')
+        : `${user.fullName} ${t('sẽ được chuyển sang trạng thái')} ${nextStatus}.`,
     });
   };
 
@@ -81,7 +83,7 @@ const UserManagement = () => {
       fetchUsers();
       fetchStats();
     } catch (error) {
-      alert(getErrorMessage(error, 'Không thể cập nhật trạng thái người dùng.'));
+      alert(getErrorMessage(error, t('Không thể cập nhật trạng thái người dùng.')));
     } finally {
       setActionLoading(false);
     }
@@ -114,7 +116,7 @@ const UserManagement = () => {
       const res = await axiosClient.get(`/auth/admin/users/${userId}`);
       setSelectedUser(res?.data?.user || res?.user || res?.data);
     } catch (error) {
-      alert('Lỗi tải chi tiết: ' + getErrorMessage(error));
+      alert(t('Lỗi tải chi tiết: ') + getErrorMessage(error));
       setIsModalOpen(false);
     }
   };
@@ -132,12 +134,12 @@ const UserManagement = () => {
         status: selectedUser.status,
       });
 
-      alert('Cập nhật người dùng thành công!');
+      alert(t('Cập nhật người dùng thành công!'));
       setIsModalOpen(false);
       fetchUsers();
       fetchStats();
     } catch (error) {
-      alert(getErrorMessage(error, 'Không thể cập nhật người dùng.'));
+      alert(getErrorMessage(error, t('Không thể cập nhật người dùng.')));
     } finally {
       setIsSaving(false);
     }
@@ -146,66 +148,66 @@ const UserManagement = () => {
   return (
     <div className="min-h-full bg-[#f8fafc] p-4 font-sans md:p-6 lg:p-8">
       <AdminPageHeader
-        title="Quản lý người dùng"
-        description="Quản lý tài khoản, vai trò và trạng thái truy cập của người dùng."
+        title={t('Quản lý người dùng')}
+        description={t('Quản lý tài khoản, vai trò và trạng thái truy cập của người dùng.')}
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <AdminStatCard
           icon="group"
-          label="Tổng người dùng hệ thống"
+          label={t('Tổng người dùng hệ thống')}
           value={stats.total.toLocaleString('vi-VN')}
           tone="primary"
         />
 
         <AdminStatCard
           icon="storefront"
-          label="Tổng người bán"
+          label={t('Tổng người bán')}
           value={stats.sellers.toLocaleString('vi-VN')}
           tone="success"
         />
 
         <AdminStatCard
           icon="admin_panel_settings"
-          label="Tổng quản trị viên"
+          label={t('Tổng quản trị viên')}
           value={stats.admins.toLocaleString('vi-VN')}
         />
 
         <AdminStatCard
           icon="groups"
-          label="Người dùng trang hiện tại"
+          label={t('Người dùng trang hiện tại')}
           value={users.length.toLocaleString('vi-VN')}
         />
       </div>
 
       <AdminToolbar>
-        <AdminSearchInput value={filters.q} onChange={(value) => updateFilter('q', value)} placeholder="Tìm tên hoặc email..." />
-        <AdminSelect label="Vai trò" value={filters.role} onChange={(value) => updateFilter('role', value)}>
-          <option value="">Tất cả vai trò</option>
-          <option value="CUSTOMER">Khách hàng</option>
-          <option value="SELLER">Người bán</option>
-          <option value="ADMIN">Quản trị viên</option>
+        <AdminSearchInput value={filters.q} onChange={(value) => updateFilter('q', value)} placeholder={t('Tìm tên hoặc email...')} />
+        <AdminSelect label={t('Vai trò')} value={filters.role} onChange={(value) => updateFilter('role', value)}>
+          <option value="">{t('Tất cả vai trò')}</option>
+          <option value="CUSTOMER">{t('Khách hàng')}</option>
+          <option value="SELLER">{t('Người bán')}</option>
+          <option value="ADMIN">{t('Quản trị viên')}</option>
         </AdminSelect>
-        <AdminSelect label="Trạng thái" value={filters.status} onChange={(value) => updateFilter('status', value)}>
-          <option value="">Tất cả trạng thái</option>
-          <option value="ACTIVE">Hoạt động</option>
-          <option value="INACTIVE">Tạm ẩn</option>
-          <option value="BLOCKED">Bị khóa</option>
+        <AdminSelect label={t('Trạng thái')} value={filters.status} onChange={(value) => updateFilter('status', value)}>
+          <option value="">{t('Tất cả trạng thái')}</option>
+          <option value="ACTIVE">{t('Hoạt động')}</option>
+          <option value="INACTIVE">{t('Tạm ẩn')}</option>
+          <option value="BLOCKED">{t('Bị khóa')}</option>
         </AdminSelect>
       </AdminToolbar>
 
       <AdminDataTable
         columns={[
-          { key: 'identity', label: 'Thông tin người dùng' },
-          { key: 'role', label: 'Vai trò' },
-          { key: 'status', label: 'Trạng thái' },
-          { key: 'createdAt', label: 'Ngày tạo' },
-          { key: 'actions', label: 'Thao tác' },
+          { key: 'identity', label: t('Thông tin người dùng') },
+          { key: 'role', label: t('Vai trò') },
+          { key: 'status', label: t('Trạng thái') },
+          { key: 'createdAt', label: t('Ngày tạo') },
+          { key: 'actions', label: t('Thao tác') },
         ]}
         rows={users}
         loading={loading}
         error={errorMsg}
-        emptyMessage="Không có người dùng phù hợp."
+        emptyMessage={t('Không có người dùng phù hợp.')}
         renderRow={(user) => (
           <tr key={user.id} className="hover:bg-slate-50">
             <td className="px-5 py-4">
@@ -229,7 +231,7 @@ const UserManagement = () => {
                   className="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100"
                 >
                   <span className="material-symbols-outlined text-[16px]">edit</span>
-                  Sửa
+                  {t('Sửa')}
                 </button>
 
                 {user.status === 'ACTIVE' ? (
@@ -238,7 +240,7 @@ const UserManagement = () => {
                     className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100"
                   >
                     <span className="material-symbols-outlined text-[16px]">block</span>
-                    Khóa
+                    {t('Khóa')}
                   </button>
                 ) : (
                   <button
@@ -246,7 +248,7 @@ const UserManagement = () => {
                     className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-100"
                   >
                     <span className="material-symbols-outlined text-[16px]">lock_open</span>
-                    Mở
+                    {t('Mở')}
                   </button>
                 )}
               </div>
@@ -266,7 +268,7 @@ const UserManagement = () => {
         title={confirmAction?.title}
         description={confirmAction?.description}
         danger={confirmAction?.danger}
-        confirmText={confirmAction?.nextStatus === 'ACTIVE' ? 'Mở khóa' : 'Khóa user'}
+        confirmText={confirmAction?.nextStatus === 'ACTIVE' ? t('Mở khóa') : t('Khóa user')}
         loading={actionLoading}
         onCancel={() => setConfirmAction(null)}
         onConfirm={confirmStatusChange}
@@ -282,17 +284,17 @@ const UserManagement = () => {
                 <span className="material-symbols-outlined">close</span>
               </button>
 
-              <h2 className="mb-6 text-2xl font-black text-slate-900">Cập nhật người dùng</h2>
+              <h2 className="mb-6 text-2xl font-black text-slate-900">{t('Cập nhật người dùng')}</h2>
 
               {!selectedUser ? (
                 <div className="py-10 text-center font-medium text-slate-500">
-                  Đang tải dữ liệu...
+                  {t('Đang tải dữ liệu...')}
                 </div>
               ) : (
                 <form onSubmit={handleUpdateUser} className="space-y-5">
                   <div>
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-500">
-                      Email
+                      {t('Email')}
                     </label>
                     <input
                       type="text"
@@ -304,7 +306,7 @@ const UserManagement = () => {
 
                   <div>
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-500">
-                      Họ và tên
+                      {t('Họ và tên')}
                     </label>
                     <input
                       type="text"
@@ -320,7 +322,7 @@ const UserManagement = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-500">
-                        Vai trò
+                        {t('Vai trò')}
                       </label>
                       <select
                         value={selectedUser.role || 'CUSTOMER'}
@@ -329,15 +331,15 @@ const UserManagement = () => {
                         }
                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-bold text-slate-700 outline-none"
                       >
-                        <option value="CUSTOMER">Khách hàng</option>
-                        <option value="SELLER">Người bán</option>
-                        <option value="ADMIN">Quản trị viên</option>
+                        <option value="CUSTOMER">{t('Khách hàng')}</option>
+                        <option value="SELLER">{t('Người bán')}</option>
+                        <option value="ADMIN">{t('Quản trị viên')}</option>
                       </select>
                     </div>
 
                     <div>
                       <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-500">
-                        Trạng thái
+                        {t('Trạng thái')}
                       </label>
                       <select
                         value={selectedUser.status || 'ACTIVE'}
@@ -346,9 +348,9 @@ const UserManagement = () => {
                         }
                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-bold text-slate-700 outline-none"
                       >
-                        <option value="ACTIVE">Hoạt động</option>
-                        <option value="INACTIVE">Tạm ẩn</option>
-                        <option value="BLOCKED">Bị khóa</option>
+                        <option value="ACTIVE">{t('Hoạt động')}</option>
+                        <option value="INACTIVE">{t('Tạm ẩn')}</option>
+                        <option value="BLOCKED">{t('Bị khóa')}</option>
                       </select>
                     </div>
                   </div>
@@ -359,7 +361,7 @@ const UserManagement = () => {
                       onClick={() => setIsModalOpen(false)}
                       className="rounded-xl bg-slate-100 px-5 py-3 text-sm font-bold text-slate-600 hover:bg-slate-200"
                     >
-                      Hủy
+                      {t('Hủy')}
                     </button>
 
                     <button
@@ -367,7 +369,7 @@ const UserManagement = () => {
                       disabled={isSaving}
                       className="rounded-xl bg-[#2e3785] px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-[#252d70] disabled:opacity-70"
                     >
-                      {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                      {isSaving ? t('Đang lưu...') : t('Lưu thay đổi')}
                     </button>
                   </div>
                 </form>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosClient from '../../utils/axiosClient';
 import { buildQueryString, DEFAULT_PAGINATION, formatDate, getErrorMessage, getPagination } from '../../utils/adminApi';
 import {
@@ -16,6 +17,7 @@ import {
 } from '../../components/admin/AdminComponents';
 
 const ShopManagement = () => {
+  const { t } = useTranslation();
   const [shops, setShops] = useState([]);
   const [searchParams] = useSearchParams();
   const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
@@ -41,11 +43,11 @@ const ShopManagement = () => {
       setPagination(getPagination(res));
     } catch (error) {
       setShops([]);
-      setErrorMsg(getErrorMessage(error, 'Không thể tải danh sách cửa hàng.'));
+      setErrorMsg(getErrorMessage(error, t('Không thể tải danh sách cửa hàng.')));
     } finally {
       setLoading(false);
     }
-  }, [filters, pagination.page, pagination.limit]);
+  }, [filters, pagination.page, pagination.limit, t]);
 
   useEffect(() => {
     fetchShops();
@@ -94,8 +96,8 @@ const ShopManagement = () => {
       shop,
       nextStatus,
       danger: nextStatus === 'INACTIVE',
-      title: nextStatus === 'ACTIVE' ? 'Duyệt hoặc mở lại cửa hàng?' : 'Khóa cửa hàng?',
-      description: `${shop.name} sẽ được chuyển sang trạng thái ${nextStatus}.`,
+      title: nextStatus === 'ACTIVE' ? t('Duyệt hoặc mở lại cửa hàng?') : t('Khóa cửa hàng?'),
+      description: `${shop.name} ${t('sẽ được chuyển sang trạng thái')} ${nextStatus}.`,
     });
   };
 
@@ -109,7 +111,7 @@ const ShopManagement = () => {
       fetchShops();
       fetchStats();
     } catch (error) {
-      alert(getErrorMessage(error, 'Không thể cập nhật trạng thái cửa hàng.'));
+      alert(getErrorMessage(error, t('Không thể cập nhật trạng thái cửa hàng.')));
     } finally {
       setActionLoading(false);
     }
@@ -118,40 +120,40 @@ const ShopManagement = () => {
   return (
     <div className="min-h-full bg-[#f8fafc] p-4 font-sans md:p-6 lg:p-8">
       <AdminPageHeader
-        title="Quản lý cửa hàng"
-        description="Duyệt, khóa và theo dõi các gian hàng trên hệ thống."
+        title={t('Quản lý cửa hàng')}
+        description={t('Duyệt, khóa và theo dõi các gian hàng trên hệ thống.')}
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard icon="storefront" label="Tổng cửa hàng hệ thống" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
-        <AdminStatCard icon="pending_actions" label="Tổng chờ duyệt" value={stats.pending.toLocaleString('vi-VN')} tone="warning" />
-        <AdminStatCard icon="verified" label="Tổng hoạt động" value={stats.active.toLocaleString('vi-VN')} tone="success" />
-        <AdminStatCard icon="pause_circle" label="Tổng khóa" value={stats.inactive.toLocaleString('vi-VN')} tone="danger" />
+        <AdminStatCard icon="storefront" label={t('Tổng cửa hàng hệ thống')} value={stats.total.toLocaleString('vi-VN')} tone="primary" />
+        <AdminStatCard icon="pending_actions" label={t('Tổng chờ duyệt')} value={stats.pending.toLocaleString('vi-VN')} tone="warning" />
+        <AdminStatCard icon="verified" label={t('Tổng hoạt động')} value={stats.active.toLocaleString('vi-VN')} tone="success" />
+        <AdminStatCard icon="pause_circle" label={t('Tổng khóa')} value={stats.inactive.toLocaleString('vi-VN')} tone="danger" />
       </div>
 
       <AdminToolbar>
-        <AdminSearchInput value={filters.q} onChange={(value) => updateFilter('q', value)} placeholder="Tìm tên hoặc đường dẫn (slug)..." />
-        <AdminSelect label="Trạng thái" value={filters.status} onChange={(value) => updateFilter('status', value)}>
-          <option value="">Tất cả trạng thái</option>
-          <option value="PENDING">Chờ duyệt</option>
-          <option value="ACTIVE">Hoạt động</option>
-          <option value="INACTIVE">Khóa</option>
+        <AdminSearchInput value={filters.q} onChange={(value) => updateFilter('q', value)} placeholder={t('Tìm tên hoặc đường dẫn (slug)...')} />
+        <AdminSelect label={t('Trạng thái')} value={filters.status} onChange={(value) => updateFilter('status', value)}>
+          <option value="">{t('Tất cả trạng thái')}</option>
+          <option value="PENDING">{t('Chờ duyệt')}</option>
+          <option value="ACTIVE">{t('Hoạt động')}</option>
+          <option value="INACTIVE">{t('Khóa')}</option>
         </AdminSelect>
       </AdminToolbar>
 
       <AdminDataTable
         columns={[
-          { key: 'shop', label: 'Cửa hàng' },
-          { key: 'seller', label: 'Mã người bán' },
-          { key: 'address', label: 'Địa chỉ' },
-          { key: 'createdAt', label: 'Ngày tạo' },
-          { key: 'status', label: 'Trạng thái' },
-          { key: 'actions', label: 'Thao tác' },
+          { key: 'shop', label: t('Cửa hàng') },
+          { key: 'seller', label: t('Mã người bán') },
+          { key: 'address', label: t('Địa chỉ') },
+          { key: 'createdAt', label: t('Ngày tạo') },
+          { key: 'status', label: t('Trạng thái') },
+          { key: 'actions', label: t('Thao tác') },
         ]}
         rows={shops}
         loading={loading}
         error={errorMsg}
-        emptyMessage="Không có cửa hàng phù hợp."
+        emptyMessage={t('Không có cửa hàng phù hợp.')}
         renderRow={(shop) => (
           <tr key={shop.id} className="hover:bg-slate-50">
             <td className="px-5 py-4">
@@ -166,7 +168,7 @@ const ShopManagement = () => {
               </div>
             </td>
             <td className="px-5 py-4 text-sm font-bold text-[#2e3785]">#{shop.sellerId}</td>
-            <td className="max-w-xs truncate px-5 py-4 text-sm font-medium text-slate-500">{shop.address || 'Không có'}</td>
+            <td className="max-w-xs truncate px-5 py-4 text-sm font-medium text-slate-500">{shop.address || t('Không có')}</td>
             <td className="px-5 py-4 text-sm font-medium text-slate-500">{formatDate(shop.createdAt)}</td>
             <td className="px-5 py-4"><AdminStatusBadge status={shop.status} /></td>
             <td className="px-5 py-4">
@@ -196,9 +198,9 @@ const ShopManagement = () => {
         onLimitChange={(limit) => setPagination((current) => ({ ...current, page: 1, limit }))}
       />
 
-      <AdminModal open={Boolean(selectedShop)} title="Chi tiết cửa hàng" onClose={() => setSelectedShop(null)}>
+      <AdminModal open={Boolean(selectedShop)} title={t('Chi tiết cửa hàng')} onClose={() => setSelectedShop(null)}>
         {detailLoading ? (
-          <p className="text-sm font-bold text-slate-400">Đang tải chi tiết...</p>
+          <p className="text-sm font-bold text-slate-400">{t('Đang tải chi tiết...')}</p>
         ) : (
           <div className="space-y-5">
             <div className="flex items-start gap-4">
@@ -207,15 +209,15 @@ const ShopManagement = () => {
               </div>
               <div>
                 <h3 className="text-lg font-black text-slate-900">{selectedShop?.name}</h3>
-                <p className="text-sm font-medium text-slate-500">Người bán #{selectedShop?.sellerId}</p>
+                <p className="text-sm font-medium text-slate-500">{t('Người bán')} #{selectedShop?.sellerId}</p>
                 <div className="mt-2"><AdminStatusBadge status={selectedShop?.status} /></div>
               </div>
             </div>
             <div className="grid gap-4 rounded-lg bg-slate-50 p-4 md:grid-cols-2">
-              <div><p className="text-[10px] font-black uppercase text-slate-400">Đường dẫn (Slug)</p><p className="text-sm font-bold text-slate-700">{selectedShop?.slug}</p></div>
-              <div><p className="text-[10px] font-black uppercase text-slate-400">Ngày tạo</p><p className="text-sm font-bold text-slate-700">{formatDate(selectedShop?.createdAt)}</p></div>
-              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">Địa chỉ</p><p className="text-sm font-bold text-slate-700">{selectedShop?.address || 'Không có'}</p></div>
-              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">Mô tả</p><p className="text-sm font-medium text-slate-600">{selectedShop?.description || 'Không có'}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">{t('Đường dẫn (Slug)')}</p><p className="text-sm font-bold text-slate-700">{selectedShop?.slug}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">{t('Ngày tạo')}</p><p className="text-sm font-bold text-slate-700">{formatDate(selectedShop?.createdAt)}</p></div>
+              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">{t('Địa chỉ')}</p><p className="text-sm font-bold text-slate-700">{selectedShop?.address || t('Không có')}</p></div>
+              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">{t('Mô tả')}</p><p className="text-sm font-medium text-slate-600">{selectedShop?.description || t('Không có')}</p></div>
             </div>
           </div>
         )}
@@ -226,7 +228,7 @@ const ShopManagement = () => {
         title={confirmAction?.title}
         description={confirmAction?.description}
         danger={confirmAction?.danger}
-        confirmText={confirmAction?.nextStatus === 'ACTIVE' ? 'Chuyển Hoạt động' : 'Chuyển Bị khóa'}
+        confirmText={confirmAction?.nextStatus === 'ACTIVE' ? t('Chuyển Hoạt động') : t('Chuyển Bị khóa')}
         loading={actionLoading}
         onCancel={() => setConfirmAction(null)}
         onConfirm={confirmStatusChange}
