@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import useAuthStore from '../../store/useAuthStore';
 import { notificationService } from '../../services/notificationService';
 import { useToast } from '../../components/ToastProvider';
@@ -14,6 +15,7 @@ const LIMIT = 10;
 const Notifications = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuthStore();
   const { showToast } = useToast();
@@ -38,11 +40,11 @@ const Notifications = () => {
       setUnreadCount(Number(response.data?.unreadCount || 0));
       setPagination(response.meta?.pagination || { page, limit: LIMIT, total: 0, totalPages: 1 });
     } catch (error) {
-      showToast(error?.message || 'Không thể tải thông báo', { type: 'error' });
+      showToast(error?.message || t('Không thể tải thông báo'), { type: 'error' });
     } finally {
       setIsLoading(false);
     }
-  }, [filter, page, showToast]);
+  }, [filter, page, showToast, t]);
 
   useEffect(() => {
     loadNotifications();
@@ -68,12 +70,12 @@ const Notifications = () => {
         isRead: true,
         readAt: item.readAt || new Date().toISOString(),
       })));
-      showToast('Đã đánh dấu tất cả thông báo là đã đọc', { type: 'success' });
+      showToast(t('Đã đánh dấu tất cả thông báo là đã đọc'), { type: 'success' });
       if (filter === 'unread') {
         loadNotifications();
       }
     } catch (error) {
-      showToast(error?.message || 'Không thể đánh dấu tất cả đã đọc', { type: 'error' });
+      showToast(error?.message || t('Không thể đánh dấu tất cả đã đọc'), { type: 'error' });
     }
   };
 
@@ -85,7 +87,7 @@ const Notifications = () => {
 
       navigate(resolveNotificationTarget(notification, user, location.pathname));
     } catch (error) {
-      showToast(error?.message || 'Không thể mở thông báo', { type: 'error' });
+      showToast(error?.message || t('Không thể mở thông báo'), { type: 'error' });
     }
   };
 
@@ -105,9 +107,9 @@ const Notifications = () => {
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#2b3896]">E-commerce</p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">Thông báo của bạn</h1>
+          <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">{t('Thông báo của bạn')}</h1>
           <p className="mt-2 text-sm font-medium text-slate-500">
-            {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Bạn đã đọc tất cả thông báo'}
+            {unreadCount > 0 ? `${unreadCount} ${t('thông báo chưa đọc')}` : t('Bạn đã đọc tất cả thông báo')}
           </p>
         </div>
 
@@ -118,7 +120,7 @@ const Notifications = () => {
             className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:border-[#2b3896]/30 hover:text-[#2b3896]"
           >
             <span className="material-symbols-outlined text-[16px]">refresh</span>
-            Làm mới
+            {t('Làm mới')}
           </button>
           <button
             type="button"
@@ -126,15 +128,15 @@ const Notifications = () => {
             className="inline-flex items-center gap-2 rounded-full bg-[#2b3896] px-4 py-2 text-sm font-bold text-white shadow-md shadow-[#2b3896]/20 transition hover:bg-[#1f2970]"
           >
             <span className="material-symbols-outlined text-[16px]">done_all</span>
-            Đánh dấu tất cả đã đọc
+            {t('Đánh dấu tất cả đã đọc')}
           </button>
         </div>
       </div>
 
       <div className="mb-5 flex gap-2">
         {[
-          { key: 'all', label: 'Tất cả' },
-          { key: 'unread', label: 'Chưa đọc' },
+          { key: 'all', label: t('Tất cả') },
+          { key: 'unread', label: t('Chưa đọc') },
         ].map((item) => (
           <button
             type="button"
@@ -151,15 +153,15 @@ const Notifications = () => {
         {isLoading ? (
           <div className="flex items-center justify-center gap-2 py-20 text-sm font-semibold text-slate-500">
             <span className="material-symbols-outlined animate-spin text-[20px] text-[#2b3896]">progress_activity</span>
-            Đang tải thông báo
+            {t('Đang tải thông báo')}
           </div>
         ) : notifications.length === 0 ? (
           <div className="px-6 py-20 text-center">
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-indigo-50 text-[#2b3896]">
               <span className="material-symbols-outlined text-[30px]">notifications</span>
             </div>
-            <h2 className="mt-4 text-lg font-extrabold text-slate-900">Không có thông báo</h2>
-            <p className="mt-1 text-sm text-slate-500">Các cập nhật về tài khoản, đơn hàng và thanh toán sẽ hiển thị tại đây.</p>
+            <h2 className="mt-4 text-lg font-extrabold text-slate-900">{t('Không có thông báo')}</h2>
+            <p className="mt-1 text-sm text-slate-500">{t('Các cập nhật về tài khoản, đơn hàng và thanh toán sẽ hiển thị tại đây.')}</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -192,7 +194,7 @@ const Notifications = () => {
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <span className="text-sm font-extrabold text-[#2b3896]">{getRelativeTime(notification.createdAt)}</span>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500">{meta.label}</span>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500">{t(meta.label)}</span>
                     </div>
                   </div>
                 </button>
@@ -205,7 +207,7 @@ const Notifications = () => {
       {pagination.totalPages > 1 && (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm font-semibold text-slate-500">
-            Trang {currentPage} / {totalPages} - {pagination.total} thông báo
+            {t('Trang')} {currentPage} / {totalPages} - {pagination.total} {t('thông báo')}
           </p>
           <div className="flex items-center gap-2">
             <button
