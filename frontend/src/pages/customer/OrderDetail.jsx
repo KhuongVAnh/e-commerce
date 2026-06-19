@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { orderService } from '../../services/orderService';
 
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
 export default function OrderDetail() {
     const { id } = useParams(); 
+    const { t } = useTranslation();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isCancelling, setIsCancelling] = useState(false);
     const [isPaying, setIsPaying] = useState(false);
     
-    // Popup thông báo
     const [popup, setPopup] = useState({ isOpen: false, message: '', type: 'error' });
 
     useEffect(() => {
@@ -21,17 +22,17 @@ export default function OrderDetail() {
                 if (res.data?.order) {
                     setOrder(res.data.order);
                 } else {
-                    setPopup({ isOpen: true, message: 'Không thể tải dữ liệu đơn hàng. Cấu trúc dữ liệu không khớp.', type: 'error' });
+                    setPopup({ isOpen: true, message: t('Không thể tải dữ liệu đơn hàng. Cấu trúc dữ liệu không khớp.'), type: 'error' });
                 }
             } catch (error) {
                 console.error("Lỗi lấy chi tiết đơn hàng:", error);
-                setPopup({ isOpen: true, message: error.message || 'Có lỗi xảy ra khi lấy thông tin đơn hàng.', type: 'error' });
+                setPopup({ isOpen: true, message: error.message || t('Có lỗi xảy ra khi lấy thông tin đơn hàng.'), type: 'error' });
             } finally {
                 setLoading(false);
             }
         };
         fetchDetail();
-    }, [id]);
+    }, [id, t]);
 
     const closePopup = () => setPopup({ isOpen: false, message: '', type: 'error' });
 
@@ -44,7 +45,7 @@ export default function OrderDetail() {
             const paymentUrl = res.data?.paymentUrl;
 
             if (!paymentUrl) {
-                setPopup({ isOpen: true, message: 'Không lấy được link thanh toán cho đơn hàng này.', type: 'error' });
+                setPopup({ isOpen: true, message: t('Không lấy được link thanh toán cho đơn hàng này.'), type: 'error' });
                 return;
             }
 
@@ -52,15 +53,14 @@ export default function OrderDetail() {
             window.location.href = paymentUrl;
         } catch (error) {
             console.error("Lỗi lấy link thanh toán:", error);
-            setPopup({ isOpen: true, message: error.message || 'Không thể tiếp tục thanh toán. Vui lòng thử lại.', type: 'error' });
+            setPopup({ isOpen: true, message: error.message || t('Không thể tiếp tục thanh toán. Vui lòng thử lại.'), type: 'error' });
         } finally {
             setIsPaying(false);
         }
     };
 
-    // HÀM XỬ LÝ HỦY ĐƠN HÀNG
     const handleCancelOrder = async () => {
-        if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác.")) return;
+        if (!window.confirm(t("Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác."))) return;
         
         setIsCancelling(true);
         try {
@@ -68,13 +68,13 @@ export default function OrderDetail() {
 
             if (res.success) {
                 setOrder(prev => ({ ...prev, orderStatus: 'CANCELLED' }));
-                setPopup({ isOpen: true, message: 'Đã hủy đơn hàng thành công!', type: 'success' });
+                setPopup({ isOpen: true, message: t('Đã hủy đơn hàng thành công!'), type: 'success' });
             } else {
-                setPopup({ isOpen: true, message: res.message || 'Không thể hủy đơn hàng.', type: 'error' });
+                setPopup({ isOpen: true, message: res.message || t('Không thể hủy đơn hàng.'), type: 'error' });
             }
         } catch (error) {
             console.error("Lỗi khi hủy đơn:", error);
-            setPopup({ isOpen: true, message: error.message || 'Có lỗi xảy ra khi hủy đơn hàng.', type: 'error' });
+            setPopup({ isOpen: true, message: error.message || t('Có lỗi xảy ra khi hủy đơn hàng.'), type: 'error' });
         } finally {
             setIsCancelling(false);
         }
@@ -84,7 +84,7 @@ export default function OrderDetail() {
         return (
             <div className="pt-32 pb-24 text-center min-h-screen bg-[#f9f9fc]">
                 <span className="material-symbols-outlined animate-spin text-5xl text-[#2b3896]">progress_activity</span>
-                <p className="mt-4 text-gray-500 font-medium">Đang tải chi tiết đơn hàng...</p>
+                <p className="mt-4 text-gray-500 font-medium">{t('Đang tải chi tiết đơn hàng...')}</p>
             </div>
         );
     }
@@ -92,8 +92,8 @@ export default function OrderDetail() {
     if (!order) {
         return (
             <div className="pt-32 text-center min-h-screen bg-[#f9f9fc]">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Không tìm thấy đơn hàng!</h2>
-                <Link to="/orders" className="text-[#2b3896] hover:underline font-medium">Quay lại danh sách đơn hàng</Link>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('Không tìm thấy đơn hàng!')}</h2>
+                <Link to="/orders" className="text-[#2b3896] hover:underline font-medium">{t('Quay lại danh sách đơn hàng')}</Link>
             </div>
         );
     }
@@ -116,19 +116,17 @@ export default function OrderDetail() {
     return (
         <main className="pt-32 pb-24 px-6 md:px-12 max-w-screen-xl mx-auto font-['Inter'] bg-[#f9f9fc] min-h-screen">
             
-            {/* Nút quay lại */}
             <Link to="/orders" className="inline-flex items-center gap-2 text-gray-500 hover:text-[#2b3896] transition-colors mb-8 font-medium">
                 <span className="material-symbols-outlined text-sm">arrow_back</span>
-                Quay lại danh sách
+                {t('Quay lại danh sách')}
             </Link>
 
-            {/* Order Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
                 <div>
-                    <span className="text-sm font-bold tracking-widest text-[#2b3896] uppercase mb-2 block">Order Receipt</span>
+                    <span className="text-sm font-bold tracking-widest text-[#2b3896] uppercase mb-2 block">{t('Order Receipt')}</span>
                     <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tighter font-['Be_Vietnam_Pro']">#{order.orderCode}</h1>
                     <p className="text-gray-500 mt-2 font-medium">
-                        Đặt ngày {new Date(order.createdAt).toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        {t('Đặt ngày')} {new Date(order.createdAt).toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-4">
@@ -143,11 +141,10 @@ export default function OrderDetail() {
                             ) : (
                                 <span className="material-symbols-outlined text-sm">payments</span>
                             )}
-                            {isPaying ? 'Đang lấy link...' : 'Tiếp tục thanh toán'}
+                            {isPaying ? t('Đang lấy link...') : t('Tiếp tục thanh toán')}
                         </button>
                     )}
 
-                    {/* NÚT HỦY ĐƠN HÀNG */}
                     {canCancel && (
                         <button 
                             onClick={handleCancelOrder}
@@ -159,13 +156,12 @@ export default function OrderDetail() {
                             ) : (
                                 <span className="material-symbols-outlined text-sm">cancel</span>
                             )}
-                            {isCancelling ? 'Đang xử lý...' : 'Hủy đơn hàng'}
+                            {isCancelling ? t('Đang xử lý...') : t('Hủy đơn hàng')}
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* Progress Stepper */}
             {currentStep !== -1 ? (
                 <div className="bg-white p-8 md:p-12 rounded-xl shadow-[0px_12px_32px_rgba(43,56,150,0.06)] mb-8">
                     <div className="relative flex items-center justify-between w-full">
@@ -175,23 +171,20 @@ export default function OrderDetail() {
                             style={{ width: currentStep === 1 ? '0%' : currentStep === 2 ? '33.33%' : currentStep === 3 ? '66.66%' : '100%' }}
                         ></div>
 
-                        {/* Step 1: Placed */}
                         <div className="relative z-10 flex flex-col items-center gap-3">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white ${currentStep >= 1 ? 'bg-[#2b3896]' : 'bg-gray-200 text-gray-400'}`}>
                                 <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                             </div>
-                            <span className={`text-sm font-bold ${currentStep >= 1 ? 'text-[#2b3896]' : 'text-gray-400'}`}>Đã đặt</span>
+                            <span className={`text-sm font-bold ${currentStep >= 1 ? 'text-[#2b3896]' : 'text-gray-400'}`}>{t('Đã đặt')}</span>
                         </div>
 
-                        {/* Step 2: Confirmed */}
                         <div className="relative z-10 flex flex-col items-center gap-3">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white ${currentStep >= 2 ? 'bg-[#2b3896]' : 'bg-gray-200 text-gray-400'}`}>
                                 <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                             </div>
-                            <span className={`text-sm font-bold ${currentStep >= 2 ? 'text-[#2b3896]' : 'text-gray-400'}`}>Xác nhận</span>
+                            <span className={`text-sm font-bold ${currentStep >= 2 ? 'text-[#2b3896]' : 'text-gray-400'}`}>{t('Xác nhận')}</span>
                         </div>
 
-                        {/* Step 3: Shipped */}
                         <div className="relative z-10 flex flex-col items-center gap-3">
                             {currentStep === 3 ? (
                                 <div className="w-12 h-12 rounded-full bg-white border-4 border-[#2b3896] flex items-center justify-center text-[#2b3896] ring-8 ring-[#2b3896]/5">
@@ -202,15 +195,14 @@ export default function OrderDetail() {
                                     <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                                 </div>
                             )}
-                            <span className={`text-sm font-bold ${currentStep >= 3 ? 'text-[#2b3896]' : 'text-gray-400'}`}>Đang giao</span>
+                            <span className={`text-sm font-bold ${currentStep >= 3 ? 'text-[#2b3896]' : 'text-gray-400'}`}>{t('Đang giao')}</span>
                         </div>
 
-                        {/* Step 4: Delivered */}
                         <div className="relative z-10 flex flex-col items-center gap-3">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${currentStep === 4 ? 'bg-[#2b3896] text-white' : 'bg-gray-100 text-gray-400'}`}>
                                 <span className="material-symbols-outlined text-xl">inventory_2</span>
                             </div>
-                            <span className={`text-sm font-medium ${currentStep === 4 ? 'text-[#2b3896] font-bold' : 'text-gray-500'}`}>Thành công</span>
+                            <span className={`text-sm font-medium ${currentStep === 4 ? 'text-[#2b3896] font-bold' : 'text-gray-500'}`}>{t('Thành công')}</span>
                         </div>
                     </div>
                 </div>
@@ -218,54 +210,50 @@ export default function OrderDetail() {
                 <div className="bg-red-50 p-6 rounded-xl border border-red-100 mb-8 flex items-center gap-4 text-red-700 shadow-sm">
                     <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>cancel</span>
                     <div>
-                        <h3 className="font-bold text-lg">Đơn hàng đã bị hủy</h3>
-                        <p className="text-sm mt-1">Đơn hàng này không còn hiệu lực. Vui lòng liên hệ bộ phận hỗ trợ nếu bạn cần thêm thông tin.</p>
+                        <h3 className="font-bold text-lg">{t('Đơn hàng đã bị hủy')}</h3>
+                        <p className="text-sm mt-1">{t('Đơn hàng này không còn hiệu lực. Vui lòng liên hệ bộ phận hỗ trợ nếu bạn cần thêm thông tin.')}</p>
                     </div>
                 </div>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Main Content Column */}
                 <div className="lg:col-span-2 space-y-8">
                     
-                    {/* Information Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Shipping Address */}
                         <div className="bg-gray-50/50 border border-gray-100 p-8 rounded-xl relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-1 h-full bg-[#2b3896]"></div>
                             <h3 className="text-lg font-bold mb-4 text-gray-900 flex items-center gap-2 font-['Be_Vietnam_Pro']">
                                 <span className="material-symbols-outlined text-[#2b3896]">location_on</span>
-                                Thông tin nhận hàng
+                                {t('Thông tin nhận hàng')}
                             </h3>
                             <div className="text-gray-600 space-y-1 leading-relaxed text-sm">
                                 <p className="font-bold text-gray-900 text-base mb-2">{order.receiverName}</p>
                                 <p>{order.receiverPhone}</p>
                                 <p className="mt-2">{order.receiverAddress}</p>
-                                {order.note && <p className="mt-3 italic text-gray-500">Ghi chú: {order.note}</p>}
+                                {order.note && <p className="mt-3 italic text-gray-500">{t('Ghi chú:')} {order.note}</p>}
                             </div>
                         </div>
 
-                        {/* Payment Information */}
                         <div className="bg-gray-50/50 border border-gray-100 p-8 rounded-xl relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
                             <h3 className="text-lg font-bold mb-4 text-gray-900 flex items-center gap-2 font-['Be_Vietnam_Pro']">
                                 <span className="material-symbols-outlined text-emerald-600">payments</span>
-                                Thanh toán
+                                {t('Thanh toán')}
                             </h3>
                             <div className="space-y-5">
                                 <div>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Phương thức</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">{t('Phương thức')}</p>
                                     <div className="flex items-center gap-3">
                                         <div className="px-3 py-1 bg-white rounded-lg shadow-sm border border-gray-200 font-bold text-[#2b3896] italic text-sm">
                                             {order.paymentMethod === 'VNPAY' ? 'VNPay' : 'COD'}
                                         </div>
                                         <p className="font-medium text-gray-700 text-sm">
-                                            {order.paymentMethod === 'VNPAY' ? 'Thanh toán trực tuyến' : 'Thanh toán khi nhận hàng'}
+                                            {order.paymentMethod === 'VNPAY' ? t('Thanh toán trực tuyến') : t('Thanh toán khi nhận hàng')}
                                         </p>
                                     </div>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Trạng thái</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">{t('Trạng thái')}</p>
                                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                                         order.paymentStatus === 'PAID' ? 'bg-emerald-100 text-emerald-800' :
                                         order.paymentStatus === 'FAILED' ? 'bg-red-100 text-red-800' :
@@ -283,11 +271,10 @@ export default function OrderDetail() {
                         </div>
                     </div>
 
-                    {/* Order Items Table */}
                     <div className="bg-white rounded-xl overflow-hidden shadow-[0px_12px_32px_rgba(43,56,150,0.04)] border border-gray-100">
                         <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
-                            <h3 className="text-xl font-bold text-gray-900 font-['Be_Vietnam_Pro']">Sản phẩm đã đặt</h3>
-                            <span className="text-sm font-medium text-gray-500">{order.items?.length || 0} sản phẩm</span>
+                            <h3 className="text-xl font-bold text-gray-900 font-['Be_Vietnam_Pro']">{t('Sản phẩm đã đặt')}</h3>
+                            <span className="text-sm font-medium text-gray-500">{order.items?.length || 0} {t('sản phẩm')}</span>
                         </div>
                         <div className="divide-y divide-gray-100">
                             {order.items?.map((item, index) => (
@@ -309,13 +296,13 @@ export default function OrderDetail() {
                                         <h4 className="text-lg font-bold text-indigo-900 mb-1 group-hover:text-[#2b3896] transition-colors line-clamp-2">
                                             {item.productNameSnapshot}
                                         </h4>
-                                        <p className="text-sm text-gray-500 mb-2">Đơn giá: {formatPrice(item.priceSnapshot)}₫</p>
+                                        <p className="text-sm text-gray-500 mb-2">{t('Đơn giá:')} {formatPrice(item.priceSnapshot)}₫</p>
                                         <span className="text-xs font-bold px-2 py-1 bg-gray-100 rounded uppercase tracking-tighter text-gray-500">
                                             SKU: EM-PRD-{(item.productId || '000').toString().padStart(3, '0')}
                                         </span>
                                     </div>
                                     <div className="text-center sm:text-right flex flex-col gap-1 min-w-[100px]">
-                                        <p className="text-gray-500 font-medium">SL: {item.quantity}</p>
+                                        <p className="text-gray-500 font-medium">{t('SL:')} {item.quantity}</p>
                                         <p className="text-lg font-bold text-gray-900">
                                             {formatPrice(item.subtotal)} <span className="text-xs opacity-60 font-normal">₫</span>
                                         </p>
@@ -326,18 +313,17 @@ export default function OrderDetail() {
                     </div>
                 </div>
 
-                {/* Sidebar / Summary Card */}
                 <div className="space-y-6">
                     <div className="bg-white p-8 rounded-xl shadow-[0px_12px_32px_rgba(43,56,150,0.06)] border border-gray-100 sticky top-28">
-                        <h3 className="text-xl font-bold mb-8 text-gray-900 border-b border-gray-100 pb-4 font-['Be_Vietnam_Pro']">Tổng kết</h3>
+                        <h3 className="text-xl font-bold mb-8 text-gray-900 border-b border-gray-100 pb-4 font-['Be_Vietnam_Pro']">{t('Tổng kết')}</h3>
                         
                         <div className="space-y-4 mb-8 text-sm">
                             <div className="flex justify-between items-center text-gray-600">
-                                <span className="font-medium">Tạm tính</span>
+                                <span className="font-medium">{t('Tạm tính')}</span>
                                 <span className="font-semibold text-gray-900">{formatPrice(order.totalAmount - (order.shippingFee || 0))} <span className="text-[10px] opacity-70">₫</span></span>
                             </div>
                             <div className="flex justify-between items-center text-gray-600">
-                                <span className="font-medium">Phí vận chuyển</span>
+                                <span className="font-medium">{t('Phí vận chuyển')}</span>
                                 <span className="font-semibold text-gray-900">{formatPrice(order.shippingFee || 0)} <span className="text-[10px] opacity-70">₫</span></span>
                             </div>
                         </div>
@@ -345,7 +331,7 @@ export default function OrderDetail() {
                         <div className="pt-6 border-t-2 border-gray-100 mb-8">
                             <div className="flex justify-between items-end">
                                 <div>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Tổng cộng</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">{t('Tổng cộng')}</p>
                                     <p className="text-3xl font-black text-[#2b3896] leading-none">
                                         {formatPrice(order.totalAmount)} <span className="text-sm font-bold align-top">₫</span>
                                     </p>
@@ -358,7 +344,7 @@ export default function OrderDetail() {
                             <div className="bg-gray-50 border border-gray-100 p-4 rounded-xl flex gap-3">
                                 <span className="material-symbols-outlined text-[#2b3896] text-xl">info</span>
                                 <p className="text-xs text-gray-600 leading-relaxed">
-                                    Mọi thắc mắc về quá trình vận chuyển, vui lòng liên hệ với nhà bán hàng hoặc trung tâm hỗ trợ.
+                                    {t('Mọi thắc mắc về quá trình vận chuyển, vui lòng liên hệ với nhà bán hàng hoặc trung tâm hỗ trợ.')}
                                 </p>
                             </div>
                         </div>
@@ -366,11 +352,9 @@ export default function OrderDetail() {
                 </div>
             </div>
 
-            {/* POPUP THÔNG BÁO */}
             {popup.isOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
                     <div className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl transform transition-all text-center border border-gray-100">
-                        {/* Icon thay đổi theo type */}
                         <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${popup.type === 'success' ? 'bg-emerald-100' : 'bg-red-100'}`}>
                             <span 
                                 className={`material-symbols-outlined text-3xl ${popup.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`} 
@@ -380,7 +364,7 @@ export default function OrderDetail() {
                             </span>
                         </div>
                         
-                        <h3 className="text-xl font-bold text-gray-900 mb-2 font-['Be_Vietnam_Pro']">Thông báo</h3>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2 font-['Be_Vietnam_Pro']">{t('Thông báo')}</h3>
                         <p className="text-gray-600 mb-8 text-sm leading-relaxed">{popup.message}</p>
                         
                         <button 
@@ -389,7 +373,7 @@ export default function OrderDetail() {
                                 popup.type === 'success' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-gray-800 hover:bg-gray-900'
                             }`}
                         >
-                            Đóng
+                            {t('Đóng')}
                         </button>
                     </div>
                 </div>
