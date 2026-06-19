@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosClient from '../../utils/axiosClient';
 
 const SellerProductList = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,10 +31,10 @@ const SellerProductList = () => {
         ]);
         if (shopRes.status === 'fulfilled') setShopId(shopRes.value?.data?.shop?.id || shopRes.value?.shop?.id);
         if (catRes.status === 'fulfilled') setCategories(catRes.value?.data?.data || catRes.value?.data || []);
-      } catch (error) { setErrorMsg("Không thể lấy thông tin khởi tạo."); }
+      } catch (error) { setErrorMsg(t("Không thể lấy thông tin khởi tạo.")); }
     };
     initData();
-  }, []);
+  }, [t]);
 
   const fetchProducts = useCallback(async () => {
     if (!shopId) { setLoading(false); return; }
@@ -56,9 +58,9 @@ const SellerProductList = () => {
       const metaPag = res?.data?.pagination || res?.meta?.pagination || res?.pagination;
       if (metaPag) setPagination(prev => ({ ...prev, total: metaPag.total || 0, totalPages: metaPag.totalPages || 1 }));
     } catch (error) {
-      setErrorMsg("Không thể tải danh sách sản phẩm.");
+      setErrorMsg(t("Không thể tải danh sách sản phẩm."));
     } finally { setLoading(false); }
-  }, [shopId, pagination.page, pagination.limit, appliedFilters]);
+  }, [shopId, pagination.page, pagination.limit, appliedFilters, t]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
@@ -75,16 +77,16 @@ const SellerProductList = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return;
+    if (!window.confirm(t('Bạn có chắc chắn muốn xóa sản phẩm này?'))) return;
     try {
       await axiosClient.delete(`/catalog/products/${id}`);
       fetchProducts();
-    } catch (error) { alert("Lỗi khi xóa sản phẩm"); }
+    } catch (error) { alert(t("Lỗi khi xóa sản phẩm")); }
   };
 
   const handleAddProduct = () => {
     if (!shopId) {
-      alert("Bạn cần khởi tạo gian hàng trước khi đăng sản phẩm!");
+      alert(t("Bạn cần khởi tạo gian hàng trước khi đăng sản phẩm!"));
       navigate('/seller/shop/settings');
     } else {
       navigate('/seller/products/new');
@@ -93,7 +95,7 @@ const SellerProductList = () => {
 
   const getCategoryName = (id) => {
     const cat = categories.find(c => c.id === id);
-    return cat ? cat.name : 'Khác';
+    return cat ? cat.name : t('Khác');
   };
 
   const getVisiblePages = () => {
@@ -110,11 +112,11 @@ const SellerProductList = () => {
     <div className="p-4 md:p-8 lg:p-12 font-sans bg-[#f8fafc] min-h-full">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4 mt-8 md:mt-0">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">Product Inventory</h1>
-          <p className="text-slate-500 text-xs md:text-sm font-medium">Manage your curated collection and stock levels.</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">{t('Product Inventory')}</h1>
+          <p className="text-slate-500 text-xs md:text-sm font-medium">{t('Manage your curated collection and stock levels.')}</p>
         </div>
         <button onClick={handleAddProduct} className="w-full lg:w-auto shrink-0 px-6 py-2.5 text-sm font-bold bg-[#313b8e] hover:bg-[#252d70] text-white rounded-xl shadow-md transition flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">add</span> Add New Product
+          <span className="material-symbols-outlined text-[18px]">add</span> {t('Add New Product')}
         </button>
       </div>
 
@@ -122,34 +124,34 @@ const SellerProductList = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <div className="relative">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
-            <input type="text" value={filters.keyword} onChange={(e) => setFilters({...filters, keyword: e.target.value})} placeholder="Tìm theo tên, mô tả..." className="w-full bg-slate-50 border border-slate-200 py-2.5 pl-10 pr-4 rounded-xl text-sm focus:ring-2 focus:ring-[#2e3785]/20 outline-none" />
+            <input type="text" value={filters.keyword} onChange={(e) => setFilters({...filters, keyword: e.target.value})} placeholder={t("Tìm theo tên, mô tả...")} className="w-full bg-slate-50 border border-slate-200 py-2.5 pl-10 pr-4 rounded-xl text-sm focus:ring-2 focus:ring-[#2e3785]/20 outline-none" />
           </div>
           <select value={filters.categoryId} onChange={(e) => setFilters({...filters, categoryId: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm outline-none cursor-pointer">
-            <option value="">Tất cả danh mục</option>
+            <option value="">{t('Tất cả danh mục')}</option>
             {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
           </select>
           <select value={filters.status} onChange={(e) => setFilters({...filters, status: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm outline-none cursor-pointer">
-            <option value="">Tất cả trạng thái</option>
-            <option value="ACTIVE">ACTIVE (Mở bán)</option>
-            <option value="INACTIVE">INACTIVE (Tạm ẩn)</option>
-            <option value="OUT_OF_STOCK">OUT OF STOCK (Hết hàng)</option>
+            <option value="">{t('Tất cả trạng thái')}</option>
+            <option value="ACTIVE">{t('ACTIVE (Mở bán)')}</option>
+            <option value="INACTIVE">{t('INACTIVE (Tạm ẩn)')}</option>
+            <option value="OUT_OF_STOCK">{t('OUT OF STOCK (Hết hàng)')}</option>
           </select>
           <select value={filters.sortBy} onChange={(e) => setFilters({...filters, sortBy: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm outline-none cursor-pointer">
-            <option value="latest">Mới nhất</option>
-            <option value="oldest">Cũ nhất</option>
-            <option value="price_asc">Giá tăng dần</option>
-            <option value="price_desc">Giá giảm dần</option>
-            <option value="stock_asc">Tồn kho tăng dần</option>
-            <option value="stock_desc">Tồn kho giảm dần</option>
-            <option value="name_asc">Tên A-Z</option>
-            <option value="name_desc">Tên Z-A</option>
+            <option value="latest">{t('Mới nhất')}</option>
+            <option value="oldest">{t('Cũ nhất')}</option>
+            <option value="price_asc">{t('Giá tăng dần')}</option>
+            <option value="price_desc">{t('Giá giảm dần')}</option>
+            <option value="stock_asc">{t('Tồn kho tăng dần')}</option>
+            <option value="stock_desc">{t('Tồn kho giảm dần')}</option>
+            <option value="name_asc">{t('Tên A-Z')}</option>
+            <option value="name_desc">{t('Tên Z-A')}</option>
           </select>
-          <input type="number" placeholder="Giá tối thiểu" value={filters.minPrice} onChange={(e) => setFilters({...filters, minPrice: e.target.value})} className="w-full bg-slate-50 border border-slate-200 py-2.5 px-4 rounded-xl text-sm focus:ring-2 focus:ring-[#2e3785]/20 outline-none" />
-          <input type="number" placeholder="Giá tối đa" value={filters.maxPrice} onChange={(e) => setFilters({...filters, maxPrice: e.target.value})} className="w-full bg-slate-50 border border-slate-200 py-2.5 px-4 rounded-xl text-sm focus:ring-2 focus:ring-[#2e3785]/20 outline-none" />
+          <input type="number" placeholder={t("Giá tối thiểu")} value={filters.minPrice} onChange={(e) => setFilters({...filters, minPrice: e.target.value})} className="w-full bg-slate-50 border border-slate-200 py-2.5 px-4 rounded-xl text-sm focus:ring-2 focus:ring-[#2e3785]/20 outline-none" />
+          <input type="number" placeholder={t("Giá tối đa")} value={filters.maxPrice} onChange={(e) => setFilters({...filters, maxPrice: e.target.value})} className="w-full bg-slate-50 border border-slate-200 py-2.5 px-4 rounded-xl text-sm focus:ring-2 focus:ring-[#2e3785]/20 outline-none" />
         </div>
         <div className="flex justify-end gap-3">
-          <button onClick={handleResetFilters} className="px-5 py-2 text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Xóa bộ lọc</button>
-          <button onClick={handleApplyFilters} className="px-5 py-2 text-sm font-bold text-white bg-[#2e3785] hover:bg-[#1f2970] rounded-xl transition">Áp dụng</button>
+          <button onClick={handleResetFilters} className="px-5 py-2 text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition">{t('Xóa bộ lọc')}</button>
+          <button onClick={handleApplyFilters} className="px-5 py-2 text-sm font-bold text-white bg-[#2e3785] hover:bg-[#1f2970] rounded-xl transition">{t('Áp dụng')}</button>
         </div>
       </div>
 
@@ -158,19 +160,19 @@ const SellerProductList = () => {
           <table className="w-full text-left whitespace-nowrap">
             <thead className="bg-white border-b border-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
               <tr>
-                <th className="px-6 py-5">Thumbnail</th><th className="px-6 py-5">Product Name</th><th className="px-6 py-5">Category</th>
-                <th className="px-6 py-5">Price</th><th className="px-6 py-5">Stock</th><th className="px-6 py-5">Status</th><th className="px-6 py-5 text-right">Actions</th>
+                <th className="px-6 py-5">{t('Thumbnail')}</th><th className="px-6 py-5">{t('Product Name')}</th><th className="px-6 py-5">{t('Category')}</th>
+                <th className="px-6 py-5">{t('Price')}</th><th className="px-6 py-5">{t('Stock')}</th><th className="px-6 py-5">{t('Status')}</th><th className="px-6 py-5 text-right">{t('Actions')}</th>
               </tr>
             </thead>
             <tbody className="text-sm font-bold text-slate-700 divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan="7" className="text-center py-10 text-slate-400">Loading...</td></tr>
+                <tr><td colSpan="7" className="text-center py-10 text-slate-400">{t('Đang tải...')}</td></tr>
               ) : errorMsg ? (
                 <tr><td colSpan="7" className="text-center py-10 text-rose-500">{errorMsg}</td></tr>
               ) : !shopId ? (
-                <tr><td colSpan="7" className="text-center py-10 text-slate-400">Vui lòng thiết lập gian hàng để quản lý và đăng bán sản phẩm.</td></tr>
+                <tr><td colSpan="7" className="text-center py-10 text-slate-400">{t('Vui lòng thiết lập gian hàng để quản lý và đăng bán sản phẩm.')}</td></tr>
               ) : products.length === 0 ? (
-                <tr><td colSpan="7" className="text-center py-10 text-slate-400">Không tìm thấy sản phẩm.</td></tr>
+                <tr><td colSpan="7" className="text-center py-10 text-slate-400">{t('Không tìm thấy sản phẩm.')}</td></tr>
               ) : products.map((product) => (
                 <tr key={product.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4">
@@ -192,10 +194,10 @@ const SellerProductList = () => {
                   <td className="px-6 py-4 font-black text-slate-900">{(product.price || 0).toLocaleString()} ₫</td>
                   <td className="px-6 py-4">{product.stockQuantity || 0}</td>
                   <td className="px-6 py-4">
-                    {product.status === 'ACTIVE' && <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] uppercase font-black flex items-center w-fit gap-1"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> In Stock</span>}
-                    {(product.status === 'OUT_OF_STOCK' || product.status === 'OUT OF STOCK') && <span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[10px] uppercase font-black flex items-center w-fit gap-1"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div> Out of Stock</span>}
-                    {product.status === 'INACTIVE' && <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] uppercase font-black flex items-center w-fit gap-1"><div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div> Hidden</span>}
-                    {product.status === 'DELETED' && <span className="px-3 py-1 bg-slate-100 text-rose-700 rounded-full text-[10px] uppercase font-black">Deleted</span>}
+                    {product.status === 'ACTIVE' && <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] uppercase font-black flex items-center w-fit gap-1"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> {t('In Stock')}</span>}
+                    {(product.status === 'OUT_OF_STOCK' || product.status === 'OUT OF STOCK') && <span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[10px] uppercase font-black flex items-center w-fit gap-1"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div> {t('Out of Stock')}</span>}
+                    {product.status === 'INACTIVE' && <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] uppercase font-black flex items-center w-fit gap-1"><div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div> {t('Hidden')}</span>}
+                    {product.status === 'DELETED' && <span className="px-3 py-1 bg-slate-100 text-rose-700 rounded-full text-[10px] uppercase font-black">{t('Deleted')}</span>}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -211,7 +213,7 @@ const SellerProductList = () => {
         
         <div className="p-4 md:px-6 border-t border-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4 bg-white mt-auto">
           <span className="text-[10px] md:text-xs font-medium text-slate-400">
-            Showing {pagination.total > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} products
+            {t('Hiển thị')} {pagination.total > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0} {t('đến')} {Math.min(pagination.page * pagination.limit, pagination.total)} {t('trong số')} {pagination.total} {t('sản phẩm')}
           </span>
           <div className="flex gap-1">
             <button disabled={pagination.page <= 1} onClick={() => setPagination({...pagination, page: pagination.page - 1})} className="w-7 h-7 md:w-8 md:h-8 rounded border border-slate-200 text-slate-400 flex items-center justify-center disabled:opacity-50"><span className="material-symbols-outlined text-xs md:text-sm">chevron_left</span></button>
