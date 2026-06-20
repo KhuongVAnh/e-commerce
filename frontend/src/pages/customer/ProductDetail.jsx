@@ -5,6 +5,24 @@ import useAuthStore from '../../store/useAuthStore';
 import useCartStore from '../../store/useCartStore';
 import axiosClient from '../../utils/axiosClient';
 
+// Hàm hỗ trợ vẽ sao đánh giá (Thêm mới)
+const renderStars = (rating) => {
+  const stars = [];
+  const fullStars = Math.floor(rating || 0);
+  const hasHalfStar = (rating || 0) - fullStars >= 0.5;
+
+  for (let i = 1; i <= 5; i++) {
+    if (i <= fullStars) {
+      stars.push(<span key={i} className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1", color: '#fbbf24' }}>star</span>);
+    } else if (i === fullStars + 1 && hasHalfStar) {
+      stars.push(<span key={i} className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1", color: '#fbbf24' }}>star_half</span>);
+    } else {
+      stars.push(<span key={i} className="material-symbols-outlined text-[18px] text-gray-300" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>);
+    }
+  }
+  return stars;
+};
+
 const ProductDetail = () => {
   const { slug } = useParams();
   const productId = slug?.includes('-id') ? slug.split('-id').pop() : slug;
@@ -23,6 +41,16 @@ const ProductDetail = () => {
   const { fetchCartTotal } = useCartStore();
 
   const fallbackShopLogo = 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=150&auto=format&fit=crop';
+
+  // --- THÊM MỚI: CÁC STATE CHO REVIEW ---
+  const [ratingSummary, setRatingSummary] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewTotalPages, setReviewTotalPages] = useState(1);
+  const [reviewSort, setReviewSort] = useState('newest');
+  const [reviewFilterRating, setReviewFilterRating] = useState('');
+  const [isReviewsLoading, setIsReviewsLoading] = useState(false);
+  // --------------------------------------
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
@@ -95,7 +123,7 @@ const ProductDetail = () => {
       try {
         setLoading(true);
         const result = await axiosClient.get(`/catalog/products/${productId}`);
-        const nextProductData = result.data;
+        const nextProductData = result.data?.data || result.data; // Tương thích vỏ bọc data
         const productImages = Array.isArray(nextProductData?.images) ? nextProductData.images : [];
         const firstGalleryImage = [...productImages]
           .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0))
@@ -103,6 +131,15 @@ const ProductDetail = () => {
 
         setProductData(nextProductData);
         setSelectedImageUrl(firstGalleryImage || nextProductData?.product?.thumbnailUrl || '');
+
+        // THÊM MỚI: API Lấy Tổng quan Rating (Song song sau khi có ID)
+        try {
+          const summaryRes = await axiosClient.get(`/commerce/products/${productId}/reviews/summary`);
+          setRatingSummary(summaryRes.data?.data || summaryRes.data);
+        } catch (sumErr) {
+          console.error("Lỗi lấy rating summary:", sumErr);
+        }
+
       } catch (err) {
         setError(err.message);
       } finally {
@@ -117,13 +154,41 @@ const ProductDetail = () => {
     const fetchCategories = async () => {
       try {
         const result = await axiosClient.get('/catalog/categories');
-        setCategories(result.data);
+        setCategories(result.data?.data || result.data || []);
       } catch (err) {
         console.error("Lỗi khi tải danh mục:", err);
       }
     };
     fetchCategories();
   }, []);
+
+  // --- THÊM MỚI: EFFECT CALL API LIST REVIEWS KHI CÓ SỰ THAY ĐỔI ---
+  useEffect(() => {
+    if (!productId) return;
+    const fetchReviewsList = async () => {
+      setIsReviewsLoading(true);
+      try {
+        let url = `/commerce/products/${productId}/reviews?page=${reviewPage}&limit=5&sort=${reviewSort}`;
+        if (reviewFilterRating !== '') {
+          url += `&rating=${reviewFilterRating}`;
+        }
+        const revRes = await axiosClient.get(url);
+        const data = revRes.data?.data || revRes.data;
+        setReviews(data?.reviews || []);
+        
+        const meta = revRes.data?.meta || revRes.meta;
+        if (meta?.pagination) {
+          setReviewTotalPages(meta.pagination.totalPages || 1);
+        }
+      } catch (error) {
+        console.error("Lỗi tải danh sách reviews:", error);
+      } finally {
+        setIsReviewsLoading(false);
+      }
+    };
+    fetchReviewsList();
+  }, [productId, reviewPage, reviewSort, reviewFilterRating]);
+  // -----------------------------------------------------------------
 
   if (loading) {
     return (
@@ -214,8 +279,17 @@ const ProductDetail = () => {
           <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-gray-900 mb-3 leading-tight font-headline">
             {product.name}
           </h1>
+
+          {/* THÊM MỚI: HIỂN THỊ TRUNG BÌNH SAO */}
+          {ratingSummary && ratingSummary.totalReviews > 0 && (
+            <div className="flex items-center gap-3 mb-4 cursor-pointer" onClick={() => document.getElementById('review-section').scrollIntoView({ behavior: 'smooth' })}>
+              <div className="flex text-yellow-400">{renderStars(ratingSummary.averageRating)}</div>
+              <span className="text-sm font-bold text-gray-700">{ratingSummary.averageRating?.toFixed(1)}</span>
+              <span className="text-sm font-medium text-[#2b3896] hover:underline">({ratingSummary.totalReviews} {t('đánh giá')})</span>
+            </div>
+          )}
           
-          <div className="flex items-baseline gap-4 mb-6">
+          <div className="flex items-baseline gap-4 mb-6 mt-2">
             <span className="text-2xl font-extrabold text-[#2b3896]">
               {Number(product.price).toLocaleString('vi-VN')} <span className="text-xs font-medium align-top opacity-70">₫</span>
             </span>
@@ -286,7 +360,7 @@ const ProductDetail = () => {
                 </Link>
                 <div className="flex items-center gap-1 text-xs font-bold text-gray-500 mt-0.5">
                   <span className="material-symbols-outlined text-[14px] text-yellow-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                  <span>4.9 ({t('Chưa có số liệu thực tế')})</span>
+                  <span>{t('Được chứng nhận')}</span>
                 </div>
               </div>
             </div>
@@ -349,6 +423,107 @@ const ProductDetail = () => {
           {product.description || t('Sản phẩm này chưa có mô tả chi tiết.')}
         </div>
       </div>
+
+      {/* --- THÊM MỚI: GIAO DIỆN HIỂN THỊ DANH SÁCH REVIEW (TỪ API) --- */}
+      <div id="review-section" className="mt-16 border-t border-gray-100 pt-8 mb-20">
+        <h2 className="text-lg font-extrabold text-gray-900 mb-6 flex items-center gap-2">
+          <span className="material-symbols-outlined text-[#2b3896] text-[20px]">reviews</span> 
+          {t('Đánh giá từ khách hàng')}
+        </h2>
+
+        {ratingSummary && ratingSummary.totalReviews > 0 ? (
+          <div className="bg-orange-50/50 rounded-2xl p-6 border border-orange-100 mb-8 flex flex-col md:flex-row gap-8 items-center">
+            <div className="text-center md:border-r border-orange-200 md:pr-8 flex flex-col items-center">
+              <span className="text-5xl font-black text-[#2b3896]">{ratingSummary.averageRating?.toFixed(1) || 0}</span>
+              <div className="flex text-yellow-500 mt-2 mb-1">{renderStars(ratingSummary.averageRating || 0)}</div>
+              <span className="text-sm font-medium text-gray-600">{ratingSummary.totalReviews || 0} {t('đánh giá')}</span>
+            </div>
+            <div className="flex-1 w-full space-y-2">
+              {[5, 4, 3, 2, 1].map((star) => {
+                const count = ratingSummary.ratingBreakdown?.[star] || 0;
+                const percent = ratingSummary.totalReviews > 0 ? (count / ratingSummary.totalReviews) * 100 : 0;
+                return (
+                  <div key={star} className="flex items-center gap-3">
+                    <span className="text-sm font-bold text-gray-600 w-8 flex items-center gap-1">{star} <span className="material-symbols-outlined text-[14px] text-yellow-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span></span>
+                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full bg-yellow-400 rounded-full" style={{ width: `${percent}%` }}></div></div>
+                    <span className="text-xs font-medium text-gray-500 w-6">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-6 text-gray-500 text-sm">{t('Chưa có đánh giá nào cho sản phẩm này.')}</div>
+        )}
+
+        {/* Bộ Lọc Reviews */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+            <div className="flex flex-wrap gap-2">
+                <button onClick={() => { setReviewFilterRating(''); setReviewPage(1); }} className={`px-5 py-2 rounded-full text-sm font-bold border ${reviewFilterRating === '' ? 'bg-[#2b3896] text-white border-[#2b3896]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{t('Tất cả')}</button>
+                {[5, 4, 3, 2, 1].map(star => (
+                    <button key={star} onClick={() => { setReviewFilterRating(star); setReviewPage(1); }} className={`px-5 py-2 rounded-full text-sm font-bold border flex items-center gap-1 ${Number(reviewFilterRating) === star ? 'bg-[#2b3896] text-white border-[#2b3896]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+                      {star} {t('Sao')}
+                    </button>
+                ))}
+            </div>
+            <div>
+                <select value={reviewSort} onChange={(e) => setReviewSort(e.target.value)} className="bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-lg px-3 py-2 outline-none cursor-pointer">
+                    <option value="newest">{t('Mới nhất')}</option>
+                    <option value="oldest">{t('Cũ nhất')}</option>
+                    <option value="rating_desc">{t('Điểm cao nhất')}</option>
+                    <option value="rating_asc">{t('Điểm thấp nhất')}</option>
+                </select>
+            </div>
+        </div>
+
+        {/* Danh sách Reviews */}
+        {isReviewsLoading ? (
+          <div className="text-center py-12"><span className="material-symbols-outlined animate-spin text-3xl text-gray-400">progress_activity</span></div>
+        ) : reviews.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-100 text-gray-500 text-sm font-medium">{t('Không có đánh giá nào phù hợp.')}</div>
+        ) : (
+          <div className="space-y-6">
+            {reviews.map((rev) => (
+              <div key={rev.id} className="border-b border-gray-100 pb-6 last:border-0">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold uppercase shrink-0">
+                    {rev.customerName ? rev.customerName.charAt(0) : 'K'}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-gray-900">{rev.customerName || `${t('Khách hàng')} #${rev.customerId}`}</p>
+                    <div className="flex items-center gap-2 mt-0.5 mb-2">
+                      <div className="flex">{renderStars(rev.rating)}</div>
+                      <span className="text-[11px] text-gray-400 font-medium">{new Date(rev.createdAt).toLocaleDateString('vi-VN')}</span>
+                    </div>
+                    {rev.commentText && <p className="text-sm text-gray-700 leading-relaxed font-medium mb-3">{rev.commentText}</p>}
+                    
+                    {rev.imageUrls && Array.isArray(rev.imageUrls) && rev.imageUrls.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {rev.imageUrls.map((img, idx) => (
+                          <img key={idx} src={img} alt={`Review ${idx}`} className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Phân trang Reviews */}
+        {reviewTotalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-8">
+            <button disabled={reviewPage === 1} onClick={() => setReviewPage(p => p - 1)} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:bg-gray-50"><span className="material-symbols-outlined text-sm">chevron_left</span></button>
+            {Array.from({ length: reviewTotalPages }, (_, i) => i + 1).map(page => (
+              <button key={page} onClick={() => setReviewPage(page)} className={`w-8 h-8 rounded-full text-xs font-bold ${reviewPage === page ? 'bg-[#2b3896] text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{page}</button>
+            ))}
+            <button disabled={reviewPage === reviewTotalPages} onClick={() => setReviewPage(p => p + 1)} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:bg-gray-50"><span className="material-symbols-outlined text-sm">chevron_right</span></button>
+          </div>
+        )}
+      </div>
+      {/* ------------------------------------------------------------- */}
+
     </div>
   );
 };
