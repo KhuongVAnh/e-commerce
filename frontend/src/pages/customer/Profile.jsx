@@ -131,7 +131,7 @@ const Profile = () => {
             <span className="text-sm font-bold">{t('Đơn mua')}</span>
           </Link>
 
-          {/* CHỈ THÊM ĐÚNG KHỐI LINK NÀY ĐỂ MỞ TRANG MY REVIEWS (API 6) */}
+          {/* THÊM LINK NÀY ĐỂ MỞ TRANG MY REVIEWS (API 6) */}
           <Link to="/my-reviews" className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:text-[#2b3896] hover:bg-gray-50 rounded-xl transition-colors group">
             <span className="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-[#2b3896]">rate_review</span>
             <span className="text-sm font-bold">{t('Đánh giá của tôi')}</span>
