@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { orderService } from '../../services/orderService';
+import axiosClient from '../../utils/axiosClient'; // THÊM IMPORT ĐỂ GỌI API REVIEW
 
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
@@ -14,6 +15,14 @@ export default function OrderDetail() {
     const [isPaying, setIsPaying] = useState(false);
     
     const [popup, setPopup] = useState({ isOpen: false, message: '', type: 'error' });
+
+    // ==== THÊM MỚI: CÁC STATE CHO CHỨC NĂNG REVIEW ====
+    const [eligibility, setEligibility] = useState({}); 
+    const [reviewModal, setReviewModal] = useState({ isOpen: false, item: null });
+    const [reviewForm, setReviewForm] = useState({ rating: 5, commentText: '', images: [] });
+    const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+    const fileInputRef = useRef(null);
+    // ===================================================
 
     useEffect(() => {
         const fetchDetail = async () => {
@@ -33,6 +42,27 @@ export default function OrderDetail() {
         };
         fetchDetail();
     }, [id, t]);
+
+    // ==== THÊM MỚI: KIỂM TRA QUYỀN ĐÁNH GIÁ (API 7) ====
+    useEffect(() => {
+        if (order && order.orderStatus === 'DELIVERED' && Array.isArray(order.items)) {
+            const checkEligibility = async () => {
+                const newEligibility = {};
+                for (const item of order.items) {
+                    try {
+                        const res = await axiosClient.get(`/commerce/reviews/eligibility?orderItemId=${item.id}`);
+                        const data = res.data?.data || res.data;
+                        newEligibility[item.id] = data?.canReview || false;
+                    } catch (err) {
+                        newEligibility[item.id] = false;
+                    }
+                }
+                setEligibility(newEligibility);
+            };
+            checkEligibility();
+        }
+    }, [order]);
+    // ===================================================
 
     const closePopup = () => setPopup({ isOpen: false, message: '', type: 'error' });
 
@@ -79,6 +109,62 @@ export default function OrderDetail() {
             setIsCancelling(false);
         }
     };
+
+    // ==== THÊM MỚI: XỬ LÝ GỬI ĐÁNH GIÁ (API 3) VÀ UPLOAD ẢNH ====
+    const handleImageChange = (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length + reviewForm.images.length > 5) {
+            alert(t("Bạn chỉ được tải lên tối đa 5 ảnh."));
+            return;
+        }
+        setReviewForm(prev => ({ ...prev, images: [...prev.images, ...files] }));
+        e.target.value = '';
+    };
+
+    const removeImage = (index) => {
+        setReviewForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
+    };
+
+    const handleSubmitReview = async (e) => {
+        e.preventDefault();
+        if (reviewForm.rating < 1 || reviewForm.rating > 5) {
+            alert(t("Số sao không hợp lệ."));
+            return;
+        }
+        setIsSubmittingReview(true);
+        try {
+            // 1. Upload ảnh tuần tự (nếu có)
+            const uploadedUrls = [];
+            for (const file of reviewForm.images) {
+                const formData = new FormData();
+                formData.append('image', file);
+                const uploadRes = await axiosClient.post('/uploads/images', formData);
+                const url = uploadRes.data?.data?.url || uploadRes.data?.url || uploadRes.url;
+                if (url) uploadedUrls.push(url);
+            }
+
+            // 2. Gọi API tạo Review
+            await axiosClient.post('/commerce/reviews', {
+                orderItemId: String(reviewModal.item.id),
+                rating: reviewForm.rating,
+                commentText: reviewForm.commentText,
+                imageUrls: uploadedUrls
+            });
+
+            setPopup({ isOpen: true, message: t('Đánh giá sản phẩm thành công! Cảm ơn bạn.'), type: 'success' });
+            
+            // Cập nhật lại UI: Ẩn nút đánh giá của item vừa đánh giá
+            setEligibility(prev => ({ ...prev, [reviewModal.item.id]: false }));
+            setReviewModal({ isOpen: false, item: null });
+            setReviewForm({ rating: 5, commentText: '', images: [] });
+        } catch (error) {
+            console.error("Lỗi gửi đánh giá:", error);
+            setPopup({ isOpen: true, message: error.response?.data?.message || t('Có lỗi xảy ra khi gửi đánh giá.'), type: 'error' });
+        } finally {
+            setIsSubmittingReview(false);
+        }
+    };
+    // ============================================================
 
     if (loading) {
         return (
@@ -300,6 +386,23 @@ export default function OrderDetail() {
                                         <span className="text-xs font-bold px-2 py-1 bg-gray-100 rounded uppercase tracking-tighter text-gray-500">
                                             SKU: EM-PRD-{(item.productId || '000').toString().padStart(3, '0')}
                                         </span>
+                                        
+                                        {/* ==== NÚT VIẾT ĐÁNH GIÁ (HIỂN THỊ NẾU ĐƯỢC PHÉP THEO API) ==== */}
+                                        {eligibility[item.id] && (
+                                            <div className="mt-4 flex justify-center sm:justify-start">
+                                                <button 
+                                                    onClick={() => {
+                                                        setReviewModal({ isOpen: true, item });
+                                                        setReviewForm({ rating: 5, commentText: '', images: [] });
+                                                    }}
+                                                    className="px-4 py-2 border border-orange-500 text-orange-600 text-xs font-bold rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-1.5"
+                                                >
+                                                    <span className="material-symbols-outlined text-[14px]">rate_review</span>
+                                                    {t('Viết đánh giá')}
+                                                </button>
+                                            </div>
+                                        )}
+                                        {/* ========================================================== */}
                                     </div>
                                     <div className="text-center sm:text-right flex flex-col gap-1 min-w-[100px]">
                                         <p className="text-gray-500 font-medium">{t('SL:')} {item.quantity}</p>
@@ -352,8 +455,111 @@ export default function OrderDetail() {
                 </div>
             </div>
 
+            {/* ==== THÊM MỚI: MODAL GIAO DIỆN VIẾT ĐÁNH GIÁ ==== */}
+            {reviewModal.isOpen && reviewModal.item && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
+                    <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
+                            <h3 className="text-lg font-bold text-gray-900 font-['Be_Vietnam_Pro']">{t('Đánh giá sản phẩm')}</h3>
+                            <button onClick={() => setReviewModal({ isOpen: false, item: null })} className="text-gray-400 hover:text-gray-800 transition-colors">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        
+                        <form onSubmit={handleSubmitReview} className="p-6 overflow-y-auto custom-scrollbar">
+                            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-50">
+                                <img src={reviewModal.item.thumbnailUrl || 'https://via.placeholder.com/150'} alt="Product" className="w-16 h-16 rounded-md object-cover border border-gray-100" />
+                                <div>
+                                    <p className="text-sm font-bold text-gray-900 line-clamp-2">{reviewModal.item.productNameSnapshot}</p>
+                                    <p className="text-xs text-gray-500 mt-1">SKU: EM-PRD-{reviewModal.item.productId}</p>
+                                </div>
+                            </div>
+
+                            <div className="mb-6 text-center">
+                                <p className="text-sm font-bold text-gray-700 mb-3">{t('Chất lượng sản phẩm')}</p>
+                                <div className="flex justify-center gap-2">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button 
+                                            type="button" 
+                                            key={star} 
+                                            onClick={() => setReviewForm(prev => ({...prev, rating: star}))}
+                                            className={`transition-transform hover:scale-110 ${star <= reviewForm.rating ? 'text-yellow-400' : 'text-gray-200'}`}
+                                        >
+                                            <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="mb-5">
+                                <textarea 
+                                    placeholder={t("Hãy chia sẻ nhận xét của bạn về sản phẩm này nhé (không bắt buộc)...")}
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm outline-none focus:border-[#2b3896] resize-none h-28"
+                                    value={reviewForm.commentText}
+                                    onChange={(e) => setReviewForm(prev => ({...prev, commentText: e.target.value}))}
+                                />
+                            </div>
+
+                            <div>
+                                <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    multiple 
+                                    hidden 
+                                    ref={fileInputRef} 
+                                    onChange={handleImageChange} 
+                                />
+                                <div className="flex flex-wrap gap-3">
+                                    {reviewForm.images.map((img, idx) => (
+                                        <div key={idx} className="w-16 h-16 relative rounded-lg overflow-hidden border border-gray-200 group">
+                                            <img src={URL.createObjectURL(img)} alt="Preview" className="w-full h-full object-cover" />
+                                            <button 
+                                                type="button" 
+                                                onClick={() => removeImage(idx)} 
+                                                className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <span className="material-symbols-outlined text-sm">delete</span>
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {reviewForm.images.length < 5 && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => fileInputRef.current.click()} 
+                                            className="w-16 h-16 rounded-lg border-2 border-dashed border-[#2b3896]/30 text-[#2b3896] hover:bg-[#2b3896]/5 transition-colors flex flex-col items-center justify-center"
+                                        >
+                                            <span className="material-symbols-outlined text-[20px]">add_photo_alternate</span>
+                                        </button>
+                                    )}
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-2 font-medium">{t('Tối đa 5 hình ảnh.')}</p>
+                            </div>
+                        </form>
+
+                        <div className="p-5 border-t border-gray-100 flex gap-3 shrink-0">
+                            <button 
+                                type="button" 
+                                onClick={() => setReviewModal({ isOpen: false, item: null })}
+                                className="flex-1 py-3 text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                            >
+                                {t('Hủy')}
+                            </button>
+                            <button 
+                                onClick={handleSubmitReview}
+                                disabled={isSubmittingReview}
+                                className="flex-1 py-3 text-sm font-bold text-white bg-[#2b3896] hover:bg-[#1f2970] rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                            >
+                                {isSubmittingReview ? <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> : null}
+                                {t('Gửi đánh giá')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* ======================================================== */}
+
             {popup.isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
                     <div className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl transform transition-all text-center border border-gray-100">
                         <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${popup.type === 'success' ? 'bg-emerald-100' : 'bg-red-100'}`}>
                             <span 
