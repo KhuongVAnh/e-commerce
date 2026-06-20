@@ -11,6 +11,7 @@ import {
     updateProductStockController,
     decrementStockInternalController,
     incrementStockInternalController,
+    updateRatingInternalController,
 } from "../controllers/productController";
 import {
     adminDeleteProductController,
@@ -98,6 +99,10 @@ router.post(
 router.post(
     "/internal/products/increment-stock",
     asyncHandler(incrementStockInternalController),
+);
+router.post(
+    "/internal/products/update-rating",
+    asyncHandler(updateRatingInternalController),
 );
 
 // ─────────────────────────────────────────────────────────────

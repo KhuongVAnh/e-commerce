@@ -90,6 +90,8 @@ export async function listPublicProductRecords(params: listPublicProductsParams)
                 stockQuantity: true,
                 thumbnailUrl: true,
                 status: true,
+                rating: true,
+                reviewCount: true,
             },
         }),
     ]);
@@ -118,6 +120,8 @@ export async function findPublicProductDetailById(productId: bigint) {
             stockQuantity: true,
             thumbnailUrl: true,
             status: true,
+            rating: true,
+            reviewCount: true,
             createdAt: true,
             updatedAt: true,
             images: {
@@ -159,6 +163,8 @@ export async function findPublicProductsByIds(productIds: bigint[]) {
             stockQuantity: true,
             thumbnailUrl: true,
             status: true,
+            rating: true,
+            reviewCount: true,
         },
     });
 }

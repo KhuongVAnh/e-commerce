@@ -11,6 +11,7 @@ import {
     updateProductStock,
     decrementProductsStock,
     incrementProductsStock,
+    updateProductRating,
 } from "../services/productService";
 import { sendSuccess } from "../utils/https";
 import { listProductQuery } from "../utils/inOutProductAPI";
@@ -235,6 +236,25 @@ export async function incrementStockInternalController(req: Request, res: Respon
     sendSuccess(res, {
         requestId: res.locals.requestId,
         message: "Hoàn tồn kho thành công",
+        data,
+    });
+}
+
+export async function updateRatingInternalController(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const { productId, averageRating, totalReviews } = req.body;
+
+    if (!productId || averageRating === undefined || totalReviews === undefined) {
+        throw new HttpError(400, "Dữ liệu không hợp lệ", {
+            code: "VALIDATION_ERROR",
+            fieldErrors: [{ field: "body", message: "Thiếu thông tin cập nhật rating" }]
+        });
+    }
+
+    const data = await updateProductRating(BigInt(productId), Number(averageRating), Number(totalReviews));
+
+    sendSuccess(res, {
+        requestId: res.locals.requestId,
+        message: "Cập nhật rating thành công",
         data,
     });
 }
