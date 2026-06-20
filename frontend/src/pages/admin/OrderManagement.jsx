@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosClient from '../../utils/axiosClient';
 import { buildQueryString, DEFAULT_PAGINATION, formatCurrency, formatDate, getErrorMessage, getPagination } from '../../utils/adminApi';
 import {
@@ -22,6 +23,7 @@ const toIsoDateStart = (value) => (value ? new Date(`${value}T00:00:00`).toISOSt
 const toIsoDateEnd = (value) => (value ? new Date(`${value}T23:59:59.999`).toISOString() : '');
 
 const OrderManagement = () => {
+  const { t } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [searchParams] = useSearchParams();
   const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
@@ -59,11 +61,11 @@ const OrderManagement = () => {
       setPagination(getPagination(res));
     } catch (error) {
       setOrders([]);
-      setErrorMsg(getErrorMessage(error, 'Không thể tải danh sách đơn hàng.'));
+      setErrorMsg(getErrorMessage(error, t('Không thể tải danh sách đơn hàng.')));
     } finally {
       setLoading(false);
     }
-  }, [filters, pagination.page, pagination.limit]);
+  }, [filters, pagination.page, pagination.limit, t]);
 
   useEffect(() => {
     fetchOrders();
@@ -112,8 +114,8 @@ const OrderManagement = () => {
       order,
       nextStatus,
       danger: nextStatus === 'CANCELLED',
-      title: 'Cập nhật trạng thái đơn hàng?',
-      description: `Đơn #${order.orderCode} sẽ được chuyển sang trạng thái ${nextStatus}.`,
+      title: t('Cập nhật trạng thái đơn hàng?'),
+      description: `${t('Đơn')} #${order.orderCode} ${t('sẽ được chuyển sang trạng thái')} ${nextStatus}.`,
     });
   };
 
@@ -127,7 +129,7 @@ const OrderManagement = () => {
       fetchOrders();
       fetchStats();
     } catch (error) {
-      alert(getErrorMessage(error, 'Không thể cập nhật trạng thái đơn hàng.'));
+      alert(getErrorMessage(error, t('Không thể cập nhật trạng thái đơn hàng.')));
     } finally {
       setActionLoading(false);
     }
@@ -136,47 +138,47 @@ const OrderManagement = () => {
   return (
     <div className="min-h-full bg-[#f8fafc] p-4 font-sans md:p-6 lg:p-8">
       <AdminPageHeader
-        title="Quản lý đơn hàng"
-        description="Theo dõi, lọc và cập nhật trạng thái đơn hàng toàn hệ thống."
+        title={t('Quản lý đơn hàng')}
+        description={t('Theo dõi, lọc và cập nhật trạng thái đơn hàng toàn hệ thống.')}
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard icon="receipt_long" label="Tổng đơn hệ thống" value={stats.total.toLocaleString('vi-VN')} tone="primary" />
-        <AdminStatCard icon="pending_actions" label="Đơn chờ xử lý" value={stats.pending.toLocaleString('vi-VN')} tone="warning" />
-        <AdminStatCard icon="payments" label="Đã thanh toán" value={stats.paid.toLocaleString('vi-VN')} tone="success" />
-        <AdminStatCard icon="cancel" label="Đã hủy" value={stats.cancelled.toLocaleString('vi-VN')} tone="danger" />
+        <AdminStatCard icon="receipt_long" label={t('Tổng đơn hệ thống')} value={stats.total.toLocaleString('vi-VN')} tone="primary" />
+        <AdminStatCard icon="pending_actions" label={t('Đơn chờ xử lý')} value={stats.pending.toLocaleString('vi-VN')} tone="warning" />
+        <AdminStatCard icon="payments" label={t('Đã thanh toán')} value={stats.paid.toLocaleString('vi-VN')} tone="success" />
+        <AdminStatCard icon="cancel" label={t('Đã hủy')} value={stats.cancelled.toLocaleString('vi-VN')} tone="danger" />
       </div>
 
       <div className="mb-5 rounded-lg border border-slate-100 bg-white p-4 shadow-sm">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
           <label className="relative md:col-span-2 xl:col-span-2">
-            <span className="mb-1 block text-[10px] font-black uppercase text-slate-400">Tìm kiếm</span>
+            <span className="mb-1 block text-[10px] font-black uppercase text-slate-400">{t('Tìm kiếm')}</span>
             <span className="material-symbols-outlined absolute left-3 top-[34px] text-[18px] text-slate-400">search</span>
             <input
               value={filters.q}
               onChange={(event) => updateFilter('q', event.target.value)}
-              placeholder="Tìm mã đơn..."
+              placeholder={t('Tìm mã đơn...')}
               className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 pl-10 text-sm font-medium text-slate-700 outline-none transition focus:border-[#2e3785] focus:ring-2 focus:ring-indigo-100"
             />
           </label>
 
-          <AdminSelect label="Trạng thái đơn" value={filters.status} onChange={(value) => updateFilter('status', value)}>
-            <option value="">Tất cả trạng thái</option>
+          <AdminSelect label={t('Trạng thái đơn')} value={filters.status} onChange={(value) => updateFilter('status', value)}>
+            <option value="">{t('Tất cả trạng thái')}</option>
             {orderStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
           </AdminSelect>
-          <AdminSelect label="Thanh toán" value={filters.paymentStatus} onChange={(value) => updateFilter('paymentStatus', value)}>
-            <option value="">Tất cả thanh toán</option>
+          <AdminSelect label={t('Thanh toán')} value={filters.paymentStatus} onChange={(value) => updateFilter('paymentStatus', value)}>
+            <option value="">{t('Tất cả thanh toán')}</option>
             {paymentStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
           </AdminSelect>
-          <AdminSelect label="Phương thức" value={filters.paymentMethod} onChange={(value) => updateFilter('paymentMethod', value)}>
-            <option value="">Tất cả phương thức</option>
+          <AdminSelect label={t('Phương thức')} value={filters.paymentMethod} onChange={(value) => updateFilter('paymentMethod', value)}>
+            <option value="">{t('Tất cả phương thức')}</option>
             {paymentMethods.map((method) => <option key={method} value={method}>{method}</option>)}
           </AdminSelect>
-          <AdminDateInput label="Từ ngày" value={filters.from} onChange={(value) => updateFilter('from', value)} />
-          <AdminDateInput label="Đến ngày" value={filters.to} onChange={(value) => updateFilter('to', value)} />
+          <AdminDateInput label={t('Từ ngày')} value={filters.from} onChange={(value) => updateFilter('from', value)} />
+          <AdminDateInput label={t('Đến ngày')} value={filters.to} onChange={(value) => updateFilter('to', value)} />
 
           <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-[10px] font-black uppercase text-slate-400">Mã Cửa hàng</span>
+            <span className="text-[10px] font-black uppercase text-slate-400">{t('Mã Cửa hàng')}</span>
             <input
               value={filters.shopId}
               onChange={(event) => updateFilter('shopId', event.target.value)}
@@ -185,7 +187,7 @@ const OrderManagement = () => {
             />
           </label>
           <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-[10px] font-black uppercase text-slate-400">Mã Khách hàng</span>
+            <span className="text-[10px] font-black uppercase text-slate-400">{t('Mã Khách hàng')}</span>
             <input
               value={filters.customerId}
               onChange={(event) => updateFilter('customerId', event.target.value)}
@@ -199,19 +201,19 @@ const OrderManagement = () => {
       <AdminDataTable
         tableClassName="w-full min-w-[1280px] text-left"
         columns={[
-          { key: 'order', label: 'Đơn hàng', headerClassName: 'w-[230px]' },
-          { key: 'customer', label: 'Khách hàng', headerClassName: 'w-[190px]' },
-          { key: 'shop', label: 'Cửa hàng', headerClassName: 'w-[120px]' },
-          { key: 'payment', label: 'Thanh toán', headerClassName: 'w-[150px]' },
-          { key: 'date', label: 'Ngày đặt', headerClassName: 'w-[120px]' },
-          { key: 'total', label: 'Tổng tiền', headerClassName: 'w-[150px]' },
-          { key: 'status', label: 'Trạng thái', headerClassName: 'w-[170px]' },
-          { key: 'actions', label: 'Thao tác', headerClassName: 'w-[210px]' },
+          { key: 'order', label: t('Đơn hàng'), headerClassName: 'w-[230px]' },
+          { key: 'customer', label: t('Khách hàng'), headerClassName: 'w-[190px]' },
+          { key: 'shop', label: t('Cửa hàng'), headerClassName: 'w-[120px]' },
+          { key: 'payment', label: t('Thanh toán'), headerClassName: 'w-[150px]' },
+          { key: 'date', label: t('Ngày đặt'), headerClassName: 'w-[120px]' },
+          { key: 'total', label: t('Tổng tiền'), headerClassName: 'w-[150px]' },
+          { key: 'status', label: t('Trạng thái'), headerClassName: 'w-[170px]' },
+          { key: 'actions', label: t('Thao tác'), headerClassName: 'w-[210px]' },
         ]}
         rows={orders}
         loading={loading}
         error={errorMsg}
-        emptyMessage="Không có đơn hàng phù hợp."
+        emptyMessage={t('Không có đơn hàng phù hợp.')}
         renderRow={(order) => (
           <tr key={order.id} className="align-top hover:bg-slate-50">
             <td className="px-5 py-5 text-sm font-black leading-6 text-[#2e3785]">
@@ -219,9 +221,9 @@ const OrderManagement = () => {
             </td>
             <td className="px-5 py-5">
               <p className="text-sm font-black leading-5 text-slate-900">{order.receiverName}</p>
-              <p className="text-xs font-medium text-slate-400">Khách hàng #{order.customerId}</p>
+              <p className="text-xs font-medium text-slate-400">{t('Khách hàng')} #{order.customerId}</p>
             </td>
-            <td className="whitespace-nowrap px-5 py-5 text-sm font-bold text-slate-600">Cửa hàng #{order.shopId}</td>
+            <td className="whitespace-nowrap px-5 py-5 text-sm font-bold text-slate-600">{t('Cửa hàng')} #{order.shopId}</td>
             <td className="px-5 py-5">
               <p className="text-xs font-black text-slate-700">{order.paymentMethod}</p>
               <div className="mt-2"><AdminStatusBadge status={order.paymentStatus} /></div>
@@ -253,9 +255,9 @@ const OrderManagement = () => {
         onLimitChange={(limit) => setPagination((current) => ({ ...current, page: 1, limit }))}
       />
 
-      <AdminModal open={Boolean(selectedOrder)} title="Chi tiết đơn hàng" onClose={() => setSelectedOrder(null)}>
+      <AdminModal open={Boolean(selectedOrder)} title={t('Chi tiết đơn hàng')} onClose={() => setSelectedOrder(null)}>
         {detailLoading ? (
-          <p className="text-sm font-bold text-slate-400">Đang tải chi tiết...</p>
+          <p className="text-sm font-bold text-slate-400">{t('Đang tải chi tiết...')}</p>
         ) : (
           <div className="space-y-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -269,22 +271,22 @@ const OrderManagement = () => {
               </div>
             </div>
             <div className="grid gap-4 rounded-lg bg-slate-50 p-4 md:grid-cols-2">
-              <div><p className="text-[10px] font-black uppercase text-slate-400">Tổng tiền</p><p className="text-sm font-black text-slate-700">{formatCurrency(selectedOrder?.totalAmount)}</p></div>
-              <div><p className="text-[10px] font-black uppercase text-slate-400">Phí vận chuyển</p><p className="text-sm font-black text-slate-700">{formatCurrency(selectedOrder?.shippingFee)}</p></div>
-              <div><p className="text-[10px] font-black uppercase text-slate-400">Cửa hàng</p><p className="text-sm font-bold text-slate-700">#{selectedOrder?.shopId}</p></div>
-              <div><p className="text-[10px] font-black uppercase text-slate-400">Khách hàng</p><p className="text-sm font-bold text-slate-700">#{selectedOrder?.customerId}</p></div>
-              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">Địa chỉ</p><p className="text-sm font-medium text-slate-600">{selectedOrder?.receiverAddress}</p></div>
-              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">Ghi chú</p><p className="text-sm font-medium text-slate-600">{selectedOrder?.note || 'Không có'}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">{t('Tổng tiền')}</p><p className="text-sm font-black text-slate-700">{formatCurrency(selectedOrder?.totalAmount)}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">{t('Phí vận chuyển')}</p><p className="text-sm font-black text-slate-700">{formatCurrency(selectedOrder?.shippingFee)}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">{t('Cửa hàng')}</p><p className="text-sm font-bold text-slate-700">#{selectedOrder?.shopId}</p></div>
+              <div><p className="text-[10px] font-black uppercase text-slate-400">{t('Khách hàng')}</p><p className="text-sm font-bold text-slate-700">#{selectedOrder?.customerId}</p></div>
+              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">{t('Địa chỉ')}</p><p className="text-sm font-medium text-slate-600">{selectedOrder?.receiverAddress}</p></div>
+              <div className="md:col-span-2"><p className="text-[10px] font-black uppercase text-slate-400">{t('Ghi chú')}</p><p className="text-sm font-medium text-slate-600">{selectedOrder?.note || t('Không có')}</p></div>
             </div>
             {Array.isArray(selectedOrder?.items) && (
               <div>
-                <h4 className="mb-3 text-sm font-black uppercase text-slate-500">Sản phẩm</h4>
+                <h4 className="mb-3 text-sm font-black uppercase text-slate-500">{t('Sản phẩm')}</h4>
                 <div className="overflow-hidden rounded-lg border border-slate-100">
                   {selectedOrder.items.map((item) => (
                     <div key={item.id} className="flex items-center justify-between border-b border-slate-50 px-4 py-3 last:border-b-0">
                       <div>
                         <p className="text-sm font-black text-slate-900">{item.productNameSnapshot}</p>
-                        <p className="text-xs font-medium text-slate-400">Sản phẩm #{item.productId} x {item.quantity}</p>
+                        <p className="text-xs font-medium text-slate-400">{t('Sản phẩm')} #{item.productId} x {item.quantity}</p>
                       </div>
                       <p className="text-sm font-black text-slate-700">{formatCurrency(item.subtotal)}</p>
                     </div>
@@ -301,7 +303,7 @@ const OrderManagement = () => {
         title={confirmAction?.title}
         description={confirmAction?.description}
         danger={confirmAction?.danger}
-        confirmText="Cập nhật"
+        confirmText={t('Cập nhật')}
         loading={actionLoading}
         onCancel={() => setConfirmAction(null)}
         onConfirm={confirmOrderAction}

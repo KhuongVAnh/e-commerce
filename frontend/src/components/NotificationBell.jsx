@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import useAuthStore from '../store/useAuthStore';
 import { notificationService } from '../services/notificationService';
 import { useToast } from './ToastProvider';
@@ -13,6 +14,7 @@ import {
 const NotificationBell = ({ className = '' }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const { isAuthenticated, user } = useAuthStore();
   const { showToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
@@ -46,12 +48,12 @@ const NotificationBell = ({ className = '' }) => {
       setPagination(response.meta?.pagination || null);
     } catch (error) {
       if (!quiet) {
-        showToast(error?.message || 'Không thể tải thông báo', { type: 'error' });
+        showToast(error?.message || t('Không thể tải thông báo'), { type: 'error' });
       }
     } finally {
       if (!quiet) setIsLoading(false);
     }
-  }, [activeFilter, isAuthenticated, isExpanded, showToast]);
+  }, [activeFilter, isAuthenticated, isExpanded, showToast, t]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -120,7 +122,7 @@ const NotificationBell = ({ className = '' }) => {
       setIsMenuOpen(false);
       navigate(resolveNotificationTarget(notification, user, location.pathname));
     } catch (error) {
-      showToast(error?.message || 'Không thể đánh dấu đã đọc', { type: 'error' });
+      showToast(error?.message || t('Không thể đánh dấu đã đọc'), { type: 'error' });
     }
   };
 
@@ -137,16 +139,16 @@ const NotificationBell = ({ className = '' }) => {
       if (activeFilter === 'unread') {
         fetchNotifications({ filter: 'unread', expanded: isExpanded, quiet: false });
       }
-      showToast('Đã đánh dấu tất cả thông báo là đã đọc', { type: 'success' });
+      showToast(t('Đã đánh dấu tất cả thông báo là đã đọc'), { type: 'success' });
     } catch (error) {
-      showToast(error?.message || 'Không thể đánh dấu tất cả đã đọc', { type: 'error' });
+      showToast(error?.message || t('Không thể đánh dấu tất cả đã đọc'), { type: 'error' });
     }
   };
 
   if (!isAuthenticated) return null;
 
   const displayUnread = unreadCount > 99 ? '99+' : unreadCount;
-  const emptyText = activeFilter === 'unread' ? 'Không có thông báo chưa đọc' : 'Chưa có thông báo';
+  const emptyText = activeFilter === 'unread' ? t('Không có thông báo chưa đọc') : t('Chưa có thông báo');
   const canViewMore = Boolean(pagination?.total && pagination.total > notifications.length);
 
   return (
@@ -154,8 +156,8 @@ const NotificationBell = ({ className = '' }) => {
       <button
         type="button"
         onClick={handleOpen}
-        aria-label="Thông báo"
-        title="Thông báo"
+        aria-label={t("Thông báo")}
+        title={t("Thông báo")}
         className={`relative grid h-10 w-10 place-items-center rounded-full transition-all active:scale-95 ${isOpen ? 'bg-[#2b3896] text-white shadow-lg shadow-[#2b3896]/25' : 'bg-indigo-50 text-[#2b3896] hover:bg-indigo-100'}`}
       >
         <span 
@@ -177,14 +179,14 @@ const NotificationBell = ({ className = '' }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#2b3896]">E-commerce</p>
-                <h2 className="text-[28px] font-extrabold tracking-normal text-slate-950">Thông báo</h2>
+                <h2 className="text-[28px] font-extrabold tracking-normal text-slate-950">{t('Thông báo')}</h2>
               </div>
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setIsMenuOpen((value) => !value)}
                   className="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-[#2b3896]"
-                  aria-label="Tùy chọn thông báo"
+                  aria-label={t("Tùy chọn thông báo")}
                 >
                   <span className="material-symbols-outlined text-[22px]">more_horiz</span>
                 </button>
@@ -197,7 +199,7 @@ const NotificationBell = ({ className = '' }) => {
                       className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-indigo-50 hover:text-[#2b3896]"
                     >
                       <span className="material-symbols-outlined text-[18px]">done_all</span>
-                      Đánh dấu tất cả đã đọc
+                      {t('Đánh dấu tất cả đã đọc')}
                     </button>
                     <button
                       type="button"
@@ -208,7 +210,7 @@ const NotificationBell = ({ className = '' }) => {
                       className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-indigo-50 hover:text-[#2b3896]"
                     >
                       <span className="material-symbols-outlined text-[17px]">refresh</span>
-                      Làm mới thông báo
+                      {t('Làm mới thông báo')}
                     </button>
                   </div>
                 )}
@@ -217,8 +219,8 @@ const NotificationBell = ({ className = '' }) => {
 
             <div className="mt-3 flex gap-2">
               {[
-                { key: 'all', label: 'Tất cả' },
-                { key: 'unread', label: 'Chưa đọc' },
+                { key: 'all', label: t('Tất cả') },
+                { key: 'unread', label: t('Chưa đọc') },
               ].map((item) => (
                 <button
                   type="button"
@@ -233,13 +235,13 @@ const NotificationBell = ({ className = '' }) => {
           </div>
 
           <div className="mt-3 flex items-center justify-between px-4">
-            <h3 className="text-[17px] font-extrabold text-slate-900">Trước đó</h3>
+            <h3 className="text-[17px] font-extrabold text-slate-900">{t('Trước đó')}</h3>
             <button
               type="button"
               onClick={handleViewAll}
               className="rounded-md px-2 py-1 text-sm font-bold text-[#2b3896] hover:bg-indigo-50"
             >
-              Xem tất cả
+              {t('Xem tất cả')}
             </button>
           </div>
 
@@ -247,7 +249,7 @@ const NotificationBell = ({ className = '' }) => {
             {isLoading && notifications.length === 0 ? (
               <div className="flex items-center justify-center gap-2 py-12 text-sm font-semibold text-slate-500">
                 <span className="material-symbols-outlined animate-spin text-[18px] text-[#2b3896]">progress_activity</span>
-                Đang tải thông báo
+                {t('Đang tải thông báo')}
               </div>
             ) : notifications.length === 0 ? (
               <div className="px-7 py-12 text-center">
@@ -255,7 +257,7 @@ const NotificationBell = ({ className = '' }) => {
                   <span className="material-symbols-outlined text-[26px]">notifications</span>
                 </div>
                 <p className="mt-4 text-base font-extrabold text-slate-900">{emptyText}</p>
-                <p className="mt-1 text-sm leading-5 text-slate-500">Các cập nhật về đơn hàng, thanh toán và tài khoản sẽ hiển thị tại đây.</p>
+                <p className="mt-1 text-sm leading-5 text-slate-500">{t('Các cập nhật về đơn hàng, thanh toán và tài khoản sẽ hiển thị tại đây.')}</p>
               </div>
             ) : (
               <div className="space-y-1">
@@ -285,7 +287,7 @@ const NotificationBell = ({ className = '' }) => {
                         </p>
                         <div className="mt-1 flex items-center gap-2">
                           <span className="text-[13px] font-extrabold text-[#2b3896]">{getRelativeTime(notification.createdAt)}</span>
-                          <span className="text-[12px] font-semibold text-slate-400">{meta.label}</span>
+                          <span className="text-[12px] font-semibold text-slate-400">{t(meta.label)}</span>
                         </div>
                       </div>
 
@@ -305,7 +307,7 @@ const NotificationBell = ({ className = '' }) => {
               onClick={canViewMore || !isExpanded ? handleViewAll : () => fetchNotifications({ expanded: isExpanded, quiet: false })}
               className="w-full rounded-xl bg-slate-100 px-4 py-3 text-sm font-extrabold text-slate-700 transition hover:bg-indigo-50 hover:text-[#2b3896]"
             >
-              {canViewMore || !isExpanded ? 'Xem thông báo trước đó' : 'Làm mới thông báo'}
+              {canViewMore || !isExpanded ? t('Xem thông báo trước đó') : t('Làm mới thông báo')}
             </button>
           </div>
         </div>

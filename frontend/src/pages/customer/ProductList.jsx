@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import useAuthStore from '../../store/useAuthStore';
 import useCartStore from '../../store/useCartStore';
 import axiosClient from '../../utils/axiosClient';
@@ -7,6 +8,7 @@ import axiosClient from '../../utils/axiosClient';
 const ProductList = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const categoryIdFromUrl = searchParams.get('categoryId');
   const searchFromUrl = searchParams.get('search') || searchParams.get('q'); 
@@ -31,7 +33,7 @@ const ProductList = () => {
     e.preventDefault();
     
     if (!isAuthenticated) {
-      alert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
+      alert(t("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!"));
       return;
     }
 
@@ -41,10 +43,10 @@ const ProductList = () => {
         quantity: 1,
       });
       fetchCartTotal();
-      alert("Đã thêm sản phẩm vào giỏ hàng thành công!");
+      alert(t("Đã thêm sản phẩm vào giỏ hàng thành công!"));
     } catch (err) {
       console.error(err);
-      alert(err.message || "Không thể thêm vào giỏ hàng");
+      alert(err.message || t("Không thể thêm vào giỏ hàng"));
     }
   };
 
@@ -54,11 +56,11 @@ const ProductList = () => {
         const result = await axiosClient.get('/catalog/categories');
         setCategories(result.data);
       } catch (err) {
-        console.error("Lỗi khi tải danh mục:", err);
+        console.error(t("Lỗi khi tải danh mục:"), err);
       }
     };
     fetchCategories();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -83,14 +85,14 @@ const ProductList = () => {
         }
 
       } catch (err) {
-        setError(err.message || "Lỗi khi tải danh sách sản phẩm");
+        setError(err.message || t("Lỗi khi tải danh sách sản phẩm"));
       } finally {
         setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [searchFromUrl, categoryIdFromUrl, minPriceFromUrl, maxPriceFromUrl, pageFromUrl]);
+  }, [searchFromUrl, categoryIdFromUrl, minPriceFromUrl, maxPriceFromUrl, pageFromUrl, t]);
 
   const handleCategoryChange = (categoryId) => {
     const currentParams = new URLSearchParams(searchParams);
@@ -175,29 +177,25 @@ const ProductList = () => {
     return buttons;
   };
 
-
-
   const minPercent = ((sliderMinVal - minPrice) / (maxPrice - minPrice)) * 100;
   const maxPercent = ((sliderMaxVal - minPrice) / (maxPrice - minPrice)) * 100;
 
   return (
     <>
       <nav className="flex mb-8 text-xs font-bold uppercase tracking-widest text-gray-400">
-        <Link to="/" className="hover:text-[#2b3896] transition-colors">Trang chủ</Link>
+        <Link to="/" className="hover:text-[#2b3896] transition-colors">{t('Trang chủ')}</Link>
         <span className="mx-3 text-gray-300">/</span>
-        <Link to="/categories" className="hover:text-[#2b3896] transition-colors">Danh mục</Link>
+        <Link to="/categories" className="hover:text-[#2b3896] transition-colors">{t('Danh mục')}</Link>
         <span className="mx-3 text-gray-300">/</span>
-        <span className="text-[#2b3896] font-extrabold">Danh sách sản phẩm</span>
+        <span className="text-[#2b3896] font-extrabold">{t('Danh sách sản phẩm')}</span>
       </nav>
 
       <div className="flex gap-12">
-        {/* BỘ LỌC DÀNH CHO DESKTOP */}
         <aside className="hidden lg:flex flex-col gap-4 w-60 flex-shrink-0 sticky top-24 h-fit bg-white p-4 rounded-xl border border-gray-100 shadow-[0_4px_20px_rgba(43,56,150,0.02)]">
-          {/* DANH MỤC */}
           <div className="space-y-3 pt-3 border-t border-gray-100">
             <h3 className="font-bold text-gray-800 text-xs flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[#2b3896] text-[16px]">grid_view</span>
-              Danh mục
+              {t('Danh mục')}
             </h3>
             <div className="flex flex-col gap-1 max-h-40 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-gray-50 [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
               <button
@@ -212,7 +210,7 @@ const ProductList = () => {
                     : 'text-gray-500 hover:bg-gray-50 hover:text-[#2b3896]'
                 }`}
               >
-                <span>Tất cả sản phẩm</span>
+                <span>{t('Tất cả sản phẩm')}</span>
                 {!categoryIdFromUrl && (
                   <span className="w-1.5 h-1.5 rounded-full bg-[#2b3896]"></span>
                 )}
@@ -239,22 +237,20 @@ const ProductList = () => {
             </div>
           </div>
 
-          {/* LỌC GIÁ */}
           <div className="space-y-3 pt-3 border-t border-gray-100">
             <h3 className="font-bold text-gray-800 text-xs flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[#2b3896] text-[16px]">payments</span>
-              Lọc theo giá
+              {t('Lọc theo giá')}
             </h3>
             
             <div className="space-y-3 px-1">
               <div className="flex justify-between text-[9px] text-gray-400 font-bold uppercase tracking-wider">
-                <span>Khoảng giá</span>
+                <span>{t('Khoảng giá')}</span>
                 <span className="text-[#2b3896] font-extrabold">
                   {Number(sliderMinVal).toLocaleString('vi-VN')} - {Number(sliderMaxVal).toLocaleString('vi-VN')}₫
                 </span>
               </div>
               
-              {/* Double range slider */}
               <div className="relative w-full h-5 flex items-center">
                 <input
                   type="range"
@@ -286,9 +282,7 @@ const ProductList = () => {
                   onTouchEnd={() => handlePriceRangeChange(sliderMinVal, sliderMaxVal)}
                   className="absolute pointer-events-none appearance-none z-30 w-full h-1 bg-transparent accent-[#2b3896] [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto"
                 />
-                {/* Custom Track Background */}
                 <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1.5 bg-gray-100 rounded-full z-10"></div>
-                {/* Active Colored Track */}
                 <div 
                   className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-[#2b3896] rounded-full z-20"
                   style={{ left: `${minPercent}%`, right: `${100 - maxPercent}%` }}
@@ -300,40 +294,36 @@ const ProductList = () => {
                 <span>20Tr₫</span>
               </div>
             </div>
-
-
           </div>
         </aside>
 
-        {/* DANH SÁCH SẢN PHẨM */}
         <section className="flex-1">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
             <div>
               <h1 className="text-2xl md:text-4xl font-black text-[#2b3896] tracking-tight mb-1 font-headline">
                 {searchFromUrl 
-                  ? `Kết quả cho "${searchFromUrl}"` 
-                  : (activeCategoryName ? `Danh mục: ${activeCategoryName}` : 'Tất cả sản phẩm')
+                  ? `${t('Kết quả cho')} "${searchFromUrl}"` 
+                  : (activeCategoryName ? `${t('Danh mục:')} ${activeCategoryName}` : t('Tất cả sản phẩm'))
                 }
               </h1>
               {!loading && !error && (
-                <p className="text-gray-500 font-medium text-xs md:text-sm">Tìm thấy {totalProducts} kết quả phù hợp.</p>
+                <p className="text-gray-500 font-medium text-xs md:text-sm">{t('Tìm thấy')} {totalProducts} {t('kết quả phù hợp.')}</p>
               )}
             </div>
 
-            {/* Mobile Filter Button */}
             <button
               onClick={() => setIsMobileFilterOpen(true)}
               className="lg:hidden flex items-center justify-center gap-2 self-start md:self-end px-4 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95"
             >
               <span className="material-symbols-outlined text-[16px] text-[#2b3896]">filter_alt</span>
-              Bộ lọc sản phẩm
+              {t('Bộ lọc sản phẩm')}
             </button>
           </div>
 
           {loading && (
             <div className="py-20 text-center">
                <span className="material-symbols-outlined animate-spin text-4xl text-[#2b3896]">progress_activity</span>
-               <p className="mt-4 text-gray-500 font-medium">Đang tải sản phẩm...</p>
+               <p className="mt-4 text-gray-500 font-medium">{t('Đang tải sản phẩm...')}</p>
             </div>
           )}
 
@@ -344,8 +334,8 @@ const ProductList = () => {
           {!loading && !error && products.length === 0 && (
             <div className="py-20 text-center bg-white rounded-2xl border border-gray-50 p-8 shadow-sm">
               <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">search_off</span>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Không tìm thấy sản phẩm</h2>
-              <p className="text-gray-500">Vui lòng thử lại với danh mục hoặc bộ lọc khác.</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('Không tìm thấy sản phẩm')}</h2>
+              <p className="text-gray-500">{t('Vui lòng thử lại với danh mục hoặc bộ lọc khác.')}</p>
             </div>
           )}
 
@@ -361,14 +351,14 @@ const ProductList = () => {
                     <img src={product.thumbnailUrl || 'https://via.placeholder.com/500'} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                     {product.stockQuantity === 0 && (
                       <div className="absolute top-2 left-2 bg-gray-800 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-tighter shadow-md">
-                        Hết hàng
+                        {t('Hết hàng')}
                       </div>
                     )}
                   </div>
 
                   <div className="space-y-1 flex flex-col flex-1">
                     <span className="text-[9px] uppercase tracking-widest text-gray-400 font-bold">
-                       Shop ID: {product.shopId}
+                       {t('Shop ID:')} {product.shopId}
                     </span>
                     <h3 className="text-xs md:text-sm font-bold text-gray-900 group-hover:text-[#2b3896] transition-colors leading-tight line-clamp-2">
                       {product.name}
@@ -392,7 +382,6 @@ const ProductList = () => {
             </div>
           )}
 
-          {/* PHÂN TRANG */}
           {!loading && !error && totalPages > 1 && (
             <div className="mt-12 flex justify-center items-center gap-1.5 md:gap-2">
               <button
@@ -439,17 +428,15 @@ const ProductList = () => {
         </section>
       </div>
 
-      {/* MOBILE FILTER DRAWER */}
       {isMobileFilterOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden flex items-end justify-center">
-          {/* Backdrop click close */}
           <div className="absolute inset-0 animate-fade-in" onClick={() => setIsMobileFilterOpen(false)}></div>
           
           <div className="relative w-full bg-white rounded-t-3xl p-6 shadow-2xl flex flex-col gap-6 max-h-[85vh] overflow-y-auto z-10 animate-slide-up pb-10">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div>
-                <h3 className="text-sm font-extrabold text-gray-900 font-headline">Bộ Lọc Tìm Kiếm</h3>
-                <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold">Tinh chỉnh kết quả</p>
+                <h3 className="text-sm font-extrabold text-gray-900 font-headline">{t('Bộ Lọc Tìm Kiếm')}</h3>
+                <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold">{t('Tinh chỉnh kết quả')}</p>
               </div>
               <button 
                 onClick={() => setIsMobileFilterOpen(false)}
@@ -459,11 +446,10 @@ const ProductList = () => {
               </button>
             </div>
 
-            {/* Categories filter */}
             <div className="space-y-3">
               <h4 className="font-bold text-gray-800 text-xs flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[#2b3896] text-[16px]">grid_view</span>
-                Danh mục
+                {t('Danh mục')}
               </h4>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -480,7 +466,7 @@ const ProductList = () => {
                       : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                   }`}
                 >
-                  Tất cả sản phẩm
+                  {t('Tất cả sản phẩm')}
                 </button>
                 {categories.map((item) => {
                   const isActive = categoryIdFromUrl === String(item.id);
@@ -504,22 +490,20 @@ const ProductList = () => {
               </div>
             </div>
 
-            {/* Price filter slider */}
             <div className="space-y-4 pt-4 border-t border-gray-100">
               <h4 className="font-bold text-gray-800 text-xs flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[#2b3896] text-[16px]">payments</span>
-                Khoảng giá
+                {t('Khoảng giá')}
               </h4>
               
               <div className="space-y-3">
                 <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-[#2b3896]">
-                  <span>Khoảng giá chọn:</span>
+                  <span>{t('Khoảng giá chọn:')}</span>
                   <span>
                     {Number(sliderMinVal).toLocaleString('vi-VN')} - {Number(sliderMaxVal).toLocaleString('vi-VN')}₫
                   </span>
                 </div>
                 
-                {/* Double range slider */}
                 <div className="relative w-full h-8 flex items-center">
                   <input
                     type="range"
@@ -565,7 +549,6 @@ const ProductList = () => {
               </div>
             </div>
 
-            {/* Clear filters inside drawer */}
             <div className="pt-4 border-t border-gray-100">
               <button
                 onClick={() => {
@@ -580,7 +563,7 @@ const ProductList = () => {
                 className="w-full py-2.5 bg-gray-50 text-xs font-bold text-gray-500 hover:text-red-500 hover:bg-red-50/50 rounded-xl transition-all flex items-center justify-center gap-1.5 border border-dashed border-gray-200"
               >
                 <span className="material-symbols-outlined text-[14px]">restart_alt</span>
-                Reset bộ lọc giá
+                {t('Reset bộ lọc giá')}
               </button>
             </div>
             
@@ -588,7 +571,7 @@ const ProductList = () => {
               onClick={() => setIsMobileFilterOpen(false)}
               className="w-full mt-2 py-3 bg-[#2b3896] text-white font-bold text-xs rounded-xl shadow-lg active:scale-95 transition-all text-center"
             >
-              Áp dụng bộ lọc
+              {t('Áp dụng bộ lọc')}
             </button>
           </div>
         </div>

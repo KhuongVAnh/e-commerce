@@ -1,17 +1,19 @@
 import { Outlet, NavLink, Link } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import axiosClient from '../utils/axiosClient';
 import useAuthStore from '../store/useAuthStore';
 import NotificationBell from '../components/NotificationBell';
 
 const DashboardLayout = ({ roleTitle }) => {
   const { user, clearAuthData } = useAuthStore();
+  const { t, i18n } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const profileName = user?.fullName || roleTitle || 'Bảng điều khiển';
+  const profileName = user?.fullName || roleTitle || t('Bảng điều khiển');
   const profileAvatar = profileName.charAt(0).toUpperCase();
 
   useEffect(() => {
@@ -32,20 +34,25 @@ const DashboardLayout = ({ roleTitle }) => {
     }
   };
 
+  const toggleLanguage = () => {
+    const newLang = i18n.language.startsWith('vi') ? 'en' : 'vi';
+    i18n.changeLanguage(newLang);
+  };
+
   const sellerMenuItems = [
-    { name: 'Tổng quan', icon: 'dashboard', path: '/seller' },
-    { name: 'Sản phẩm', icon: 'inventory_2', path: '/seller/products' },
-    { name: 'Đơn hàng', icon: 'shopping_cart', path: '/seller/orders' },
-    { name: 'Cài đặt', icon: 'settings', path: '/seller/shop/settings' },
+    { name: t('Tổng quan'), icon: 'dashboard', path: '/seller' },
+    { name: t('Sản phẩm'), icon: 'inventory_2', path: '/seller/products' },
+    { name: t('Đơn hàng'), icon: 'shopping_cart', path: '/seller/orders' },
+    { name: t('Cài đặt'), icon: 'settings', path: '/seller/shop/settings' },
   ];
 
   const adminMenuItems = [
-    { name: 'Tổng quan', icon: 'dashboard', path: '/admin' },
-    { name: 'Người dùng', icon: 'group', path: '/admin/users' },
-    { name: 'Cửa hàng', icon: 'storefront', path: '/admin/shops' },
-    { name: 'Danh mục', icon: 'category', path: '/admin/categories' },
-    { name: 'Sản phẩm', icon: 'inventory_2', path: '/admin/products' },
-    { name: 'Đơn hàng', icon: 'shopping_cart', path: '/admin/orders' },
+    { name: t('Tổng quan'), icon: 'dashboard', path: '/admin' },
+    { name: t('Người dùng'), icon: 'group', path: '/admin/users' },
+    { name: t('Cửa hàng'), icon: 'storefront', path: '/admin/shops' },
+    { name: t('Danh mục'), icon: 'category', path: '/admin/categories' },
+    { name: t('Sản phẩm'), icon: 'inventory_2', path: '/admin/products' },
+    { name: t('Đơn hàng'), icon: 'shopping_cart', path: '/admin/orders' },
   ];
 
   const menuItems = roleTitle === 'Admin' ? adminMenuItems : sellerMenuItems;
@@ -69,7 +76,7 @@ const DashboardLayout = ({ roleTitle }) => {
             <div className="w-8 h-8 bg-[#2e3785] rounded-lg text-white flex items-center justify-center">
               <span className="material-symbols-outlined text-lg">{roleTitle === 'Admin' ? 'admin_panel_settings' : 'storefront'}</span>
             </div>
-            <span className="text-lg font-black text-[#2e3785]">{roleTitle === 'Admin' ? 'Quản trị viên' : 'Kênh người bán'}</span>
+            <span className="text-lg font-black text-[#2e3785]">{roleTitle === 'Admin' ? t('Quản trị viên') : t('Kênh người bán')}</span>
           </div>
         </div>
         
@@ -87,7 +94,7 @@ const DashboardLayout = ({ roleTitle }) => {
 
           {roleTitle === 'Seller' && user?.role === 'ADMIN' && (
             <NavLink to="/admin" className="flex items-center gap-4 px-4 py-3 text-red-600 font-bold hover:bg-red-50 rounded-xl mt-6 transition-all">
-              <span className="material-symbols-outlined text-[20px]">arrow_back</span> Quay lại Admin
+              <span className="material-symbols-outlined text-[20px]">arrow_back</span> {t('Quay lại Admin')}
             </NavLink>
           )}
         </nav>
@@ -98,7 +105,7 @@ const DashboardLayout = ({ roleTitle }) => {
                  <div className="w-9 h-9 bg-slate-800 text-white rounded-full flex items-center justify-center text-xs font-bold uppercase">{profileAvatar}</div>
                  <div className="overflow-hidden">
                     <p className="text-sm font-bold text-slate-800 truncate w-32">{profileName}</p>
-                    <p className="text-[10px] text-slate-400 font-medium">{user?.role === 'ADMIN' ? 'Quản trị viên' : 'Người bán xác thực'}</p>
+                    <p className="text-[10px] text-slate-400 font-medium">{user?.role === 'ADMIN' ? t('Quản trị viên') : t('Người bán xác thực')}</p>
                  </div>
               </div>
            </div>
@@ -108,6 +115,14 @@ const DashboardLayout = ({ roleTitle }) => {
       <div className="flex-1 flex flex-col h-screen overflow-hidden w-full">
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-end px-4 md:px-8 z-10 shrink-0">
           <div className="flex items-center gap-5 relative">
+            <button 
+              onClick={toggleLanguage} 
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-indigo-50 text-[#2e3785] font-bold text-xs hover:bg-indigo-100 transition-colors"
+              title="Change Language"
+            >
+              {i18n.language.startsWith('vi') ? 'VI' : 'EN'}
+            </button>
+
             <NotificationBell />
             <div className="relative" ref={dropdownRef}>
               <button 
@@ -125,15 +140,15 @@ const DashboardLayout = ({ roleTitle }) => {
                   </div>
                   <div className="py-1">
                     <Link to="/profile" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-[#2e3785] transition-colors">
-                      <span className="material-symbols-outlined text-[20px]">account_circle</span> Thông tin cá nhân
+                      <span className="material-symbols-outlined text-[20px]">account_circle</span> {t('Thông tin cá nhân')}
                     </Link>
                     <Link to="/" className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-emerald-600 hover:bg-emerald-50 transition-colors border-t border-gray-50 mt-1 pt-2">
-                      <span className="material-symbols-outlined text-[20px]">storefront</span> Về trang mua sắm
+                      <span className="material-symbols-outlined text-[20px]">storefront</span> {t('Về trang mua sắm')}
                     </Link>
                   </div>
                   <div className="border-t border-gray-100 pt-1 pb-1">
                     <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors text-left">
-                      <span className="material-symbols-outlined text-[20px]">logout</span> Đăng xuất
+                      <span className="material-symbols-outlined text-[20px]">logout</span> {t('Đăng xuất')}
                     </button>
                   </div>
                 </div>

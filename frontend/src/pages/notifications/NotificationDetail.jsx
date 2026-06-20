@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import useAuthStore from '../../store/useAuthStore';
 import { notificationService } from '../../services/notificationService';
 import { useToast } from '../../components/ToastProvider';
@@ -14,6 +15,7 @@ const NotificationDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const { showToast } = useToast();
   const [notification, setNotification] = useState(null);
@@ -32,20 +34,20 @@ const NotificationDetail = () => {
           setNotification({ ...detail, isRead: true, readAt: new Date().toISOString() });
         }
       } catch (error) {
-        showToast(error?.message || 'Không thể tải chi tiết thông báo', { type: 'error' });
+        showToast(error?.message || t('Không thể tải chi tiết thông báo'), { type: 'error' });
       } finally {
         setIsLoading(false);
       }
     };
 
     loadDetail();
-  }, [id, showToast]);
+  }, [id, showToast, t]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center gap-2 py-24 text-sm font-semibold text-slate-500">
         <span className="material-symbols-outlined animate-spin text-[20px] text-[#2b3896]">progress_activity</span>
-        Đang tải chi tiết thông báo
+        {t('Đang tải chi tiết thông báo')}
       </div>
     );
   }
@@ -56,10 +58,10 @@ const NotificationDetail = () => {
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-indigo-50 text-[#2b3896]">
           <span className="material-symbols-outlined text-[30px]">notifications</span>
         </div>
-        <h1 className="mt-4 text-2xl font-extrabold text-slate-950">Không tìm thấy thông báo</h1>
+        <h1 className="mt-4 text-2xl font-extrabold text-slate-950">{t('Không tìm thấy thông báo')}</h1>
         <Link to={getNotificationListPath(location.pathname)} className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#2b3896] px-5 py-2.5 text-sm font-bold text-white">
           <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-          Quay lại thông báo
+          {t('Quay lại thông báo')}
         </Link>
       </section>
     );
@@ -74,7 +76,7 @@ const NotificationDetail = () => {
     <section className="mx-auto max-w-4xl px-4 py-8 md:px-6">
       <Link to={listPath} className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-[#2b3896]">
         <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-        Quay lại danh sách thông báo
+        {t('Quay lại danh sách thông báo')}
       </Link>
 
       <article className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl shadow-[#2b3896]/5">
@@ -90,7 +92,7 @@ const NotificationDetail = () => {
             </div>
 
             <div className="min-w-0">
-              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#2b3896]">{meta.label}</p>
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#2b3896]">{t(meta.label)}</p>
               <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">{notification.title}</h1>
               <p className="mt-2 text-sm font-semibold text-slate-500">
                 {formatNotificationDate(notification.createdAt)}
@@ -104,18 +106,18 @@ const NotificationDetail = () => {
 
           <div className="grid gap-4 rounded-2xl bg-slate-50 p-5 text-sm md:grid-cols-2">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Trạng thái</p>
-              <p className="mt-1 font-bold text-slate-800">{notification.isRead ? 'Đã đọc' : 'Chưa đọc'}</p>
+              <p className="text-xs font-extrabold uppercase tracking-widest text-slate-400">{t('Trạng thái')}</p>
+              <p className="mt-1 font-bold text-slate-800">{notification.isRead ? t('Đã đọc') : t('Chưa đọc')}</p>
             </div>
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Thời gian đọc</p>
-              <p className="mt-1 font-bold text-slate-800">{notification.readAt ? formatNotificationDate(notification.readAt) : 'Chưa có'}</p>
+              <p className="text-xs font-extrabold uppercase tracking-widest text-slate-400">{t('Thời gian đọc')}</p>
+              <p className="mt-1 font-bold text-slate-800">{notification.readAt ? formatNotificationDate(notification.readAt) : t('Chưa có')}</p>
             </div>
           </div>
 
           {notification.metadata && Object.keys(notification.metadata).length > 0 && (
             <div className="rounded-2xl border border-slate-100 bg-white p-5">
-              <p className="mb-3 text-sm font-extrabold text-slate-900">Dữ liệu liên quan</p>
+              <p className="mb-3 text-sm font-extrabold text-slate-900">{t('Dữ liệu liên quan')}</p>
               <dl className="grid gap-3 text-sm md:grid-cols-2">
                 {Object.entries(notification.metadata).map(([key, value]) => (
                   <div key={key} className="rounded-xl bg-slate-50 px-3 py-2">
@@ -133,7 +135,7 @@ const NotificationDetail = () => {
               onClick={() => navigate(targetPath)}
               className="inline-flex items-center gap-2 rounded-full bg-[#2b3896] px-5 py-3 text-sm font-bold text-white shadow-md shadow-[#2b3896]/20 transition hover:bg-[#1f2970]"
             >
-              Mở nội dung liên quan
+              {t('Mở nội dung liên quan')}
               <span className="material-symbols-outlined text-[16px]">open_in_new</span>
             </button>
           )}

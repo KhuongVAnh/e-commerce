@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosClient from '../../utils/axiosClient';
 
 const categoryStyles = [
@@ -14,6 +15,7 @@ const categoryStyles = [
 ];
 
 const Categories = () => {
+    const { t } = useTranslation();
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -44,7 +46,7 @@ const Categories = () => {
             <header className="mb-16">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <h1 className="text-5xl md:text-6xl font-black font-['Be_Vietnam_Pro'] tracking-tighter text-gray-900 max-w-2xl">
-                        Danh mục sản phẩm
+                        {t('Danh mục sản phẩm')}
                     </h1>
                     
                     {/* Thanh Search mượt mà */}
@@ -57,13 +59,12 @@ const Categories = () => {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full bg-white border-none py-4 pl-12 pr-6 rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.03)] focus:ring-2 focus:ring-[#2b3896]/20 text-gray-900 transition-all outline-none font-medium"
-                            placeholder="Lọc danh mục..."
+                            placeholder={t('Lọc danh mục...')}
                         />
                     </div>
                 </div>
             </header>
 
-            {/* Lưới danh mục */}
             <section>
                 {loading ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -79,8 +80,8 @@ const Categories = () => {
                 ) : filteredCategories.length === 0 ? (
                     <div className="text-center py-20">
                         <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">search_off</span>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2 font-['Be_Vietnam_Pro']">Không tìm thấy danh mục</h3>
-                        <p className="text-gray-500">Thử tìm kiếm với từ khóa khác xem sao nhé.</p>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2 font-['Be_Vietnam_Pro']">{t('Không tìm thấy danh mục')}</h3>
+                        <p className="text-gray-500">{t('Thử tìm kiếm với từ khóa khác xem sao nhé.')}</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -105,7 +106,7 @@ const Categories = () => {
                                         {category.description || style.defaultDesc}
                                     </p>
                                     <div className="mt-auto flex items-center text-[#2b3896] font-semibold text-sm group-hover:gap-2 transition-all">
-                                        <span>Xem sản phẩm</span>
+                                        <span>{t('Xem sản phẩm')}</span>
                                         <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                                     </div>
                                 </Link>
@@ -124,16 +125,16 @@ const Categories = () => {
                 
                 <div className="relative z-10 px-8 md:px-16 py-20 max-w-3xl">
                     <h2 className="text-white text-4xl md:text-5xl font-black font-['Be_Vietnam_Pro'] leading-tight mb-6">
-                        Khám phá phong cách mua sắm mới.
+                        {t('Khám phá phong cách mua sắm mới.')}
                     </h2>
                     <p className="text-indigo-100 text-lg mb-10 leading-relaxed font-medium">
-                        Mỗi danh mục trong cửa hàng của chúng tôi đều được tuyển chọn kỹ lưỡng để mang đến cho bạn trải nghiệm tuyệt vời nhất.
+                        {t('Mỗi danh mục trong cửa hàng của chúng tôi đều được tuyển chọn kỹ lưỡng để mang đến cho bạn trải nghiệm tuyệt vời nhất.')}
                     </p>
                     <Link 
                         to="/products"
                         className="inline-block bg-white text-[#2b3896] px-8 py-4 rounded-full font-bold tracking-tight shadow-xl hover:bg-gray-50 transition-all active:scale-95"
                     >
-                        Mua sắm ngay
+                        {t('Mua sắm ngay')}
                     </Link>
                 </div>
             </section>

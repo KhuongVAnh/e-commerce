@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import axiosClient from '../../utils/axiosClient';
 
@@ -13,6 +14,7 @@ const getJoinYear = (dateString) => {
 const ShopDetail = () => {
     const { slug } = useParams();
     const id = slug?.includes('-id') ? slug.split('-id').pop() : slug;
+    const { t } = useTranslation();
     
     const [shop, setShop] = useState(null);
     const [stats, setStats] = useState({ productCount: 0, followerCount: 0 });
@@ -35,7 +37,7 @@ const ShopDetail = () => {
                 setShop(res.data.shop);
                 setStats(res.data.stats || { productCount: 0, followerCount: Math.floor(Math.random() * 500) + 100 });
             } catch (err) {
-                console.error("Lỗi khi tải thông tin shop:", err);
+                console.error(t("Lỗi khi tải thông tin shop:"), err);
             } finally {
                 setLoadingShop(false);
             }
@@ -48,7 +50,7 @@ const ShopDetail = () => {
                 });
                 setProducts(Array.isArray(res.data) ? res.data : []);
             } catch (err) {
-                console.error("Lỗi khi tải sản phẩm của shop:", err);
+                console.error(t("Lỗi khi tải sản phẩm của shop:"), err);
             } finally {
                 setLoadingProducts(false);
             }
@@ -59,14 +61,14 @@ const ShopDetail = () => {
                 const res = await axiosClient.get('/catalog/categories');
                 setCategories(Array.isArray(res.data) ? res.data : []);
             } catch (err) {
-                console.error("Lỗi khi tải danh mục:", err);
+                console.error(t("Lỗi khi tải danh mục:"), err);
             }
         };
 
         fetchShopDetail();
         fetchShopProducts();
         fetchCategories();
-    }, [id]);
+    }, [id, t]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -74,11 +76,10 @@ const ShopDetail = () => {
 
     const handleShare = () => {
         navigator.clipboard.writeText(window.location.href)
-            .then(() => toast.success('Đã sao chép liên kết gian hàng!'))
-            .catch(() => toast.error('Không thể sao chép liên kết.'));
+            .then(() => toast.success(t('Đã sao chép liên kết gian hàng!')))
+            .catch(() => toast.error(t('Không thể sao chép liên kết.')));
     };
 
-    // === LOGIC LỌC & PHÂN TRANG ===
     const filteredProducts = products.filter(product => 
         product.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -100,7 +101,7 @@ const ShopDetail = () => {
         return (
             <div className="min-h-screen flex items-center justify-center text-[#2b3896] flex-col gap-4">
                 <span className="material-symbols-outlined animate-spin text-4xl">progress_activity</span>
-                <span className="font-bold">Đang tải thông tin gian hàng...</span>
+                <span className="font-bold">{t('Đang tải thông tin gian hàng...')}</span>
             </div>
         );
     }
@@ -109,9 +110,9 @@ const ShopDetail = () => {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-[#f9f9fc]">
                 <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">store_off</span>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2 font-['Be_Vietnam_Pro']">Không tìm thấy cửa hàng</h2>
-                <p className="text-gray-500 mb-6">Cửa hàng này có thể đã bị xóa hoặc không tồn tại.</p>
-                <Link to="/shop" className="px-6 py-3 bg-[#2b3896] text-white rounded-full font-bold hover:bg-[#1f2970] transition-colors">Quay lại danh sách</Link>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2 font-['Be_Vietnam_Pro']">{t('Không tìm thấy cửa hàng')}</h2>
+                <p className="text-gray-500 mb-6">{t('Cửa hàng này có thể đã bị xóa hoặc không tồn tại.')}</p>
+                <Link to="/shop" className="px-6 py-3 bg-[#2b3896] text-white rounded-full font-bold hover:bg-[#1f2970] transition-colors">{t('Quay lại danh sách')}</Link>
             </div>
         );
     }
@@ -148,15 +149,15 @@ const ShopDetail = () => {
                             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-gray-600 font-medium text-sm md:text-base">
                                 <span className="flex items-center gap-1">
                                     <span className="material-symbols-outlined text-[18px]">inventory_2</span> 
-                                    {products.length} Sản phẩm
+                                    {products.length} {t('Sản phẩm')}
                                 </span>
                                 <span className="flex items-center gap-1">
                                     <span className="material-symbols-outlined text-yellow-500 text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 
-                                    4.9 Đánh giá
+                                    4.9 {t('Đánh giá')}
                                 </span>
                                 <span className="flex items-center gap-1">
                                     <span className="material-symbols-outlined text-[18px]">calendar_today</span> 
-                                    Tham gia: {getJoinYear(shop.createdAt)}
+                                    {t('Tham gia:')} {getJoinYear(shop.createdAt)}
                                 </span>
                             </div>
                         </div>
@@ -167,7 +168,7 @@ const ShopDetail = () => {
                             className="flex items-center gap-2 px-8 py-3 bg-gray-100 text-[#2b3896] font-bold rounded-full hover:bg-gray-200 transition-all active:scale-95"
                         >
                             <span className="material-symbols-outlined">share</span>
-                            Chia sẻ gian hàng
+                            {t('Chia sẻ gian hàng')}
                         </button>
                     </div>
                 </div>
@@ -181,7 +182,7 @@ const ShopDetail = () => {
                             type="text" 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Tìm kiếm trong gian hàng..." 
+                            placeholder={t("Tìm kiếm trong gian hàng...")} 
                             className="bg-transparent border-none outline-none w-full ml-3 text-gray-800 placeholder:text-gray-400 font-medium"
                         />
                     </div>
@@ -190,18 +191,17 @@ const ShopDetail = () => {
                             onClick={() => setActiveTab('ALL')}
                             className={`whitespace-nowrap px-6 py-2.5 rounded-full font-bold transition-all shadow-sm ${activeTab === 'ALL' ? 'bg-[#2b3896] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                         >
-                            Tất cả sản phẩm
+                            {t('Tất cả sản phẩm')}
                         </button>
                         <button 
                             onClick={() => setActiveTab('CATEGORY')}
                             className={`whitespace-nowrap px-6 py-2.5 rounded-full font-bold transition-all shadow-sm ${activeTab === 'CATEGORY' ? 'bg-[#2b3896] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                         >
-                            Danh mục Shop
+                            {t('Danh mục Shop')}
                         </button>
                     </div>
                 </div>
 
-                {/* 1. Tab Tất cả sản phẩm */}
                 {activeTab === 'ALL' && (
                     loadingProducts ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -216,13 +216,12 @@ const ShopDetail = () => {
                     ) : filteredProducts.length === 0 ? (
                         <div className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-[0px_12px_48px_rgba(43,56,150,0.03)]">
                             <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">inventory_2</span>
-                            <h3 className="text-xl font-bold text-gray-800 mb-2 font-['Be_Vietnam_Pro']">Gian hàng trống</h3>
-                            <p className="text-gray-500">Chưa có sản phẩm nào khớp với tìm kiếm của bạn.</p>
+                            <h3 className="text-xl font-bold text-gray-800 mb-2 font-['Be_Vietnam_Pro']">{t('Gian hàng trống')}</h3>
+                            <p className="text-gray-500">{t('Chưa có sản phẩm nào khớp với tìm kiếm của bạn.')}</p>
                         </div>
                     ) : (
                         <>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                                {/* DUYỆT QUA MẢNG currentProducts ĐÃ ĐƯỢC CẮT TRANG */}
                                 {currentProducts.map(product => (
                                     <div key={product.id} className="group bg-white border border-gray-100 rounded-3xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0px_24px_48px_rgba(43,56,150,0.08)] relative flex flex-col">
                                         <Link to={`/product/${product.slug ? `${product.slug}-id${product.id}` : product.id}`} className="aspect-[4/5] overflow-hidden bg-gray-50 block">
@@ -258,7 +257,6 @@ const ShopDetail = () => {
                                 ))}
                             </div>
 
-                            {/* CỤM GIAO DIỆN PHÂN TRANG (PAGINATION) */}
                             {totalPages > 1 && (
                                 <div className="mt-16 flex items-center justify-center gap-2">
                                     <button
@@ -296,13 +294,12 @@ const ShopDetail = () => {
                     )
                 )}
 
-                {/* 2. Tab Danh mục Shop */}
                 {activeTab === 'CATEGORY' && (
                     shopCategories.length === 0 ? (
                         <div className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-[0px_12px_48px_rgba(43,56,150,0.03)]">
                             <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">category</span>
-                            <h3 className="text-xl font-bold text-gray-800 mb-2 font-['Be_Vietnam_Pro']">Chưa có danh mục</h3>
-                            <p className="text-gray-500">Cửa hàng này hiện chưa phân loại danh mục sản phẩm.</p>
+                            <h3 className="text-xl font-bold text-gray-800 mb-2 font-['Be_Vietnam_Pro']">{t('Chưa có danh mục')}</h3>
+                            <p className="text-gray-500">{t('Cửa hàng này hiện chưa phân loại danh mục sản phẩm.')}</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">

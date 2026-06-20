@@ -10,6 +10,7 @@ import statsRoutes from "./routes/stats";
 import { prisma } from "./config/prisma";
 import swaggerUi from "swagger-ui-express";
 import openApiDocument from "./docs/openapi";
+import reviewRoutes from "./routes/reviewRoutes";
 
 const { assertDatabaseLive, assertRedisLive } = require("../../shared/startup-checks.cjs");
 const serviceName = "commerce_service";
@@ -49,6 +50,7 @@ app.use("/api/commerce", orderRoutes);
 app.use("/api/commerce", paymentRoutes);
 app.use("/api/commerce", adminRoutes);
 app.use("/api/commerce", statsRoutes);
+app.use('/api/commerce', reviewRoutes);
 
 // Middleware xử lý lỗi chung, bắt tất cả lỗi được ném ra từ các controller hoặc middleware phía trên
 app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

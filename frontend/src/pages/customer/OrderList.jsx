@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { orderService } from '../../services/orderService';
 
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
-const OrderCard = ({ order }) => {
+const OrderCard = ({ order, t }) => {
   const thumbnailUrl = order.thumbnailUrl || order.items?.find((item) => item.thumbnailUrl)?.thumbnailUrl;
   const itemTotal = order.totalItems ?? order.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) ?? 0;
   const shopLabel = order.shopName || `Shop #${order.shopId}`;
 
   const statusConfig = {
-    PENDING: { color: 'bg-orange-100 text-orange-700', label: 'Pending' },
-    AWAITING_PAYMENT: { color: 'bg-yellow-100 text-yellow-700', label: 'Awaiting Payment' },
-    CONFIRMED: { color: 'bg-cyan-100 text-cyan-700', label: 'Confirmed' },
-    PROCESSING: { color: 'bg-blue-100 text-blue-700', label: 'Processing' },
-    SHIPPING: { color: 'bg-indigo-100 text-indigo-700', label: 'Shipping' },
-    DELIVERED: { color: 'bg-green-100 text-green-700', label: 'Completed' },
-    CANCELLED: { color: 'bg-red-100 text-red-700', label: 'Cancelled' },
+    PENDING: { color: 'bg-orange-100 text-orange-700', label: t('Pending') },
+    AWAITING_PAYMENT: { color: 'bg-yellow-100 text-yellow-700', label: t('Awaiting Payment') },
+    CONFIRMED: { color: 'bg-cyan-100 text-cyan-700', label: t('Confirmed') },
+    PROCESSING: { color: 'bg-blue-100 text-blue-700', label: t('Processing') },
+    SHIPPING: { color: 'bg-indigo-100 text-indigo-700', label: t('Shipping') },
+    DELIVERED: { color: 'bg-green-100 text-green-700', label: t('Completed') },
+    CANCELLED: { color: 'bg-red-100 text-red-700', label: t('Cancelled') },
   };
 
   const config = statusConfig[order.orderStatus] || { 
@@ -28,7 +29,6 @@ const OrderCard = ({ order }) => {
     <div className={`bg-white rounded-xl p-6 shadow-[0px_12px_32px_rgba(43,56,150,0.06)] group transition-all hover:-translate-y-1 ${order.orderStatus === 'CANCELLED' ? 'opacity-75' : ''}`}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         
-        {/* Left Info */}
         <div className="flex items-center gap-6">
           <div className={`w-24 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 ${order.orderStatus === 'CANCELLED' ? 'grayscale' : ''}`}>
             {thumbnailUrl ? (
@@ -50,12 +50,11 @@ const OrderCard = ({ order }) => {
             </div>
             <h3 className="text-lg font-bold text-gray-900 mb-1">#{order.orderCode}</h3>
             <p className="text-sm text-gray-500">
-              {itemTotal} sản phẩm đặt ngày {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+              {itemTotal} {t('sản phẩm')} {t('đặt ngày')} {new Date(order.createdAt).toLocaleDateString('vi-VN')}
             </p>
           </div>
         </div>
 
-        {/* Right Info & Actions */}
         <div className="flex flex-col md:items-end justify-between gap-4">
           <div className="flex flex-col md:items-end">
             <div className="flex items-baseline gap-1 text-[#2b3896]">
@@ -71,7 +70,7 @@ const OrderCard = ({ order }) => {
             to={`/orders/${order.id}`} 
             className="flex items-center justify-center gap-2 bg-gray-100 text-[#2f3f92] px-6 py-2.5 rounded-full font-semibold text-sm hover:bg-[#2b3896] hover:text-white transition-all"
           >
-            View Details
+            {t('View Details')}
           </Link>
         </div>
       </div>
@@ -80,6 +79,7 @@ const OrderCard = ({ order }) => {
 };
 
 export default function OrderHistory() {
+  const { t } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('ALL');
@@ -109,7 +109,7 @@ export default function OrderHistory() {
            setTotalPages(1);
         }
     } catch (error) {
-        console.error("Lỗi khi tải lịch sử đơn hàng:", error);
+        console.error(t("Lỗi khi tải lịch sử đơn hàng:"), error);
     } finally {
         setLoading(false);
     }
@@ -145,11 +145,10 @@ export default function OrderHistory() {
   return (
     <main className="pt-28 pb-12 px-6 md:px-12 max-w-7xl mx-auto font-['Inter']">
       <div className="mb-12">
-        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-[#2b3896] mb-2 font-['Be_Vietnam_Pro']">My Orders</h1>
-        <p className="text-gray-600 max-w-md">Theo dõi, quản lý và kiểm tra lịch sử đặt hàng của bạn một cách dễ dàng.</p>
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-[#2b3896] mb-2 font-['Be_Vietnam_Pro']">{t('My Orders')}</h1>
+        <p className="text-gray-600 max-w-md">{t('Theo dõi, quản lý và kiểm tra lịch sử đặt hàng của bạn một cách dễ dàng.')}</p>
       </div>
 
-      {/* Tabs */}
       <div className="flex items-center space-x-8 mb-10 overflow-x-auto whitespace-nowrap pb-2 scrollbar-hide border-b border-gray-200">
         {tabs.map(tab => (
           <button
@@ -161,12 +160,11 @@ export default function OrderHistory() {
                 : 'text-gray-500 hover:text-[#2b3896]'
             }`}
           >
-            {tab.label}
+            {t(tab.label)}
           </button>
         ))}
       </div>
 
-      {/* Order List */}
       <div className="grid grid-cols-1 gap-6 mb-10">
         {loading ? (
           <div className="flex justify-center py-20">
@@ -175,15 +173,14 @@ export default function OrderHistory() {
         ) : orders.length === 0 ? (
           <div className="text-center py-24 bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
             <span className="material-symbols-outlined text-6xl text-gray-200 mb-4">receipt_long</span>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Chưa có đơn hàng</h3>
-            <p className="text-gray-500">Chưa có đơn hàng nào ở trạng thái này.</p>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">{t('Chưa có đơn hàng')}</h3>
+            <p className="text-gray-500">{t('Chưa có đơn hàng nào ở trạng thái này.')}</p>
           </div>
         ) : (
-          orders.map(order => <OrderCard key={order.id} order={order} />)
+          orders.map(order => <OrderCard key={order.id} order={order} t={t} />)
         )}
       </div>
 
-      {/* Pagination Controls */}
       {!loading && totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-8">
           <button

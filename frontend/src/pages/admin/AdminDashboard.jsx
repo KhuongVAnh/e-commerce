@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosClient from '../../utils/axiosClient';
 import { formatCurrency, formatDate, getDateRangeForCurrentMonth, getErrorMessage } from '../../utils/adminApi';
 import {
@@ -10,6 +11,7 @@ import {
 } from '../../components/admin/AdminComponents';
 
 const AdminDashboard = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [stats, setStats] = useState({
@@ -50,74 +52,74 @@ const AdminDashboard = () => {
         });
         setRecentOrders(Array.isArray(ordersRes?.data?.orders) ? ordersRes.data.orders : []);
       } catch (error) {
-        setErrorMsg(getErrorMessage(error, 'Không thể tải bảng tổng quan admin.'));
+        setErrorMsg(getErrorMessage(error, t('Không thể tải bảng tổng quan admin.')));
       } finally {
         setLoading(false);
       }
     };
 
     fetchDashboard();
-  }, []);
+  }, [t]);
 
   const breakdown = [
-    { label: 'Chờ xử lý', value: stats.pendingOrders, status: 'PENDING' },
-    { label: 'Đã giao', value: stats.deliveredOrders, status: 'DELIVERED' },
-    { label: 'Đã hủy', value: stats.cancelledOrders, status: 'CANCELLED' },
+    { label: t('Chờ xử lý'), value: stats.pendingOrders, status: 'PENDING' },
+    { label: t('Đã giao'), value: stats.deliveredOrders, status: 'DELIVERED' },
+    { label: t('Đã hủy'), value: stats.cancelledOrders, status: 'CANCELLED' },
   ];
 
   return (
     <div className="min-h-full bg-[#f8fafc] p-4 font-sans md:p-6 lg:p-8">
       <AdminPageHeader
-        title="Tổng quan quản trị"
-        description="Tổng quan vận hành hệ thống, doanh thu tháng và các đơn hàng mới nhất."
+        title={t('Tổng quan quản trị')}
+        description={t('Tổng quan vận hành hệ thống, doanh thu tháng và các đơn hàng mới nhất.')}
       />
 
       {errorMsg && <div className="mb-4 rounded-lg border border-rose-100 bg-rose-50 p-4 text-sm font-bold text-rose-700">{errorMsg}</div>}
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard icon="group" label="Người dùng" value={stats.totalUsers.toLocaleString('vi-VN')} tone="primary" />
-        <AdminStatCard icon="storefront" label="Cửa hàng" value={stats.totalShops.toLocaleString('vi-VN')} />
-        <AdminStatCard icon="receipt_long" label="Đơn hàng tháng này" value={stats.totalOrders.toLocaleString('vi-VN')} tone="warning" />
-        <AdminStatCard icon="payments" label="Doanh thu tháng này" value={formatCurrency(stats.monthlyRevenue)} tone="success" />
+        <AdminStatCard icon="group" label={t('Người dùng')} value={stats.totalUsers.toLocaleString('vi-VN')} tone="primary" />
+        <AdminStatCard icon="storefront" label={t('Cửa hàng')} value={stats.totalShops.toLocaleString('vi-VN')} />
+        <AdminStatCard icon="receipt_long" label={t('Đơn hàng tháng này')} value={stats.totalOrders.toLocaleString('vi-VN')} tone="warning" />
+        <AdminStatCard icon="payments" label={t('Doanh thu tháng này')} value={formatCurrency(stats.monthlyRevenue)} tone="success" />
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Link to="/admin/shops?status=PENDING" className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm transition hover:border-[#2e3785]">
-          <p className="text-[11px] font-black uppercase text-slate-400">Duyệt cửa hàng</p>
-          <p className="mt-2 text-sm font-bold text-slate-600">Mở trang cửa hàng để xử lý các gian hàng đang chờ.</p>
+          <p className="text-[11px] font-black uppercase text-slate-400">{t('Duyệt cửa hàng')}</p>
+          <p className="mt-2 text-sm font-bold text-slate-600">{t('Mở trang cửa hàng để xử lý các gian hàng đang chờ.')}</p>
         </Link>
         <Link to="/admin/users?status=BLOCKED" className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm transition hover:border-[#2e3785]">
-          <p className="text-[11px] font-black uppercase text-slate-400">Truy cập người dùng</p>
-          <p className="mt-2 text-sm font-bold text-slate-600">Kiểm tra tài khoản bị khóa hoặc cần mở lại.</p>
+          <p className="text-[11px] font-black uppercase text-slate-400">{t('Truy cập người dùng')}</p>
+          <p className="mt-2 text-sm font-bold text-slate-600">{t('Kiểm tra tài khoản bị khóa hoặc cần mở lại.')}</p>
         </Link>
         <Link to="/admin/orders?status=PENDING" className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm transition hover:border-[#2e3785]">
-          <p className="text-[11px] font-black uppercase text-slate-400">Đơn chờ xử lý</p>
-          <p className="mt-2 text-sm font-bold text-slate-600">Theo dõi các đơn hàng chưa xử lý.</p>
+          <p className="text-[11px] font-black uppercase text-slate-400">{t('Đơn chờ xử lý')}</p>
+          <p className="mt-2 text-sm font-bold text-slate-600">{t('Theo dõi các đơn hàng chưa xử lý.')}</p>
         </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="xl:col-span-2">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-black text-slate-900">Đơn hàng gần đây</h2>
-            <Link to="/admin/orders" className="text-sm font-black text-[#2e3785] hover:underline">Xem tất cả</Link>
+            <h2 className="text-lg font-black text-slate-900">{t('Đơn hàng gần đây')}</h2>
+            <Link to="/admin/orders" className="text-sm font-black text-[#2e3785] hover:underline">{t('Xem tất cả')}</Link>
           </div>
           <AdminDataTable
             columns={[
-              { key: 'order', label: 'Đơn hàng' },
-              { key: 'customer', label: 'Khách hàng' },
-              { key: 'amount', label: 'Tổng tiền' },
-              { key: 'date', label: 'Ngày đặt' },
-              { key: 'status', label: 'Trạng thái' },
+              { key: 'order', label: t('Đơn hàng') },
+              { key: 'customer', label: t('Khách hàng') },
+              { key: 'amount', label: t('Tổng tiền') },
+              { key: 'date', label: t('Ngày đặt') },
+              { key: 'status', label: t('Trạng thái') },
             ]}
             rows={recentOrders}
             loading={loading}
             error=""
-            emptyMessage="Chưa có đơn hàng gần đây."
+            emptyMessage={t('Chưa có đơn hàng gần đây.')}
             renderRow={(order) => (
               <tr key={order.id} className="hover:bg-slate-50">
                 <td className="px-5 py-4 text-sm font-black text-[#2e3785]">#{order.orderCode}</td>
-                <td className="px-5 py-4 text-sm font-bold text-slate-700">{order.receiverName || `Khách hàng #${order.customerId}`}</td>
+                <td className="px-5 py-4 text-sm font-bold text-slate-700">{order.receiverName || `${t('Khách hàng')} #${order.customerId}`}</td>
                 <td className="px-5 py-4 text-sm font-black text-slate-900">{formatCurrency(order.totalAmount)}</td>
                 <td className="px-5 py-4 text-sm font-medium text-slate-500">{formatDate(order.createdAt)}</td>
                 <td className="px-5 py-4"><AdminStatusBadge status={order.orderStatus} /></td>
@@ -127,7 +129,7 @@ const AdminDashboard = () => {
         </div>
 
         <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
-          <h2 className="mb-5 text-lg font-black text-slate-900">Trạng thái đơn hàng</h2>
+          <h2 className="mb-5 text-lg font-black text-slate-900">{t('Trạng thái đơn hàng')}</h2>
           <div className="space-y-5">
             {breakdown.map((item) => {
               const percentage = stats.totalOrders > 0 ? Math.round((item.value / stats.totalOrders) * 100) : 0;
@@ -145,7 +147,7 @@ const AdminDashboard = () => {
             })}
           </div>
           <div className="mt-6 rounded-lg bg-slate-50 p-4">
-            <p className="text-[11px] font-black uppercase text-slate-400">Doanh thu đã giao</p>
+            <p className="text-[11px] font-black uppercase text-slate-400">{t('Doanh thu đã giao')}</p>
             <p className="mt-2 text-2xl font-black text-slate-900">{formatCurrency(stats.totalRevenue)}</p>
           </div>
         </div>

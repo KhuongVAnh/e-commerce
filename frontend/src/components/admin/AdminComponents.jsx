@@ -1,3 +1,6 @@
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+
 const inputClassName = 'h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#2e3785] focus:ring-2 focus:ring-indigo-100';
 
 // Header chuẩn cho các trang admin để tiêu đề, mô tả và nút hành động luôn đồng nhất.
@@ -52,11 +55,14 @@ const statusToneMap = {
 };
 
 // Badge trạng thái/role hiển thị thống nhất cho user, shop, product, order.
-export const AdminStatusBadge = ({ status }) => (
-  <span className={`inline-flex rounded-md px-2.5 py-1 text-[10px] font-black uppercase ${statusToneMap[status] || 'bg-slate-100 text-slate-600'}`}>
-    {status || 'N/A'}
-  </span>
-);
+export const AdminStatusBadge = ({ status }) => {
+  const { t } = useTranslation();
+  return (
+    <span className={`inline-flex rounded-md px-2.5 py-1 text-[10px] font-black uppercase ${statusToneMap[status] || 'bg-slate-100 text-slate-600'}`}>
+      {status ? t(status) : 'N/A'}
+    </span>
+  );
+};
 
 // Thanh filter/search chung, giữ layout responsive cho các bảng admin.
 export const AdminToolbar = ({ children }) => (
@@ -66,17 +72,20 @@ export const AdminToolbar = ({ children }) => (
 );
 
 // Input search có icon cố định để các trang không phải lặp lại markup.
-export const AdminSearchInput = ({ value, onChange, placeholder = 'Tìm kiếm...' }) => (
-  <div className="relative w-full lg:max-w-xs">
-    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">search</span>
-    <input
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      placeholder={placeholder}
-      className={`${inputClassName} w-full pl-10`}
-    />
-  </div>
-);
+export const AdminSearchInput = ({ value, onChange, placeholder }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="relative w-full lg:max-w-xs">
+      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">search</span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder || t('Tìm kiếm...')}
+        className={`${inputClassName} w-full pl-10`}
+      />
+    </div>
+  );
+};
 
 // Select filter dùng chung. Label nằm trong component để form compact nhưng vẫn rõ nghĩa.
 export const AdminSelect = ({ value, onChange, children, label }) => (
@@ -102,41 +111,45 @@ export const AdminDataTable = ({
   rows,
   loading,
   error,
-  emptyMessage = 'Không có dữ liệu.',
+  emptyMessage,
   renderRow,
   tableClassName = 'w-full min-w-[820px] text-left',
-}) => (
-  <div className="overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm">
-    <div className="overflow-x-auto">
-      <table className={tableClassName}>
-        <thead className="bg-slate-50">
-          <tr>
-            {columns.map((column) => (
-              <th key={column.key || column} className={`px-5 py-4 text-[10px] font-black uppercase text-slate-400 ${column.headerClassName || ''}`}>
-                {column.label || column}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-50">
-          {loading && (
-            <tr><td colSpan={columns.length} className="px-5 py-10 text-center text-sm font-bold text-slate-400">Đang tải dữ liệu...</td></tr>
-          )}
-          {!loading && error && (
-            <tr><td colSpan={columns.length} className="px-5 py-10 text-center text-sm font-bold text-rose-600">{error}</td></tr>
-          )}
-          {!loading && !error && rows.length === 0 && (
-            <tr><td colSpan={columns.length} className="px-5 py-10 text-center text-sm font-bold text-slate-400">{emptyMessage}</td></tr>
-          )}
-          {!loading && !error && rows.map(renderRow)}
-        </tbody>
-      </table>
+}) => {
+  const { t } = useTranslation();
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm">
+      <div className="overflow-x-auto">
+        <table className={tableClassName}>
+          <thead className="bg-slate-50">
+            <tr>
+              {columns.map((column) => (
+                <th key={column.key || column} className={`px-5 py-4 text-[10px] font-black uppercase text-slate-400 ${column.headerClassName || ''}`}>
+                  {column.label || column}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {loading && (
+              <tr><td colSpan={columns.length} className="px-5 py-10 text-center text-sm font-bold text-slate-400">{t('Đang tải dữ liệu...')}</td></tr>
+            )}
+            {!loading && error && (
+              <tr><td colSpan={columns.length} className="px-5 py-10 text-center text-sm font-bold text-rose-600">{error}</td></tr>
+            )}
+            {!loading && !error && rows.length === 0 && (
+              <tr><td colSpan={columns.length} className="px-5 py-10 text-center text-sm font-bold text-slate-400">{emptyMessage || t('Không có dữ liệu.')}</td></tr>
+            )}
+            {!loading && !error && rows.map(renderRow)}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Pagination dùng chung cho API có page/limit; category cũng dùng để phân trang client-side.
 export const AdminPagination = ({ pagination, onPageChange, onLimitChange }) => {
+  const { t } = useTranslation();
   const page = pagination?.page || 1;
   const limit = pagination?.limit || 10;
   const total = pagination?.total || 0;
@@ -145,11 +158,11 @@ export const AdminPagination = ({ pagination, onPageChange, onLimitChange }) => 
   return (
     <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-600 shadow-sm md:flex-row md:items-center md:justify-between">
       <span>
-        Trang {page}/{totalPages} - {total.toLocaleString('vi-VN')} bản ghi
+        {t('Trang')} {page}/{totalPages} - {total.toLocaleString('vi-VN')} {t('bản ghi')}
       </span>
       <div className="flex items-center gap-2">
         <select value={limit} onChange={(event) => onLimitChange(Number(event.target.value))} className={inputClassName}>
-          {[10, 20, 50, 100].map((item) => <option key={item} value={item}>{item}/trang</option>)}
+          {[10, 20, 50, 100].map((item) => <option key={item} value={item}>{item}/{t('trang')}</option>)}
         </select>
         <button onClick={() => onPageChange(page - 1)} disabled={page <= 1} className="h-10 rounded-lg border border-slate-200 px-3 disabled:cursor-not-allowed disabled:opacity-40">
           <span className="material-symbols-outlined text-[18px]">chevron_left</span>
@@ -163,7 +176,8 @@ export const AdminPagination = ({ pagination, onPageChange, onLimitChange }) => 
 };
 
 // Dialog xác nhận cho thao tác có side effect như khóa user, xóa mềm product, đổi trạng thái order.
-export const AdminConfirmDialog = ({ open, title, description, confirmText = 'Xác nhận', danger, onCancel, onConfirm, loading }) => {
+export const AdminConfirmDialog = ({ open, title, description, confirmText, danger, onCancel, onConfirm, loading }) => {
+  const { t } = useTranslation();
   if (!open) return null;
 
   return (
@@ -172,9 +186,9 @@ export const AdminConfirmDialog = ({ open, title, description, confirmText = 'X�
         <h2 className="text-xl font-black text-slate-900">{title}</h2>
         {description && <p className="mt-2 text-sm font-medium leading-6 text-slate-500">{description}</p>}
         <div className="mt-6 flex justify-end gap-3">
-          <button onClick={onCancel} disabled={loading} className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 disabled:opacity-50">Hủy</button>
+          <button onClick={onCancel} disabled={loading} className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 disabled:opacity-50">{t('Hủy')}</button>
           <button onClick={onConfirm} disabled={loading} className={`rounded-lg px-4 py-2 text-sm font-bold text-white disabled:opacity-50 ${danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-[#2e3785] hover:bg-[#252d70]'}`}>
-            {loading ? 'Đang xử lý...' : confirmText}
+            {loading ? t('Đang xử lý...') : (confirmText || t('Xác nhận'))}
           </button>
         </div>
       </div>
