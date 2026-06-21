@@ -125,6 +125,7 @@ export const reviewService = {
     if (review.customerId !== customerId) throw new Error("FORBIDDEN");
 
     await prisma.productReview.delete({ where: { id: reviewId } });
-    return true;
+
+    return review; 
   }
 };

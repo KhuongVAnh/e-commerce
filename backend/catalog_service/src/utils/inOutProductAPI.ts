@@ -52,6 +52,8 @@ export type publicProductListItemResponse = {
     price: number;
     stockQuantity: number;
     thumbnailUrl: string | null;
+    rating: number;
+    reviewCount: number;
     status: string;
 };
 
@@ -66,6 +68,8 @@ export type publicProductDetailResponse = {
         price: number;
         stockQuantity: number;
         thumbnailUrl: string | null;
+        rating: number;
+        reviewCount: number;
         status: string;
         createdAt: string;
         updatedAt: string;
@@ -93,6 +97,8 @@ export type productResponse = {
     price: number;
     stockQuantity: number;
     thumbnailUrl: string | null;
+    rating: number;
+    reviewCount: number;
     status: string;
     deletedAt: string | null;
     createdAt: string;

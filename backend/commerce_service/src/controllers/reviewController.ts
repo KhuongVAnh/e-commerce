@@ -4,6 +4,28 @@ import { sendSuccess, sendError, createRequestId, HttpError } from '../utils/htt
 import { parseRequiredBigInt, serializeBigInt } from '../utils/validation';
 import { parsePaginationQuery, buildPaginationMeta } from '../utils/pagination';
 
+const syncProductRating = async (productId: bigint) => {
+  try {
+    const summary = await reviewService.getReviewSummary(productId);
+
+    const catalogServiceUrl = process.env.CATALOG_SERVICE_URL || 'http://localhost:3002'; 
+    
+    await fetch(`${catalogServiceUrl}/api/catalog/internal/products/update-rating`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        productId: Number(productId),
+        averageRating: summary.averageRating,
+        totalReviews: summary.totalReviews
+      })
+    });
+  } catch (error) {
+    console.error("Lỗi đồng bộ rating sang Catalog Service:", error);
+  }
+};
+
 export const reviewController = {
   // 1. Public: Xem danh sách review của một sản phẩm
   async getProductReviews(req: Request, res: Response) {
@@ -91,6 +113,8 @@ export const reviewController = {
         imageUrls
       });
 
+      syncProductRating(review.productId);
+
       return sendSuccess(res, {
         requestId: createRequestId(),
         statusCode: 201, // Created
@@ -125,6 +149,10 @@ export const reviewController = {
       }
 
       const review = await reviewService.updateReview(reviewId, customerId, { rating, commentText, imageUrls });
+
+      if (rating !== undefined) {
+        syncProductRating(review.productId);
+      }
       
       return sendSuccess(res, {
         requestId: createRequestId(),
@@ -147,7 +175,9 @@ export const reviewController = {
       const customerId = BigInt((req as any).authUser.userId);
       const reviewId = parseRequiredBigInt(req.params.reviewId, "reviewId");
       
-      await reviewService.deleteReview(reviewId, customerId);
+      const deletedReview = await reviewService.deleteReview(reviewId, customerId);
+
+      syncProductRating(deletedReview.productId);
       
       return sendSuccess(res, {
         requestId: createRequestId(),
