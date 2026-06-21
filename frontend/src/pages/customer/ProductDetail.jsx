@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useAuthStore from '../../store/useAuthStore';
 import useCartStore from '../../store/useCartStore';
 import axiosClient from '../../utils/axiosClient';
 
-// Hàm hỗ trợ vẽ sao đánh giá (Thêm mới)
+// Hàm hỗ trợ vẽ sao đánh giá
 const renderStars = (rating) => {
   const stars = [];
   const fullStars = Math.floor(rating || 0);
@@ -37,12 +37,13 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const { isAuthenticated } = useAuthStore();
+  // Lấy thêm user để kiểm tra quyền Sửa/Xóa review
+  const { isAuthenticated, user } = useAuthStore();
   const { fetchCartTotal } = useCartStore();
 
   const fallbackShopLogo = 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=150&auto=format&fit=crop';
 
-  // --- THÊM MỚI: CÁC STATE CHO REVIEW ---
+  // --- STATE CHO DANH SÁCH & TỔNG QUAN REVIEW ---
   const [ratingSummary, setRatingSummary] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [reviewPage, setReviewPage] = useState(1);
@@ -50,7 +51,13 @@ const ProductDetail = () => {
   const [reviewSort, setReviewSort] = useState('newest');
   const [reviewFilterRating, setReviewFilterRating] = useState('');
   const [isReviewsLoading, setIsReviewsLoading] = useState(false);
-  // --------------------------------------
+  const [refreshReview, setRefreshReview] = useState(0); // Dùng để load lại API sau khi xóa/sửa
+
+  // --- STATE CHO MODAL SỬA REVIEW ---
+  const [editModal, setEditModal] = useState({ isOpen: false, reviewId: null });
+  const [editForm, setEditForm] = useState({ rating: 5, commentText: '', newImages: [], existingImageUrls: [] });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
@@ -123,7 +130,7 @@ const ProductDetail = () => {
       try {
         setLoading(true);
         const result = await axiosClient.get(`/catalog/products/${productId}`);
-        const nextProductData = result.data?.data || result.data; // Tương thích vỏ bọc data
+        const nextProductData = result.data?.data || result.data; 
         const productImages = Array.isArray(nextProductData?.images) ? nextProductData.images : [];
         const firstGalleryImage = [...productImages]
           .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0))
@@ -132,7 +139,7 @@ const ProductDetail = () => {
         setProductData(nextProductData);
         setSelectedImageUrl(firstGalleryImage || nextProductData?.product?.thumbnailUrl || '');
 
-        // THÊM MỚI: API Lấy Tổng quan Rating (Song song sau khi có ID)
+        // Lấy Tổng quan Rating (Load lại khi có refreshReview)
         try {
           const summaryRes = await axiosClient.get(`/commerce/products/${productId}/reviews/summary`);
           setRatingSummary(summaryRes.data?.data || summaryRes.data);
@@ -148,7 +155,7 @@ const ProductDetail = () => {
     };
 
     fetchProduct();
-  }, [productId, t]);
+  }, [productId, t, refreshReview]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -162,7 +169,7 @@ const ProductDetail = () => {
     fetchCategories();
   }, []);
 
-  // --- THÊM MỚI: EFFECT CALL API LIST REVIEWS KHI CÓ SỰ THAY ĐỔI ---
+  // Gọi API lấy danh sách Review
   useEffect(() => {
     if (!productId) return;
     const fetchReviewsList = async () => {
@@ -187,8 +194,76 @@ const ProductDetail = () => {
       }
     };
     fetchReviewsList();
-  }, [productId, reviewPage, reviewSort, reviewFilterRating]);
-  // -----------------------------------------------------------------
+  }, [productId, reviewPage, reviewSort, reviewFilterRating, refreshReview]);
+
+
+  // ==============================================================
+  // CÁC HÀM XỬ LÝ SỬA / XÓA REVIEW (Bổ sung đầy đủ)
+  // ==============================================================
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm(t("Bạn có chắc chắn muốn xóa bài đánh giá này?"))) return;
+    try {
+      await axiosClient.delete(`/commerce/reviews/${reviewId}`);
+      alert(t("Đã xóa đánh giá thành công."));
+      setRefreshReview(prev => prev + 1); // Cập nhật lại list & số sao trung bình
+    } catch (error) {
+      alert(t("Không thể xóa: ") + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const openEditModal = (review) => {
+    setEditForm({
+      rating: review.rating || 5,
+      commentText: review.commentText || '',
+      existingImageUrls: Array.isArray(review.imageUrls) ? review.imageUrls : [],
+      newImages: []
+    });
+    setEditModal({ isOpen: true, reviewId: review.id });
+  };
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length + editForm.existingImageUrls.length + editForm.newImages.length > 5) {
+      alert(t("Tối đa 5 ảnh.")); return;
+    }
+    setEditForm(prev => ({ ...prev, newImages: [...prev.newImages, ...files] }));
+    e.target.value = '';
+  };
+
+  const submitEditReview = async (e) => {
+    e.preventDefault();
+    if (editForm.rating < 1 || editForm.rating > 5) {
+      alert(t("Số sao không hợp lệ.")); return;
+    }
+    setIsSubmitting(true);
+    try {
+      const uploadedUrls = [];
+      for (const file of editForm.newImages) {
+        const formData = new FormData();
+        formData.append('image', file);
+        const uploadRes = await axiosClient.post('/uploads/images', formData);
+        const url = uploadRes.data?.data?.url || uploadRes.data?.url || uploadRes.url;
+        if (url) uploadedUrls.push(url);
+      }
+
+      const finalImageUrls = [...editForm.existingImageUrls, ...uploadedUrls];
+
+      await axiosClient.patch(`/commerce/reviews/${editModal.reviewId}`, {
+        rating: editForm.rating,
+        commentText: editForm.commentText,
+        imageUrls: finalImageUrls
+      });
+
+      alert(t("Cập nhật đánh giá thành công!"));
+      setEditModal({ isOpen: false, reviewId: null });
+      setRefreshReview(prev => prev + 1); // Cập nhật lại list & số sao trung bình
+    } catch (error) {
+      alert(t("Lỗi cập nhật: ") + (error.response?.data?.message || error.message));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  // ==============================================================
 
   if (loading) {
     return (
@@ -280,7 +355,6 @@ const ProductDetail = () => {
             {product.name}
           </h1>
 
-          {/* THÊM MỚI: HIỂN THỊ TRUNG BÌNH SAO */}
           {ratingSummary && ratingSummary.totalReviews > 0 && (
             <div className="flex items-center gap-3 mb-4 cursor-pointer" onClick={() => document.getElementById('review-section').scrollIntoView({ behavior: 'smooth' })}>
               <div className="flex text-yellow-400">{renderStars(ratingSummary.averageRating)}</div>
@@ -424,7 +498,7 @@ const ProductDetail = () => {
         </div>
       </div>
 
-      {/* --- THÊM MỚI: GIAO DIỆN HIỂN THỊ DANH SÁCH REVIEW (TỪ API) --- */}
+      {/* --- GIAO DIỆN HIỂN THỊ DANH SÁCH REVIEW --- */}
       <div id="review-section" className="mt-16 border-t border-gray-100 pt-8 mb-20">
         <h2 className="text-lg font-extrabold text-gray-900 mb-6 flex items-center gap-2">
           <span className="material-symbols-outlined text-[#2b3896] text-[20px]">reviews</span> 
@@ -456,7 +530,6 @@ const ProductDetail = () => {
           <div className="text-center py-6 text-gray-500 text-sm">{t('Chưa có đánh giá nào cho sản phẩm này.')}</div>
         )}
 
-        {/* Bộ Lọc Reviews */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
             <div className="flex flex-wrap gap-2">
                 <button onClick={() => { setReviewFilterRating(''); setReviewPage(1); }} className={`px-5 py-2 rounded-full text-sm font-bold border ${reviewFilterRating === '' ? 'bg-[#2b3896] text-white border-[#2b3896]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{t('Tất cả')}</button>
@@ -476,7 +549,6 @@ const ProductDetail = () => {
             </div>
         </div>
 
-        {/* Danh sách Reviews */}
         {isReviewsLoading ? (
           <div className="text-center py-12"><span className="material-symbols-outlined animate-spin text-3xl text-gray-400">progress_activity</span></div>
         ) : reviews.length === 0 ? (
@@ -484,12 +556,26 @@ const ProductDetail = () => {
         ) : (
           <div className="space-y-6">
             {reviews.map((rev) => (
-              <div key={rev.id} className="border-b border-gray-100 pb-6 last:border-0">
+              <div key={rev.id} className="border-b border-gray-100 pb-6 last:border-0 relative">
+                
+                {/* --- ÉP KIỂU STRING ĐỂ HIỂN THỊ NÚT SỬA/XÓA CHÍNH XÁC --- */}
+                {String(user?.id) === String(rev.customerId) && (
+                  <div className="absolute right-0 top-0 flex gap-2">
+                    <button onClick={() => openEditModal(rev)} className="text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="Sửa">
+                      <span className="material-symbols-outlined text-[18px]">edit</span>
+                    </button>
+                    <button onClick={() => handleDeleteReview(rev.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Xóa">
+                      <span className="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                  </div>
+                )}
+                {/* -------------------------------------------------------- */}
+
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold uppercase shrink-0">
                     {rev.customerName ? rev.customerName.charAt(0) : 'K'}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 pr-16">
                     <p className="text-sm font-bold text-gray-900">{rev.customerName || `${t('Khách hàng')} #${rev.customerId}`}</p>
                     <div className="flex items-center gap-2 mt-0.5 mb-2">
                       <div className="flex">{renderStars(rev.rating)}</div>
@@ -511,7 +597,6 @@ const ProductDetail = () => {
           </div>
         )}
 
-        {/* Phân trang Reviews */}
         {reviewTotalPages > 1 && (
           <div className="flex justify-center gap-2 mt-8">
             <button disabled={reviewPage === 1} onClick={() => setReviewPage(p => p - 1)} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:bg-gray-50"><span className="material-symbols-outlined text-sm">chevron_left</span></button>
@@ -522,7 +607,73 @@ const ProductDetail = () => {
           </div>
         )}
       </div>
-      {/* ------------------------------------------------------------- */}
+
+      {/* --- MODAL SỬA REVIEW TẠI CHỖ --- */}
+      {editModal.isOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
+              <h3 className="text-lg font-bold text-gray-900 font-['Be_Vietnam_Pro']">{t('Sửa Đánh Giá')}</h3>
+              <button onClick={() => setEditModal({ isOpen: false, reviewId: null })} className="text-gray-400 hover:text-gray-800 transition-colors">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <form onSubmit={submitEditReview} className="p-6 overflow-y-auto custom-scrollbar">
+              <div className="mb-6 text-center">
+                <p className="text-sm font-bold text-gray-700 mb-3">{t('Chất lượng sản phẩm')}</p>
+                <div className="flex justify-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button type="button" key={star} onClick={() => setEditForm(prev => ({...prev, rating: star}))} className={`transition-transform hover:scale-110 ${star <= editForm.rating ? 'text-yellow-400' : 'text-gray-200'}`}>
+                      <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-5">
+                <textarea 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm outline-none focus:border-[#2b3896] resize-none h-28"
+                  value={editForm.commentText}
+                  onChange={(e) => setEditForm(prev => ({...prev, commentText: e.target.value}))}
+                />
+              </div>
+
+              <div>
+                <input type="file" accept="image/*" multiple hidden ref={fileInputRef} onChange={handleImageChange} />
+                <div className="flex flex-wrap gap-3">
+                  {editForm.existingImageUrls.map((img, idx) => (
+                    <div key={`old-${idx}`} className="w-16 h-16 relative rounded-lg overflow-hidden border border-gray-200 group">
+                      <img src={img} className="w-full h-full object-cover" alt="" />
+                      <button type="button" onClick={() => setEditForm(p => ({...p, existingImageUrls: p.existingImageUrls.filter((_,i)=>i!==idx)}))} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100"><span className="material-symbols-outlined text-sm">delete</span></button>
+                    </div>
+                  ))}
+                  {editForm.newImages.map((img, idx) => (
+                    <div key={`new-${idx}`} className="w-16 h-16 relative rounded-lg overflow-hidden border border-gray-200 group">
+                      <img src={URL.createObjectURL(img)} className="w-full h-full object-cover opacity-80" alt="" />
+                      <button type="button" onClick={() => setEditForm(p => ({...p, newImages: p.newImages.filter((_,i)=>i!==idx)}))} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100"><span className="material-symbols-outlined text-sm">delete</span></button>
+                    </div>
+                  ))}
+                  {editForm.existingImageUrls.length + editForm.newImages.length < 5 && (
+                    <button type="button" onClick={() => fileInputRef.current.click()} className="w-16 h-16 rounded-lg border-2 border-dashed border-[#2b3896]/30 text-[#2b3896] flex items-center justify-center hover:bg-[#2b3896]/5">
+                      <span className="material-symbols-outlined text-[20px]">add_photo_alternate</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </form>
+
+            <div className="p-5 border-t border-gray-100 flex gap-3 shrink-0">
+              <button type="button" onClick={() => setEditModal({ isOpen: false, reviewId: null })} className="flex-1 py-3 text-sm font-bold bg-gray-100 hover:bg-gray-200 rounded-xl">{t('Hủy')}</button>
+              <button onClick={submitEditReview} disabled={isSubmitting} className="flex-1 py-3 text-sm font-bold text-white bg-[#2b3896] hover:bg-[#1f2970] rounded-xl disabled:opacity-60 flex items-center justify-center gap-2">
+                {isSubmitting && <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>}
+                {t('Lưu thay đổi')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ============================================== */}
 
     </div>
   );
