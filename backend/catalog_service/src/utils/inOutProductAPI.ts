@@ -41,6 +41,7 @@ export type listProductQuery = {
     sortBy?: string;
     page?: string;
     limit?: string;
+    rating?: string;
 };
 
 export type publicProductListItemResponse = {

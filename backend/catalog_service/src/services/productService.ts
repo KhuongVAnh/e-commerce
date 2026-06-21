@@ -628,6 +628,7 @@ function assertPublicListProductQuery(query: listProductQuery): {
     minPrice?: Prisma.Decimal;
     maxPrice?: Prisma.Decimal;
     sortBy: PublicProductSortBy;
+    rating?: number;
 } {
     const fieldErrors: Array<{ field: string; message: string }> = [];
 
@@ -737,6 +738,27 @@ function assertPublicListProductQuery(query: listProductQuery): {
         }
     }
 
+    let rating: number | undefined;
+    const rawRating = typeof query.rating === "string" ? query.rating.trim() : "";
+    if (rawRating) {
+        const parsedRating = Number(rawRating);
+        if (isNaN(parsedRating) || parsedRating < 0 || parsedRating > 5) {
+            fieldErrors.push({
+                field: "rating",
+                message: "rating phải là số từ 0 đến 5",
+            });
+        } else {
+            rating = parsedRating;
+        }
+    }
+
+    if (fieldErrors.length > 0) {
+        throw new HttpError(400, "Dữ liệu không hợp lệ", {
+            code: "VALIDATION_ERROR",
+            fieldErrors,
+        });
+    }
+
     if (fieldErrors.length > 0) {
         throw new HttpError(400, "Dữ liệu không hợp lệ", {
             code: "VALIDATION_ERROR",
@@ -753,6 +775,7 @@ function assertPublicListProductQuery(query: listProductQuery): {
         minPrice,
         maxPrice,
         sortBy,
+        rating,
     };
 }
 
@@ -766,6 +789,7 @@ function normalizePublicProductListCacheQuery(payload: {
     minPrice?: Prisma.Decimal;
     maxPrice?: Prisma.Decimal;
     sortBy: PublicProductSortBy;
+    rating?: number;
 }) {
     return {
         page: payload.page,
@@ -776,6 +800,7 @@ function normalizePublicProductListCacheQuery(payload: {
         minPrice: payload.minPrice !== undefined ? payload.minPrice.toFixed(2) : null,
         maxPrice: payload.maxPrice !== undefined ? payload.maxPrice.toFixed(2) : null,
         sortBy: payload.sortBy,
+        rating: payload.rating ?? null,
     };
 }
 

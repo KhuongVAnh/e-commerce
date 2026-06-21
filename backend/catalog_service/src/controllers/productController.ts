@@ -102,6 +102,7 @@ export async function listPublicProductsController(req: Request, res: Response, 
         minPrice: readQueryValue(req.query.minPrice),
         maxPrice: readQueryValue(req.query.maxPrice),
         sortBy: readQueryValue(req.query.sortBy),
+        rating: readQueryValue(req.query.rating),
     };
 
     const data = await listPublicProducts(query);
