@@ -5,6 +5,24 @@ import useAuthStore from '../../store/useAuthStore';
 import useCartStore from '../../store/useCartStore';
 import axiosClient from '../../utils/axiosClient';
 
+// THÊM MỚI: HÀM VẼ SAO LẤY DATA TỪ BE
+const renderStars = (rating) => {
+  const stars = [];
+  const fullStars = Math.floor(rating || 0);
+  const hasHalfStar = (rating || 0) - fullStars >= 0.5;
+
+  for (let i = 1; i <= 5; i++) {
+    if (i <= fullStars) {
+      stars.push(<span key={i} className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1", color: '#fbbf24' }}>star</span>);
+    } else if (i === fullStars + 1 && hasHalfStar) {
+      stars.push(<span key={i} className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1", color: '#fbbf24' }}>star_half</span>);
+    } else {
+      stars.push(<span key={i} className="material-symbols-outlined text-[14px] text-gray-300" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>);
+    }
+  }
+  return stars;
+};
+
 const ProductList = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -14,6 +32,8 @@ const ProductList = () => {
   const searchFromUrl = searchParams.get('search') || searchParams.get('q'); 
   const minPriceFromUrl = searchParams.get('minPrice') || '';
   const maxPriceFromUrl = searchParams.get('maxPrice') || '';
+  // THÊM MỚI: BẮT PARAM RATING TỪ URL
+  const ratingFromUrl = searchParams.get('rating') || ''; 
   const pageFromUrl = Number(searchParams.get('page') || '1');
   const limit = 16;
 
@@ -73,6 +93,8 @@ const ProductList = () => {
         if (categoryIdFromUrl) queryParams.append('categoryId', categoryIdFromUrl);
         if (minPriceFromUrl) queryParams.append('minPrice', minPriceFromUrl);
         if (maxPriceFromUrl) queryParams.append('maxPrice', maxPriceFromUrl);
+        // THÊM MỚI: GẮN RATING VÀO QUERY NẾU CÓ
+        if (ratingFromUrl) queryParams.append('rating', ratingFromUrl); 
         queryParams.append('page', String(pageFromUrl));
         queryParams.append('limit', String(limit));
 
@@ -92,7 +114,7 @@ const ProductList = () => {
     };
 
     fetchProducts();
-  }, [searchFromUrl, categoryIdFromUrl, minPriceFromUrl, maxPriceFromUrl, pageFromUrl, t]);
+  }, [searchFromUrl, categoryIdFromUrl, minPriceFromUrl, maxPriceFromUrl, ratingFromUrl, pageFromUrl, t]); // Thêm ratingFromUrl vào dependency
 
   const handleCategoryChange = (categoryId) => {
     const currentParams = new URLSearchParams(searchParams);
@@ -104,6 +126,18 @@ const ProductList = () => {
     }
     currentParams.set('page', '1');
 
+    navigate(`/products?${currentParams.toString()}`);
+  };
+
+  // THÊM MỚI: HÀM XỬ LÝ KHI NGƯỜI DÙNG CLICK LỌC SAO
+  const handleRatingChange = (rating) => {
+    const currentParams = new URLSearchParams(searchParams);
+    if (rating === '') {
+      currentParams.delete('rating');
+    } else {
+      currentParams.set('rating', String(rating));
+    }
+    currentParams.set('page', '1');
     navigate(`/products?${currentParams.toString()}`);
   };
 
@@ -295,6 +329,30 @@ const ProductList = () => {
               </div>
             </div>
           </div>
+
+          {/* THÊM MỚI: BỘ LỌC ĐÁNH GIÁ (SAO) */}
+          <div className="space-y-3 pt-3 border-t border-gray-100">
+            <h3 className="font-bold text-gray-800 text-xs flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[#2b3896] text-[16px]">star</span>
+              {t('Đánh giá')}
+            </h3>
+            <div className="space-y-2">
+              {[5, 4, 3, 2, 1].map(star => (
+                <label key={star} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1.5 rounded-lg transition">
+                  <input type="radio" name="rating_filter" value={star} checked={ratingFromUrl === String(star)} onChange={(e) => handleRatingChange(e.target.value)} className="text-[#2b3896] focus:ring-[#2b3896] w-3 h-3" />
+                  <div className="flex">{renderStars(star)}</div>
+                  <span className="text-[11px] font-bold text-gray-600">{t('từ')} {star} {t('sao')}</span>
+                </label>
+              ))}
+            </div>
+            {ratingFromUrl && (
+              <button onClick={() => handleRatingChange('')} className="text-[10px] text-red-500 font-bold hover:underline w-full text-left mt-1 px-1">
+                {t('Xóa lọc đánh giá')}
+              </button>
+            )}
+          </div>
+          {/* ================================== */}
+
         </aside>
 
         <section className="flex-1">
@@ -357,13 +415,24 @@ const ProductList = () => {
                   </div>
 
                   <div className="space-y-1 flex flex-col flex-1">
-                    <span className="text-[9px] uppercase tracking-widest text-gray-400 font-bold">
-                       {t('Shop ID:')} {product.shopId}
-                    </span>
                     <h3 className="text-xs md:text-sm font-bold text-gray-900 group-hover:text-[#2b3896] transition-colors leading-tight line-clamp-2">
                       {product.name}
                     </h3>
                     
+                    {/* THÊM MỚI: HIỂN THỊ SAO ĐÁNH GIÁ TRÊN THẺ SP (DATA THẬT) */}
+                    <div className="flex items-center gap-1.5 mt-1 mb-2">
+                      <div className="flex">
+                        {renderStars(product.averageRating || 0)}
+                      </div>
+                      <span className="text-xs font-bold text-gray-600">
+                        {product.averageRating ? Number(product.averageRating).toFixed(1) : "0.0"}
+                      </span>
+                      <span className="text-[10px] text-gray-400">
+                        ({product.totalReviews || 0})
+                      </span>
+                    </div>
+                    {/* ======================================================== */}
+
                     <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-50 mt-2">
                       <div className="text-sm md:text-base font-extrabold text-[#2b3896]">
                         {Number(product.price).toLocaleString('vi-VN')}<span className="text-[10px] align-top ml-0.5 opacity-80">₫</span>
@@ -382,6 +451,7 @@ const ProductList = () => {
             </div>
           )}
 
+          {/* PHÂN TRANG */}
           {!loading && !error && totalPages > 1 && (
             <div className="mt-12 flex justify-center items-center gap-1.5 md:gap-2">
               <button
@@ -436,7 +506,6 @@ const ProductList = () => {
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div>
                 <h3 className="text-sm font-extrabold text-gray-900 font-headline">{t('Bộ Lọc Tìm Kiếm')}</h3>
-                <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold">{t('Tinh chỉnh kết quả')}</p>
               </div>
               <button 
                 onClick={() => setIsMobileFilterOpen(false)}
@@ -498,7 +567,7 @@ const ProductList = () => {
               
               <div className="space-y-3">
                 <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-[#2b3896]">
-                  <span>{t('Khoảng giá chọn:')}</span>
+                  <span>{t('Khoảng giá')}:</span>
                   <span>
                     {Number(sliderMinVal).toLocaleString('vi-VN')} - {Number(sliderMaxVal).toLocaleString('vi-VN')}₫
                   </span>
@@ -549,12 +618,31 @@ const ProductList = () => {
               </div>
             </div>
 
+            {/* THÊM MỚI: LỌC SAO MOBILE */}
+            <div className="space-y-3 pt-4 border-t border-gray-100">
+              <h4 className="font-bold text-gray-800 text-xs flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[#2b3896] text-[16px]">star</span>
+                {t('Đánh giá')}
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {[5, 4, 3, 2, 1].map(star => (
+                  <label key={star} className={`flex items-center gap-1 px-3 py-1.5 rounded-full border cursor-pointer ${ratingFromUrl === String(star) ? 'border-[#2b3896] bg-[#2b3896]/5' : 'border-gray-200'}`}>
+                    <input type="radio" name="rating_filter_mobile" value={star} checked={ratingFromUrl === String(star)} className="hidden" onChange={(e) => { handleRatingChange(e.target.value); setIsMobileFilterOpen(false); }} />
+                    <span className="material-symbols-outlined text-[14px] text-yellow-400" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                    <span className="text-[10px] font-bold text-gray-600">{t('từ')} {star}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            {/* ======================= */}
+
             <div className="pt-4 border-t border-gray-100">
               <button
                 onClick={() => {
                   const currentParams = new URLSearchParams(searchParams);
                   currentParams.delete('minPrice');
                   currentParams.delete('maxPrice');
+                  currentParams.delete('rating'); // Xóa lọc sao khi reset
                   setSliderMinVal(minPrice);
                   setSliderMaxVal(maxPrice);
                   navigate(`/products?${currentParams.toString()}`);

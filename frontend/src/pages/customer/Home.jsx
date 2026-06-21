@@ -8,6 +8,24 @@ import { wakeService } from '../../services/wakeService';
 
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
+// THÊM MỚI: HÀM VẼ SAO LẤY DATA TỪ API
+const renderStars = (rating) => {
+  const stars = [];
+  const fullStars = Math.floor(rating || 0);
+  const hasHalfStar = (rating || 0) - fullStars >= 0.5;
+
+  for (let i = 1; i <= 5; i++) {
+    if (i <= fullStars) {
+      stars.push(<span key={i} className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1", color: '#fbbf24' }}>star</span>);
+    } else if (i === fullStars + 1 && hasHalfStar) {
+      stars.push(<span key={i} className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1", color: '#fbbf24' }}>star_half</span>);
+    } else {
+      stars.push(<span key={i} className="material-symbols-outlined text-[14px] text-gray-300" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>);
+    }
+  }
+  return stars;
+};
+
 const Home = () => {
   const { t } = useTranslation();
 
@@ -130,7 +148,7 @@ const Home = () => {
 
     fetchCategories();
     fetchProducts();
-  }, [backendReady]);
+  }, [backendReady, t]); // Thêm t vào dependencies để tránh warning
 
   // HÀM XỬ LÝ THÊM VÀO GIỎ HÀNG TRỰC TIẾP TỪ TRANG CHỦ
   const handleAddToCart = async (e, product) => {
@@ -309,6 +327,21 @@ const Home = () => {
                       {product.name}
                     </h3>
                   </Link>
+
+                  {/* THÊM MỚI: HIỂN THỊ SAO ĐÁNH GIÁ TỪ API THẬT */}
+                  <div className="flex items-center gap-1.5 mt-1 mb-2">
+                    <div className="flex">
+                      {renderStars(product.averageRating || 0)}
+                    </div>
+                    <span className="text-xs font-bold text-gray-600">
+                      {product.averageRating ? Number(product.averageRating).toFixed(1) : "0.0"}
+                    </span>
+                    <span className="text-[10px] text-gray-400">
+                      ({product.totalReviews || 0})
+                    </span>
+                  </div>
+                  {/* ============================================== */}
+
                   {product.shopName && (
                     <p className="text-xs text-gray-500 mb-3 flex items-center gap-1 font-medium">
                       <span className="material-symbols-outlined text-[14px]">storefront</span>
