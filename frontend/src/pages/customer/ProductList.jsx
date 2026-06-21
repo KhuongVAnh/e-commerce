@@ -114,7 +114,7 @@ const ProductList = () => {
     };
 
     fetchProducts();
-  }, [searchFromUrl, categoryIdFromUrl, minPriceFromUrl, maxPriceFromUrl, ratingFromUrl, pageFromUrl, t]); // Thêm ratingFromUrl vào dependency
+  }, [searchFromUrl, categoryIdFromUrl, minPriceFromUrl, maxPriceFromUrl, ratingFromUrl, pageFromUrl, t]);
 
   const handleCategoryChange = (categoryId) => {
     const currentParams = new URLSearchParams(searchParams);
@@ -419,16 +419,16 @@ const ProductList = () => {
                       {product.name}
                     </h3>
                     
-                    {/* THÊM MỚI: HIỂN THỊ SAO ĐÁNH GIÁ TRÊN THẺ SP (DATA THẬT) */}
+                    {/* SỬA LẠI TÊN TRƯỜNG ĐÚNG CHUẨN BACKEND */}
                     <div className="flex items-center gap-1.5 mt-1 mb-2">
                       <div className="flex">
-                        {renderStars(product.averageRating || 0)}
+                        {renderStars(product.rating || 0)}
                       </div>
                       <span className="text-xs font-bold text-gray-600">
-                        {product.averageRating ? Number(product.averageRating).toFixed(1) : "0.0"}
+                        {product.rating ? Number(product.rating).toFixed(1) : "0.0"}
                       </span>
                       <span className="text-[10px] text-gray-400">
-                        ({product.totalReviews || 0})
+                        ({product.reviewCount || 0})
                       </span>
                     </div>
                     {/* ======================================================== */}
@@ -651,7 +651,7 @@ const ProductList = () => {
                 className="w-full py-2.5 bg-gray-50 text-xs font-bold text-gray-500 hover:text-red-500 hover:bg-red-50/50 rounded-xl transition-all flex items-center justify-center gap-1.5 border border-dashed border-gray-200"
               >
                 <span className="material-symbols-outlined text-[14px]">restart_alt</span>
-                {t('Reset bộ lọc giá')}
+                {t('Reset bộ lọc')}
               </button>
             </div>
             

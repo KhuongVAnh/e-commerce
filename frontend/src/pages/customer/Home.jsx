@@ -331,13 +331,13 @@ const Home = () => {
                   {/* THÊM MỚI: HIỂN THỊ SAO ĐÁNH GIÁ TỪ API THẬT */}
                   <div className="flex items-center gap-1.5 mt-1 mb-2">
                     <div className="flex">
-                      {renderStars(product.averageRating || 0)}
+                      {renderStars(product.rating || 0)}
                     </div>
                     <span className="text-xs font-bold text-gray-600">
-                      {product.averageRating ? Number(product.averageRating).toFixed(1) : "0.0"}
+                      {product.rating ? Number(product.rating).toFixed(1) : "0.0"}
                     </span>
                     <span className="text-[10px] text-gray-400">
-                      ({product.totalReviews || 0})
+                      ({product.reviewCount || 0})
                     </span>
                   </div>
                   {/* ============================================== */}

@@ -196,16 +196,15 @@ const ProductDetail = () => {
     fetchReviewsList();
   }, [productId, reviewPage, reviewSort, reviewFilterRating, refreshReview]);
 
-
   // ==============================================================
-  // CÁC HÀM XỬ LÝ SỬA / XÓA REVIEW (Bổ sung đầy đủ)
+  // THÊM CHỨC NĂNG SỬA/XÓA REVIEW TÍCH HỢP TỪ API TÀI LIỆU
   // ==============================================================
   const handleDeleteReview = async (reviewId) => {
     if (!window.confirm(t("Bạn có chắc chắn muốn xóa bài đánh giá này?"))) return;
     try {
-      await axiosClient.delete(`/commerce/reviews/${reviewId}`);
+      await axiosClient.delete(`/commerce/reviews/${reviewId}`); // Gọi API 5
       alert(t("Đã xóa đánh giá thành công."));
-      setRefreshReview(prev => prev + 1); // Cập nhật lại list & số sao trung bình
+      setRefreshReview(prev => prev + 1); // Cập nhật lại danh sách và tổng quan
     } catch (error) {
       alert(t("Không thể xóa: ") + (error.response?.data?.message || error.message));
     }
@@ -224,7 +223,8 @@ const ProductDetail = () => {
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length + editForm.existingImageUrls.length + editForm.newImages.length > 5) {
-      alert(t("Tối đa 5 ảnh.")); return;
+      alert(t("Tối đa 5 ảnh.")); 
+      return;
     }
     setEditForm(prev => ({ ...prev, newImages: [...prev.newImages, ...files] }));
     e.target.value = '';
@@ -238,6 +238,7 @@ const ProductDetail = () => {
     setIsSubmitting(true);
     try {
       const uploadedUrls = [];
+      // 1. Upload ảnh qua API /uploads/images
       for (const file of editForm.newImages) {
         const formData = new FormData();
         formData.append('image', file);
@@ -248,6 +249,7 @@ const ProductDetail = () => {
 
       const finalImageUrls = [...editForm.existingImageUrls, ...uploadedUrls];
 
+      // 2. Gọi API 4 để cập nhật Review
       await axiosClient.patch(`/commerce/reviews/${editModal.reviewId}`, {
         rating: editForm.rating,
         commentText: editForm.commentText,
@@ -256,7 +258,7 @@ const ProductDetail = () => {
 
       alert(t("Cập nhật đánh giá thành công!"));
       setEditModal({ isOpen: false, reviewId: null });
-      setRefreshReview(prev => prev + 1); // Cập nhật lại list & số sao trung bình
+      setRefreshReview(prev => prev + 1); // Load lại dữ liệu
     } catch (error) {
       alert(t("Lỗi cập nhật: ") + (error.response?.data?.message || error.message));
     } finally {
@@ -269,7 +271,7 @@ const ProductDetail = () => {
     return (
       <div className="max-w-7xl mx-auto py-24 text-center">
         <span className="material-symbols-outlined animate-spin text-4xl text-[#2b3896]">progress_activity</span>
-        <p className="mt-4 text-gray-500 font-medium">{t('Đang tải thông tin sản phẩm...')}</p>
+        <p className="mt-4 text-gray-500 font-medium">{t('Đang tải thông ব্যাক্ত phẩm...')}</p>
       </div>
     );
   }
