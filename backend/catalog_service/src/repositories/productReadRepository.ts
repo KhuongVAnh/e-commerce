@@ -12,6 +12,7 @@ export type listPublicProductsParams = {
     minPrice?: Prisma.Decimal;
     maxPrice?: Prisma.Decimal;
     sortBy: PublicProductSortBy;
+    rating?: number;
 };
 
 function buildPublicProductWhere(params: listPublicProductsParams): Prisma.ProductWhereInput {
@@ -20,6 +21,7 @@ function buildPublicProductWhere(params: listPublicProductsParams): Prisma.Produ
         deletedAt: null,
         ...(params.shopId !== undefined ? { shopId: params.shopId } : {}),
         ...(params.categoryId !== undefined ? { categoryId: params.categoryId } : {}),
+        ...(params.rating !== undefined ? { rating: { gte: params.rating } } : {}),
         ...(params.minPrice !== undefined || params.maxPrice !== undefined
             ? {
                 price: {
