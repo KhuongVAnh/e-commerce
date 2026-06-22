@@ -28,6 +28,84 @@ const CATEGORIES = [
   { id: 2015n, name: "Máy ảnh & phụ kiện", slug: "may-anh-phu-kien", status: "ACTIVE" },
 ];
 
+const SHOP_PROFILES = {
+  "dien-tu": {
+    segment: "thiết bị công nghệ chính hãng",
+    promise: "đổi mới 7 ngày, bảo hành điện tử và hỗ trợ cài đặt ban đầu",
+    audience: "dân văn phòng, sinh viên, creator và người dùng cần thiết bị bền để làm việc hằng ngày",
+  },
+  "thoi-trang": {
+    segment: "thời trang ứng dụng theo mùa",
+    promise: "kiểm form trước khi giao, hỗ trợ đổi size và gợi ý phối đồ",
+    audience: "khách hàng cần trang phục đi làm, đi học, dạo phố và dự tiệc",
+  },
+  "do-gia-dung": {
+    segment: "đồ gia dụng thông minh",
+    promise: "sản phẩm tiết kiệm điện, hướng dẫn sử dụng rõ ràng và bảo hành tại hãng",
+    audience: "gia đình trẻ, căn hộ chung cư và người muốn tối ưu việc nhà",
+  },
+  "lam-dep": {
+    segment: "mỹ phẩm và chăm sóc cá nhân",
+    promise: "cam kết nguồn gốc rõ ràng, hạn dùng xa và tư vấn theo loại da",
+    audience: "người mới skincare, người trang điểm hằng ngày và khách hàng da nhạy cảm",
+  },
+  "the-thao": {
+    segment: "dụng cụ thể thao và outdoor",
+    promise: "chọn size đúng, chất liệu bền và phù hợp cường độ tập luyện",
+    audience: "người chạy bộ, tập gym, chơi bóng, yoga và dã ngoại cuối tuần",
+  },
+  "sach-van-phong-pham": {
+    segment: "sách, học liệu và văn phòng phẩm",
+    promise: "sách mới, giấy đẹp, đóng gói chống cong góc và giao nhanh cho trường/lớp",
+    audience: "học sinh, sinh viên, nhân viên văn phòng và người đọc sách thường xuyên",
+  },
+  "me-va-be": {
+    segment: "sản phẩm mẹ và bé an toàn",
+    promise: "ưu tiên chất liệu lành tính, thông tin độ tuổi rõ ràng và tư vấn theo giai đoạn phát triển",
+    audience: "phụ huynh có trẻ sơ sinh, trẻ nhỏ và gia đình chuẩn bị đón em bé",
+  },
+  "thu-cung": {
+    segment: "đồ dùng chăm sóc thú cưng",
+    promise: "sản phẩm dễ dùng, an toàn cho vật nuôi và phù hợp thói quen chăm sóc tại nhà",
+    audience: "người nuôi chó, mèo và các shop grooming nhỏ",
+  },
+  "o-to-xe-may": {
+    segment: "phụ kiện ô tô xe máy",
+    promise: "lắp đặt đơn giản, tăng tiện nghi và hỗ trợ bảo vệ phương tiện",
+    audience: "người đi làm bằng xe máy, chủ ô tô gia đình và tài xế dịch vụ",
+  },
+  "suc-khoe": {
+    segment: "thiết bị và sản phẩm chăm sóc sức khỏe",
+    promise: "thông số minh bạch, dễ theo dõi tại nhà và phù hợp sử dụng định kỳ",
+    audience: "gia đình có người lớn tuổi, người tập luyện và người cần theo dõi sức khỏe cá nhân",
+  },
+  "thuc-pham-do-uong": {
+    segment: "thực phẩm, đồ uống và quà biếu",
+    promise: "ngày sản xuất mới, đóng gói chắc chắn và phân loại rõ dùng hằng ngày/quà tặng",
+    audience: "gia đình, văn phòng, người bận rộn và khách mua theo combo tiết kiệm",
+  },
+  "nha-cua-vuon": {
+    segment: "đồ nhà cửa, trang trí và làm vườn",
+    promise: "vật liệu bền, dễ lắp đặt và phù hợp nhiều diện tích nhà",
+    audience: "người sống căn hộ, nhà phố và khách thích chăm cây/trang trí không gian",
+  },
+  "phu-kien-mobile": {
+    segment: "phụ kiện điện thoại và tablet",
+    promise: "tương thích rõ model, bảo vệ thiết bị tốt và hỗ trợ đổi nếu không vừa",
+    audience: "người dùng smartphone, tablet, game mobile và làm việc di động",
+  },
+  "do-choi-giai-tri": {
+    segment: "đồ chơi giáo dục và giải trí gia đình",
+    promise: "ưu tiên chất liệu an toàn, tăng tương tác và phù hợp nhiều độ tuổi",
+    audience: "trẻ em, gia đình, nhóm bạn và người sưu tầm mô hình",
+  },
+  "may-anh-phu-kien": {
+    segment: "máy ảnh, quay phim và phụ kiện studio",
+    promise: "tư vấn đúng nhu cầu chụp/quay, bảo quản chống ẩm và hỗ trợ kiểm tra thiết bị",
+    audience: "nhiếp ảnh gia, vlogger, studio nhỏ và người mới bắt đầu làm nội dung",
+  },
+};
+
 const SHOPS = CATEGORIES.map((c, i) => ({
   id: BigInt(3001 + i),
   sellerId: BigInt(1101 + i),
@@ -35,7 +113,7 @@ const SHOPS = CATEGORIES.map((c, i) => ({
   slug: `dai-ly-chinh-hang-${c.slug}`,
   logoUrl: `https://loremflickr.com/300/300/logo,store,${c.slug}/all?lock=${3001 + i}`,
   address: `${10 + i} Nguyễn Huệ, Quận 1, TP.HCM`,
-  description: `Cửa hàng chuyên phân phối chính hãng các sản phẩm ${c.name}. Cam kết chất lượng và bảo hành toàn quốc.`,
+  description: `Cửa hàng chuyên ${SHOP_PROFILES[c.slug].segment}. ${SHOP_PROFILES[c.slug].promise}. Phù hợp cho ${SHOP_PROFILES[c.slug].audience}.`,
   status: "ACTIVE",
 }));
 
@@ -433,6 +511,138 @@ const PRODUCT_DEFINITIONS = [
 ];
 
 const categoryIdBySlug = new Map(CATEGORIES.map((category) => [category.slug, category.id]));
+const categoryNameBySlug = new Map(CATEGORIES.map((category) => [category.slug, category.name]));
+
+const CATEGORY_DEPTH = {
+  "dien-tu": {
+    specs: ["hàng chính hãng", "cấu hình rõ ràng", "phụ kiện đi kèm đầy đủ", "bảo hành điện tử"],
+    useCases: ["làm việc đa nhiệm", "học online", "giải trí chất lượng cao", "sáng tạo nội dung"],
+    care: "Kiểm tra serial và kích hoạt bảo hành trước khi sử dụng.",
+  },
+  "thoi-trang": {
+    specs: ["form dễ mặc", "đường may chắc", "chất liệu chọn lọc", "màu sắc dễ phối"],
+    useCases: ["đi làm", "đi học", "dạo phố", "du lịch cuối tuần"],
+    care: "Nên giặt nhẹ, phơi nơi thoáng mát để giữ phom và màu vải.",
+  },
+  "do-gia-dung": {
+    specs: ["tiết kiệm điện", "dễ vệ sinh", "vận hành ổn định", "thiết kế phù hợp căn hộ"],
+    useCases: ["nấu nướng hằng ngày", "dọn dẹp nhà cửa", "chăm sóc không gian sống", "tiết kiệm thời gian"],
+    care: "Đọc hướng dẫn trước khi dùng và vệ sinh định kỳ để tăng tuổi thọ.",
+  },
+  "lam-dep": {
+    specs: ["kết cấu dễ dùng", "nguồn gốc rõ ràng", "phù hợp dùng hằng ngày", "đóng gói chắc chắn"],
+    useCases: ["skincare cơ bản", "trang điểm đi làm", "chăm sóc tóc và cơ thể", "làm quà tặng"],
+    care: "Nên thử trên vùng da nhỏ trước khi dùng toàn mặt nếu da nhạy cảm.",
+  },
+  "the-thao": {
+    specs: ["chất liệu bền", "thiết kế hỗ trợ vận động", "trọng lượng hợp lý", "dễ mang theo"],
+    useCases: ["tập luyện tại nhà", "đến phòng gym", "thi đấu phong trào", "hoạt động ngoài trời"],
+    care: "Lau khô sau khi sử dụng và bảo quản nơi khô thoáng.",
+  },
+  "sach-van-phong-pham": {
+    specs: ["nội dung chọn lọc", "giấy in rõ", "đóng gáy chắc", "phù hợp học tập và làm việc"],
+    useCases: ["đọc cá nhân", "học tập", "làm việc văn phòng", "tặng bạn bè/đồng nghiệp"],
+    care: "Bảo quản nơi khô, tránh cong mép và ánh nắng trực tiếp.",
+  },
+  "me-va-be": {
+    specs: ["chất liệu an toàn", "thông tin độ tuổi rõ", "thiết kế dễ vệ sinh", "ưu tiên sự thoải mái"],
+    useCases: ["chăm sóc trẻ hằng ngày", "đi học", "đi chơi", "chuẩn bị đồ sơ sinh"],
+    care: "Vệ sinh trước lần dùng đầu tiên và kiểm tra định kỳ khi trẻ sử dụng.",
+  },
+  "thu-cung": {
+    specs: ["dễ vệ sinh", "chất liệu thân thiện", "kích thước thực dụng", "phù hợp dùng trong nhà"],
+    useCases: ["chăm sóc chó mèo", "vệ sinh chuồng trại", "huấn luyện cơ bản", "đi dạo"],
+    care: "Làm sạch thường xuyên để hạn chế mùi và vi khuẩn.",
+  },
+  "o-to-xe-may": {
+    specs: ["lắp đặt đơn giản", "vật liệu bền", "tăng tiện nghi", "phù hợp di chuyển hằng ngày"],
+    useCases: ["đi làm", "đi phượt", "chăm sóc xe tại nhà", "nâng cấp phụ kiện"],
+    care: "Kiểm tra độ tương thích với dòng xe trước khi lắp đặt.",
+  },
+  "suc-khoe": {
+    specs: ["dễ thao tác", "thông số dễ theo dõi", "thiết kế gọn", "phù hợp sử dụng định kỳ"],
+    useCases: ["theo dõi sức khỏe tại nhà", "phục hồi sau vận động", "chăm sóc người lớn tuổi", "tập luyện cá nhân"],
+    care: "Sản phẩm không thay thế tư vấn y tế chuyên môn khi có triệu chứng bất thường.",
+  },
+  "thuc-pham-do-uong": {
+    specs: ["hạn dùng rõ", "đóng gói kỹ", "hương vị ổn định", "dễ bảo quản"],
+    useCases: ["bữa ăn gia đình", "ăn nhẹ văn phòng", "tiệc nhỏ", "làm quà biếu"],
+    care: "Bảo quản theo hướng dẫn trên bao bì sau khi mở.",
+  },
+  "nha-cua-vuon": {
+    specs: ["dễ lắp đặt", "vật liệu bền", "tối ưu không gian", "phù hợp khí hậu Việt Nam"],
+    useCases: ["trang trí nhà", "chăm vườn ban công", "sắp xếp đồ đạc", "sửa chữa nhỏ"],
+    care: "Vệ sinh định kỳ và tránh để ngoài trời quá lâu nếu sản phẩm không chuyên outdoor.",
+  },
+  "phu-kien-mobile": {
+    specs: ["tương thích nhiều thiết bị", "thiết kế gọn", "độ bền cao", "hỗ trợ sử dụng di động"],
+    useCases: ["sạc nhanh", "bảo vệ thiết bị", "làm việc di động", "chơi game và giải trí"],
+    care: "Kiểm tra model thiết bị trước khi đặt mua để đảm bảo vừa khít.",
+  },
+  "do-choi-giai-tri": {
+    specs: ["màu sắc bắt mắt", "tăng tương tác", "chất liệu an toàn", "phù hợp chơi nhóm"],
+    useCases: ["giải trí gia đình", "phát triển tư duy", "sưu tầm", "quà sinh nhật"],
+    care: "Cất gọn sau khi chơi và tránh để trẻ nhỏ dùng chi tiết quá bé nếu không phù hợp độ tuổi.",
+  },
+  "may-anh-phu-kien": {
+    specs: ["thông số rõ ràng", "độ hoàn thiện tốt", "hỗ trợ workflow quay chụp", "dễ mang theo"],
+    useCases: ["chụp chân dung", "quay vlog", "làm studio nhỏ", "du lịch và sự kiện"],
+    care: "Bảo quản trong môi trường khô, dùng túi chống ẩm với thân máy và ống kính.",
+  },
+};
+
+function pickByIndex(values, index, offset = 0) {
+  return values[(index + offset) % values.length];
+}
+
+function buildRichDescription(baseDescription, categorySlug, productIndex, price) {
+  const depth = CATEGORY_DEPTH[categorySlug];
+  const categoryName = categoryNameBySlug.get(categorySlug);
+  const specOne = pickByIndex(depth.specs, productIndex);
+  const specTwo = pickByIndex(depth.specs, productIndex, 2);
+  const useCaseOne = pickByIndex(depth.useCases, productIndex, 1);
+  const useCaseTwo = pickByIndex(depth.useCases, productIndex, 3);
+  const priceTier = price >= 5000000
+    ? "phân khúc cao cấp"
+    : price >= 1000000
+      ? "phân khúc tầm trung"
+      : "phân khúc dễ tiếp cận";
+
+  return [
+    baseDescription,
+    `Thuộc nhóm ${categoryName}, sản phẩm nằm ở ${priceTier}, nổi bật nhờ ${specOne} và ${specTwo}.`,
+    `Phù hợp cho nhu cầu ${useCaseOne} hoặc ${useCaseTwo}.`,
+    depth.care,
+  ].join(" ");
+}
+
+function buildProductStatus(productGlobalIndex, originalStock) {
+  const ordinal = productGlobalIndex + 1;
+
+  if (ordinal % 37 === 0) {
+    return { status: "OUT_OF_STOCK", stockQuantity: 0 };
+  }
+
+  if (ordinal % 29 === 0) {
+    return { status: "INACTIVE", stockQuantity: originalStock };
+  }
+
+  return { status: "ACTIVE", stockQuantity: originalStock };
+}
+
+function buildRating(productGlobalIndex, status) {
+  if (status === "INACTIVE") {
+    return { rating: 0, reviewCount: 0 };
+  }
+
+  const reviewCount = 8 + ((productGlobalIndex * 17) % 420);
+  const rating = Math.min(5, 3.8 + ((productGlobalIndex * 13) % 12) / 10);
+
+  return {
+    rating: Number(rating.toFixed(1)),
+    reviewCount,
+  };
+}
 
 function nameToSlug(value) {
   return value
@@ -459,21 +669,29 @@ function buildProducts() {
       throw new Error(`Missing category for slug ${group.categorySlug}`);
     }
 
-    for (const item of group.products) {
+    for (let productIndex = 0; productIndex < group.products.length; productIndex += 1) {
+      const item = group.products[productIndex];
       const id = BigInt(4001 + products.length);
+      const productGlobalIndex = products.length;
       const [name, description, price, stockQuantity, tags] = item;
+      const { status, stockQuantity: seededStockQuantity } = buildProductStatus(productGlobalIndex, stockQuantity);
+      const { rating, reviewCount } = buildRating(productGlobalIndex, status);
+      const enrichedTags = [...tags, group.categorySlug];
+
       products.push({
         id,
         shopId: group.shopId,
         categoryId,
         name,
         slug: nameToSlug(name),
-        description,
+        description: buildRichDescription(description, group.categorySlug, productIndex, price),
         price: Number(price).toFixed(2),
-        stockQuantity,
-        thumbnailUrl: imageUrl(tags, Number(id), 0),
-        status: "ACTIVE",
-        imageTags: tags,
+        stockQuantity: seededStockQuantity,
+        thumbnailUrl: imageUrl(enrichedTags, Number(id), 0),
+        status,
+        rating,
+        reviewCount,
+        imageTags: enrichedTags,
       });
     }
   }
