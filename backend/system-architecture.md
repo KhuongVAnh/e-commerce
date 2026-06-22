@@ -288,6 +288,8 @@ flowchart LR
 | `status` | `enum` | `ACTIVE` / `INACTIVE` / `OUT_OF_STOCK` |
 | `created_at` | `datetime` | Thời gian tạo |
 | `updated_at` | `datetime` | Thời gian cập nhật |
+| `rating` | `decimal` | Điểm đánh giá trung bình |
+| `review_count` | `int` | Tổng số lượt đánh giá |
 
 ##### Bảng `product_images`
 
@@ -472,6 +474,8 @@ flowchart LR
 | Mỗi order item chỉ được đánh giá một lần | Dùng unique constraint trên `order_item_id` |
 | Rating giới hạn từ 0 đến 5 | Dùng check constraint ở database |
 | Bình luận chỉ hỗ trợ text và ảnh | Ảnh lưu bằng danh sách URL, không lưu video |
+| Quản trị nội dung | Admin có quyền xem toàn bộ và xóa các đánh giá vi phạm tiêu chuẩn |
+| Đồng bộ dữ liệu | Sau khi thêm/sửa/xóa đánh giá, hệ thống tính toán lại số sao và tự động đồng bộ sang bảng `products` của Catalog Service |
 
 ##### Bảng `product_reviews`
 
@@ -520,6 +524,13 @@ Phần này có thể triển khai ở mức cơ bản bằng query tổng hợp
 | `GET` | `/payments/order/:orderId` | Xem payment của đơn hàng |
 | `GET` | `/seller/revenue-summary` | Doanh thu seller |
 | `GET` | `/admin/dashboard-summary` | Dashboard cơ bản cho admin |
+| `GET` | `/products/:productId/reviews` | Xem danh sách đánh giá của 1 sản phẩm |
+| `GET` | `/shops/:shopId/reviews/summary` | Xem tổng quan số sao của toàn bộ 1 shop |
+| `POST` | `/reviews` | Customer viết đánh giá mới |
+| `GET` | `/reviews/my` | Customer xem lịch sử đánh giá của chính mình |
+| `GET` | `/seller/reviews` | Seller xem danh sách đánh giá của shop mình |
+| `GET` | `/admin/reviews` | Admin xem danh sách đánh giá toàn hệ thống |
+| `DELETE` | `/admin/reviews/:reviewId` | Admin xóa bài đánh giá vi phạm |
 
 ### 4.5. Notification Service
 
@@ -627,6 +638,17 @@ Phần này có thể triển khai ở mức cơ bản bằng query tổng hợp
 | 2 | Seller cập nhật trạng thái đơn | Commerce Service |
 | 3 | Publish `order.status.updated` | Commerce Service |
 | 4 | Notification gửi thông báo cho customer | Notification Service |
+
+### 6.6. Luồng customer đánh giá sản phẩm
+
+| Bước | Mô tả | Service tham gia |
+|-------|--------|------------------|
+| 1 | Customer gọi API kiểm tra điều kiện đánh giá (đơn hàng đã DELIVERED chưa, đã đánh giá chưa) | Commerce Service |
+| 2 | Customer gửi thông tin đánh giá (Số sao, bình luận, ảnh) | Commerce Service |
+| 3 | Lưu thông tin vào bảng `product_reviews` | Commerce Service |
+| 4 | Tính toán lại số sao trung bình và tổng lượt đánh giá hiện tại của sản phẩm | Commerce Service |
+| 5 | Gọi API Internal ngầm sang Catalog để cập nhật lại `rating` và `reviewCount` | Commerce Service → Catalog Service |
+| 6 | Xóa cache của sản phẩm để người dùng khác thấy điểm đánh giá mới nhất | Catalog Service (Redis) |
 
 ## 7. Thiết kế Redis caching
 
