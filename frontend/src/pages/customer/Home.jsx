@@ -260,7 +260,7 @@ const Home = () => {
             ))}
           </div>
         ) : categories.length === 0 ? (
-          <div className="text-gray-500 italic">Đang cập nhật danh mục...</div>
+          <div className="text-gray-500 italic">{t('Đang cập nhật danh mục...')}</div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
             {categories.map((category) => (
@@ -298,7 +298,7 @@ const Home = () => {
         {loadingProducts ? (
           <div className="flex flex-col items-center justify-center py-20">
             <span className="material-symbols-outlined animate-spin text-5xl text-[#2b3896]">progress_activity</span>
-            <p className="mt-4 text-gray-500 font-medium">Đang tải sản phẩm...</p>
+            <p className="mt-4 text-gray-500 font-medium">{t('Đang tải sản phẩm...')}</p>
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-24 bg-white rounded-3xl border border-gray-100 shadow-sm">
@@ -317,7 +317,7 @@ const Home = () => {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-[#2b3896]">
-                    Mới
+                    {t('Mới')}
                   </div>
                 </Link>
                 
@@ -356,7 +356,7 @@ const Home = () => {
                     <button 
                       onClick={(e) => handleAddToCart(e, product)}
                       className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-[#2b3896] hover:text-white transition-colors"
-                      title="Thêm vào giỏ hàng"
+                      title={t("Thêm vào giỏ hàng")}
                     >
                       <span className="material-symbols-outlined text-sm">add_shopping_cart</span>
                     </button>
