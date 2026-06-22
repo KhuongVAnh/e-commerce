@@ -49,6 +49,44 @@ export const reviewService = {
     return { averageRating, totalReviews, ratingBreakdown };
   },
 
+  // Thống kê số sao trung bình cho toàn bộ Shop
+  async getShopReviewSummary(shopId: bigint) {
+    const reviews = await prisma.productReview.findMany({
+      where: { shopId },
+      select: { rating: true }
+    });
+
+    const totalReviews = reviews.length;
+    let averageRating = 0;
+    const ratingBreakdown = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+    if (totalReviews > 0) {
+      let sum = 0;
+      reviews.forEach(r => {
+        sum += r.rating;
+        ratingBreakdown[r.rating as keyof typeof ratingBreakdown] += 1;
+      });
+      averageRating = Number((sum / totalReviews).toFixed(1));
+    }
+
+    return { averageRating, totalReviews, ratingBreakdown };
+  },
+
+  // Lấy danh sách đánh giá của Shop dành cho Seller
+  async getSellerReviews(shopId: bigint, page: number, limit: number) {
+    const skip = (page - 1) * limit;
+    const [reviews, total] = await Promise.all([
+      prisma.productReview.findMany({
+        where: { shopId },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.productReview.count({ where: { shopId } })
+    ]);
+    return { reviews, total };
+  },
+
   // 3. Logic check điều kiện Review
   async checkEligibility(orderItemId: bigint, customerId: bigint) {
     const orderItem = await prisma.orderItem.findUnique({
@@ -125,6 +163,37 @@ export const reviewService = {
     if (review.customerId !== customerId) throw new Error("FORBIDDEN");
 
     await prisma.productReview.delete({ where: { id: reviewId } });
-    return true;
+
+    return review; 
+  },
+
+  // Admin lấy toàn bộ danh sách đánh giá
+  async getAdminReviews(page: number, limit: number, shopId?: bigint, productId?: bigint) {
+    const skip = (page - 1) * limit;
+    const whereClause: any = {};
+
+    if (shopId) whereClause.shopId = shopId;
+    if (productId) whereClause.productId = productId;
+
+    const [reviews, total] = await Promise.all([
+      prisma.productReview.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.productReview.count({ where: whereClause })
+    ]);
+    return { reviews, total };
+  },
+
+  // Admin xóa đánh giá bất kỳ không cần check quyền sở hữu
+  async adminDeleteReview(reviewId: bigint) {
+    const review = await prisma.productReview.findUnique({ where: { id: reviewId } });
+    if (!review) throw new Error("REVIEW_NOT_FOUND");
+
+    await prisma.productReview.delete({ where: { id: reviewId } });
+
+    return review; 
   }
 };

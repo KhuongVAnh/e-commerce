@@ -628,6 +628,7 @@ function assertPublicListProductQuery(query: listProductQuery): {
     minPrice?: Prisma.Decimal;
     maxPrice?: Prisma.Decimal;
     sortBy: PublicProductSortBy;
+    rating?: number;
 } {
     const fieldErrors: Array<{ field: string; message: string }> = [];
 
@@ -737,6 +738,27 @@ function assertPublicListProductQuery(query: listProductQuery): {
         }
     }
 
+    let rating: number | undefined;
+    const rawRating = typeof query.rating === "string" ? query.rating.trim() : "";
+    if (rawRating) {
+        const parsedRating = Number(rawRating);
+        if (isNaN(parsedRating) || parsedRating < 0 || parsedRating > 5) {
+            fieldErrors.push({
+                field: "rating",
+                message: "rating phải là số từ 0 đến 5",
+            });
+        } else {
+            rating = parsedRating;
+        }
+    }
+
+    if (fieldErrors.length > 0) {
+        throw new HttpError(400, "Dữ liệu không hợp lệ", {
+            code: "VALIDATION_ERROR",
+            fieldErrors,
+        });
+    }
+
     if (fieldErrors.length > 0) {
         throw new HttpError(400, "Dữ liệu không hợp lệ", {
             code: "VALIDATION_ERROR",
@@ -753,6 +775,7 @@ function assertPublicListProductQuery(query: listProductQuery): {
         minPrice,
         maxPrice,
         sortBy,
+        rating,
     };
 }
 
@@ -766,6 +789,7 @@ function normalizePublicProductListCacheQuery(payload: {
     minPrice?: Prisma.Decimal;
     maxPrice?: Prisma.Decimal;
     sortBy: PublicProductSortBy;
+    rating?: number;
 }) {
     return {
         page: payload.page,
@@ -776,6 +800,7 @@ function normalizePublicProductListCacheQuery(payload: {
         minPrice: payload.minPrice !== undefined ? payload.minPrice.toFixed(2) : null,
         maxPrice: payload.maxPrice !== undefined ? payload.maxPrice.toFixed(2) : null,
         sortBy: payload.sortBy,
+        rating: payload.rating ?? null,
     };
 }
 
@@ -790,6 +815,8 @@ function toProductResponse(product: ProductWithRelations): productResponse {
         price: Number(product.price),
         stockQuantity: product.stockQuantity,
         thumbnailUrl: product.thumbnailUrl,
+        rating: product.rating,
+        reviewCount: product.reviewCount,
         status: product.status,
         deletedAt: product.deletedAt ? product.deletedAt.toISOString() : null,
         createdAt: product.createdAt.toISOString(),
@@ -822,6 +849,8 @@ function toPublicProductListItemResponse(product: PublicProductListRecord): publ
         price: Number(product.price),
         stockQuantity: product.stockQuantity,
         thumbnailUrl: product.thumbnailUrl,
+        rating: product.rating,
+        reviewCount: product.reviewCount,
         status: product.status,
     };
 }
@@ -882,6 +911,8 @@ function toPublicProductDetailResponse(product: PublicProductDetailRecord): publ
             status: product.status,
             createdAt: product.createdAt.toISOString(),
             updatedAt: product.updatedAt.toISOString(),
+            rating: product.rating,
+            reviewCount: product.reviewCount,
         },
         images: product.images.map((image) => ({
             id: Number(image.id),
@@ -1553,4 +1584,31 @@ export async function incrementProductsStock(items: Array<{ productId: bigint; q
     await invalidateProductListCache();
 
     return results;
+}
+
+/**
+ * Cập nhật điểm đánh giá trung bình (Internal API dùng cho Commerce Service)
+ */
+export async function updateProductRating(productId: bigint, averageRating: number, totalReviews: number) {
+    const updatedProduct = await prisma.product.update({
+        where: { id: productId },
+        data: {
+            rating: averageRating,
+            reviewCount: totalReviews
+        },
+        select: {
+            id: true,
+            rating: true,
+            reviewCount: true
+        }
+    });
+
+    await invalidateProductDetailCache(productId);
+    await invalidateProductListCache();
+
+    return {
+        id: Number(updatedProduct.id),
+        rating: updatedProduct.rating,
+        reviewCount: updatedProduct.reviewCount
+    };
 }

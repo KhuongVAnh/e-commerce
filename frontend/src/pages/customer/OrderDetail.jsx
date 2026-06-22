@@ -14,6 +14,7 @@ export default function OrderDetail() {
     const [isPaying, setIsPaying] = useState(false);
     
     const [popup, setPopup] = useState({ isOpen: false, message: '', type: 'error' });
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
     useEffect(() => {
         const fetchDetail = async () => {
@@ -59,9 +60,8 @@ export default function OrderDetail() {
         }
     };
 
-    const handleCancelOrder = async () => {
-        if (!window.confirm(t("Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác."))) return;
-        
+    const executeCancelOrder = async () => {
+        setShowCancelConfirm(false);
         setIsCancelling(true);
         try {
             const res = await orderService.cancelOrder(order.orderCode);
@@ -147,7 +147,7 @@ export default function OrderDetail() {
 
                     {canCancel && (
                         <button 
-                            onClick={handleCancelOrder}
+                            onClick={() => setShowCancelConfirm(true)}
                             disabled={isCancelling}
                             className="bg-red-50 text-red-600 border border-red-200 px-6 py-3 rounded-full font-semibold transition-all duration-300 hover:bg-red-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                         >
@@ -375,6 +375,35 @@ export default function OrderDetail() {
                         >
                             {t('Đóng')}
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {showCancelConfirm && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+                    <div className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl transform transition-all text-center border border-gray-100">
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100">
+                            <span className="material-symbols-outlined text-3xl text-red-600" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                warning
+                            </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2 font-['Be_Vietnam_Pro']">{t('Xác nhận hủy đơn')}</h3>
+                        <p className="text-gray-600 mb-8 text-sm leading-relaxed">{t('Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác.')}</p>
+                        
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setShowCancelConfirm(false)} 
+                                className="w-1/2 font-bold py-3.5 rounded-xl bg-gray-100 text-gray-800 hover:bg-gray-200 active:scale-95 transition-all"
+                            >
+                                {t('Không')}
+                            </button>
+                            <button 
+                                onClick={executeCancelOrder} 
+                                className="w-1/2 font-bold py-3.5 rounded-xl bg-red-600 text-white hover:bg-red-700 active:scale-95 transition-all"
+                            >
+                                {t('Đồng ý hủy')}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

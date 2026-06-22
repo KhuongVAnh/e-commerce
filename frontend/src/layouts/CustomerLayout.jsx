@@ -18,7 +18,8 @@ const CustomerLayout = () => {
   const dropdownRef = useRef(null);
   const { totalQuantity, fetchCartTotal } = useCartStore();
 
-  const savedProfile = JSON.parse(localStorage.getItem('demoProfile')) || {};
+  const storageKey = `demoProfile_${user?.id || 'default'}`;
+  const savedProfile = JSON.parse(localStorage.getItem(storageKey)) || {}; 
   const currentName = savedProfile.name || user?.fullName || 'Người dùng';
   const currentEmail = savedProfile.email || user?.email || '';
   const avatarLetter = currentName.charAt(0).toUpperCase();

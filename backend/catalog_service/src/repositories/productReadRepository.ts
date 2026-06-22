@@ -12,6 +12,7 @@ export type listPublicProductsParams = {
     minPrice?: Prisma.Decimal;
     maxPrice?: Prisma.Decimal;
     sortBy: PublicProductSortBy;
+    rating?: number;
 };
 
 function buildPublicProductWhere(params: listPublicProductsParams): Prisma.ProductWhereInput {
@@ -20,6 +21,7 @@ function buildPublicProductWhere(params: listPublicProductsParams): Prisma.Produ
         deletedAt: null,
         ...(params.shopId !== undefined ? { shopId: params.shopId } : {}),
         ...(params.categoryId !== undefined ? { categoryId: params.categoryId } : {}),
+        ...(params.rating !== undefined ? { rating: { gte: params.rating } } : {}),
         ...(params.minPrice !== undefined || params.maxPrice !== undefined
             ? {
                 price: {
@@ -90,6 +92,8 @@ export async function listPublicProductRecords(params: listPublicProductsParams)
                 stockQuantity: true,
                 thumbnailUrl: true,
                 status: true,
+                rating: true,
+                reviewCount: true,
             },
         }),
     ]);
@@ -118,6 +122,8 @@ export async function findPublicProductDetailById(productId: bigint) {
             stockQuantity: true,
             thumbnailUrl: true,
             status: true,
+            rating: true,
+            reviewCount: true,
             createdAt: true,
             updatedAt: true,
             images: {
@@ -159,6 +165,8 @@ export async function findPublicProductsByIds(productIds: bigint[]) {
             stockQuantity: true,
             thumbnailUrl: true,
             status: true,
+            rating: true,
+            reviewCount: true,
         },
     });
 }
