@@ -259,12 +259,16 @@ const ShopDetail = () => {
                                                     </h3>
                                                 </Link>
                                             </div>
+                                            
+                                            {/* ĐÃ SỬA TÊN BIẾN THEO CHUẨN API Ở ĐÂY */}
                                             <div className="flex items-center gap-1 mb-4 mt-auto">
                                                 <span className="material-symbols-outlined text-yellow-500 text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                                                 <span className="text-sm font-medium text-gray-500">
-                                                    {product.averageRating ? product.averageRating.toFixed(1) : '0.0'} ({product.totalReviews || 0})
+                                                    {product.rating ? Number(product.rating).toFixed(1) : '0.0'} ({product.reviewCount || 0})
                                                 </span>
                                             </div>
+                                            {/* -------------------------------------- */}
+
                                             <div className="flex items-center justify-between border-t border-gray-100 pt-4">
                                                 <div className="flex items-baseline gap-1">
                                                     <span className="text-xl font-black text-[#2b3896]">{formatPrice(product.price)}</span>
