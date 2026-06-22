@@ -294,6 +294,9 @@ const resources = {
       "Thanh Toán": "Checkout",
       "Thanh toán trực tuyến": "Online Payment",
       "thanh toán trực tuyến": "online payment",
+      "Xác nhận hủy đơn": "Confirm Order Cancellation",
+      "Không": "Cancel",
+      "Đồng ý hủy": "Confirm",
 
       // ==========================================
       // 8. PROFILE & AUTH (LOGIN/REGISTER)
