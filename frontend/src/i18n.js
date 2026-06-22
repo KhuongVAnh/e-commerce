@@ -307,6 +307,7 @@ const resources = {
       "Tài khoản của tôi": "My Account",
       "Hồ sơ": "Profile",
       "Đổi mật khẩu": "Change Password",
+      "Đánh giá của tôi": "My Reviews",
       "Đơn mua": "Orders",
       "Hồ Sơ Của Tôi": "My Profile",
       "Quản lý và bảo mật thông tin tài khoản của bạn": "Manage and secure your account information",
