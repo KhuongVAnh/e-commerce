@@ -8,22 +8,20 @@ const Profile = () => {
   const { user } = useAuthStore();
   const { t } = useTranslation();
 
-  const savedProfile = JSON.parse(localStorage.getItem('demoProfile')) || {};
-
   const [savedData, setSavedData] = useState({
-    name: savedProfile.name || user?.fullName || t('Nguyễn Văn Thắng'),
-    email: savedProfile.email || user?.email || 'customer1@cnweb.local',
-    phone: savedProfile.phone || '0912345678'
+    name: '',
+    email: '',
+    phone: ''
   });
 
   const [formData, setFormData] = useState({
-    name: savedData.name,
-    email: savedData.email,
-    phone: savedData.phone,
-    gender: savedProfile.gender || 'male',
-    day: savedProfile.day || '15',
-    month: savedProfile.month || '8',
-    year: savedProfile.year || '2004'
+    name: '',
+    email: '',
+    phone: '',
+    gender: 'male',
+    day: '15',
+    month: '8',
+    year: '2004'
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -34,6 +32,29 @@ const Profile = () => {
 
   const [activeSection, setActiveSection] = useState('profile');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const storageKey = `demoProfile_${user.id || 'default'}`;
+      const savedProfile = JSON.parse(localStorage.getItem(storageKey)) || {};
+
+      const currentSavedData = {
+        name: savedProfile.name || user.fullName || t('Nguyễn Văn Thắng'),
+        email: savedProfile.email || user.email || 'customer1@cnweb.local',
+        phone: savedProfile.phone || '0912345678'
+      };
+
+      setSavedData(currentSavedData);
+
+      setFormData({
+        ...currentSavedData,
+        gender: savedProfile.gender || 'male',
+        day: savedProfile.day || '15',
+        month: savedProfile.month || '8',
+        year: savedProfile.year || '2004'
+      });
+    }
+  }, [user, t]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -47,8 +68,9 @@ const Profile = () => {
     setIsLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      localStorage.setItem('demoProfile', JSON.stringify(formData));
+
+      const storageKey = `demoProfile_${user?.id || 'default'}`;
+      localStorage.setItem(storageKey, JSON.stringify(formData));
       
       setSavedData({
         name: formData.name,
@@ -130,13 +152,6 @@ const Profile = () => {
             <span className="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-[#2b3896]">receipt_long</span>
             <span className="text-sm font-bold">{t('Đơn mua')}</span>
           </Link>
-
-          {/* THÊM LINK NÀY ĐỂ MỞ TRANG MY REVIEWS (API 6) */}
-          <Link to="/my-reviews" className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:text-[#2b3896] hover:bg-gray-50 rounded-xl transition-colors group">
-            <span className="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-[#2b3896]">rate_review</span>
-            <span className="text-sm font-bold">{t('Đánh giá của tôi')}</span>
-          </Link>
-
           <Link to="/notifications" className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:text-[#2b3896] hover:bg-gray-50 rounded-xl transition-colors group">
             <span className="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-[#2b3896]">notifications</span>
             <span className="text-sm font-bold">{t('Thông báo')}</span>
@@ -159,7 +174,7 @@ const Profile = () => {
                 <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] items-center gap-4">
                   <label className="text-sm text-gray-500 font-bold md:text-right">{t('Tên đăng nhập')}</label>
                   <div className="text-sm font-bold text-gray-900 px-1">
-                    {savedData.email.split('@')[0]}
+                    {savedData.email ? savedData.email.split('@')[0] : ''}
                   </div>
                 </div>
 

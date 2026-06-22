@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import axiosClient from '../../utils/axiosClient';
+import useAuthStore from '../../store/useAuthStore';
+import useCartStore from '../../store/useCartStore';
 
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
@@ -33,6 +35,30 @@ const ShopDetail = () => {
 
     const [currentPage, setCurrentPage] = useState(1);
     const productsPerPage = 12;
+    const { isAuthenticated } = useAuthStore();
+    const { fetchCartTotal } = useCartStore();
+
+    const handleAddToCart = async (e, productId) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!isAuthenticated) {
+            toast.error(t("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!"));
+            return;
+        }
+
+        try {
+            await axiosClient.post('/commerce/cart/items', {
+                productId,
+                quantity: 1,
+            });
+            fetchCartTotal();
+            toast.success(t("Đã thêm sản phẩm vào giỏ hàng!"));
+        } catch (err) {
+            console.error(err);
+            toast.error(err.response?.data?.message || err.message || t("Không thể thêm vào giỏ hàng"));
+        }
+    };
 
     useEffect(() => {
         const fetchShopDetail = async () => {
@@ -274,7 +300,11 @@ const ShopDetail = () => {
                                                     <span className="text-xl font-black text-[#2b3896]">{formatPrice(product.price)}</span>
                                                     <span className="text-xs font-bold text-[#2b3896] opacity-70 uppercase tracking-wider">₫</span>
                                                 </div>
-                                                <button className="w-10 h-10 flex items-center justify-center bg-[#f4f5fa] text-[#2b3896] rounded-full hover:bg-[#2b3896] hover:text-white transition-colors">
+                                                <button 
+                                                    onClick={(e) => handleAddToCart(e, product.id)}
+                                                    disabled={product.stockQuantity === 0}
+                                                    className="w-10 h-10 flex items-center justify-center bg-[#f4f5fa] text-[#2b3896] rounded-full hover:bg-[#2b3896] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
                                                     <span className="material-symbols-outlined text-[20px]">add_shopping_cart</span>
                                                 </button>
                                             </div>

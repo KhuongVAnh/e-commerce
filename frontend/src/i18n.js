@@ -294,6 +294,10 @@ const resources = {
       "Thanh Toán": "Checkout",
       "Thanh toán trực tuyến": "Online Payment",
       "thanh toán trực tuyến": "online payment",
+      "Xác nhận hủy đơn": "Confirm Order Cancellation",
+      "Không": "Cancel",
+      "Đồng ý hủy": "Confirm",
+      "Xem chi tiết": "View Details",
 
       // ==========================================
       // 8. PROFILE & AUTH (LOGIN/REGISTER)
@@ -307,6 +311,7 @@ const resources = {
       "Tài khoản của tôi": "My Account",
       "Hồ sơ": "Profile",
       "Đổi mật khẩu": "Change Password",
+      "Đánh giá của tôi": "My Reviews",
       "Đơn mua": "Orders",
       "Hồ Sơ Của Tôi": "My Profile",
       "Quản lý và bảo mật thông tin tài khoản của bạn": "Manage and secure your account information",
