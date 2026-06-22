@@ -297,6 +297,7 @@ const resources = {
       "Xác nhận hủy đơn": "Confirm Order Cancellation",
       "Không": "Cancel",
       "Đồng ý hủy": "Confirm",
+      "Xem chi tiết": "View Details",
 
       // ==========================================
       // 8. PROFILE & AUTH (LOGIN/REGISTER)

@@ -70,7 +70,7 @@ const OrderCard = ({ order, t }) => {
             to={`/orders/${order.id}`} 
             className="flex items-center justify-center gap-2 bg-gray-100 text-[#2f3f92] px-6 py-2.5 rounded-full font-semibold text-sm hover:bg-[#2b3896] hover:text-white transition-all"
           >
-            {t('View Details')}
+            {t('Xem chi tiết')}
           </Link>
         </div>
       </div>
@@ -145,7 +145,7 @@ export default function OrderHistory() {
   return (
     <main className="pt-28 pb-12 px-6 md:px-12 max-w-7xl mx-auto font-['Inter']">
       <div className="mb-12">
-        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-[#2b3896] mb-2 font-['Be_Vietnam_Pro']">{t('My Orders')}</h1>
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-[#2b3896] mb-2 font-['Be_Vietnam_Pro']">{t('Đơn mua của tôi')}</h1>
         <p className="text-gray-600 max-w-md">{t('Theo dõi, quản lý và kiểm tra lịch sử đặt hàng của bạn một cách dễ dàng.')}</p>
       </div>
 
