@@ -7,22 +7,25 @@ import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import useAuthStore from './store/useAuthStore';
 
+// Admin imports
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import ShopManagement from './pages/admin/ShopManagement';
 import CategoryManagement from './pages/admin/CategoryManagement';
 import ProductManagement from './pages/admin/ProductManagement';
 import OrderManagement from './pages/admin/OrderManagement';
+import AdminReviews from './pages/admin/AdminReviews';
 
+// Seller imports
 import SellerDashboard from './pages/seller/SellerDashboard';
 import ShopForm from './pages/seller/ShopForm';
-
 import SellerProductList from './pages/seller/ProductList';
 import SellerProductForm from './pages/seller/ProductForm';
-
 import SellerOrderList from './pages/seller/OrderList';
 import SellerOrderDetail from './pages/seller/OrderDetail';
+import SellerReviews from './pages/seller/SellerReviews';
 
+// Auth & Customer imports
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Home from './pages/customer/Home';
@@ -39,6 +42,7 @@ import ShopDetail from './pages/customer/ShopDetail';
 import Notifications from './pages/notifications/Notifications';
 import NotificationDetail from './pages/notifications/NotificationDetail';
 import Profile from './pages/customer/Profile';
+import MyReviews from './pages/customer/MyReviews'; // THÊM MỚI
 import About from './pages/customer/About';
 import Help from './pages/customer/Help';
 
@@ -92,6 +96,7 @@ function App() {
           <Route path="shop/:slug" element={<ShopDetail />} />
           <Route element={<ProtectedRoute />}>
             <Route path="profile" element={<Profile />} />
+            <Route path="my-reviews" element={<MyReviews />} />
             <Route path="cart" element={<Cart />} />
             <Route path="checkout" element={<Checkout />} />
             <Route path="orders" element={<OrderList />} />
@@ -114,6 +119,7 @@ function App() {
             <Route path="categories" element={<CategoryManagement />} />
             <Route path="products" element={<ProductManagement />} />
             <Route path="orders" element={<OrderManagement />} />
+            <Route path="reviews" element={<AdminReviews />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="notifications/:id" element={<NotificationDetail />} />
           </Route>
@@ -138,6 +144,7 @@ function App() {
             <Route path="products/:id/edit" element={<SellerProductForm />} />
             <Route path="orders" element={<SellerOrderList />} />
             <Route path="orders/:id" element={<SellerOrderDetail />} />
+            <Route path="reviews" element={<SellerReviews />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="notifications/:id" element={<NotificationDetail />} />
           </Route>

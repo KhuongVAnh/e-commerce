@@ -43,6 +43,8 @@ const DashboardLayout = ({ roleTitle }) => {
     { name: t('Tổng quan'), icon: 'dashboard', path: '/seller' },
     { name: t('Sản phẩm'), icon: 'inventory_2', path: '/seller/products' },
     { name: t('Đơn hàng'), icon: 'shopping_cart', path: '/seller/orders' },
+    // DÀNH CHO API 11 (SELLER)
+    { name: t('Đánh giá'), icon: 'reviews', path: '/seller/reviews' },
     { name: t('Cài đặt'), icon: 'settings', path: '/seller/shop/settings' },
   ];
 
@@ -53,6 +55,8 @@ const DashboardLayout = ({ roleTitle }) => {
     { name: t('Danh mục'), icon: 'category', path: '/admin/categories' },
     { name: t('Sản phẩm'), icon: 'inventory_2', path: '/admin/products' },
     { name: t('Đơn hàng'), icon: 'shopping_cart', path: '/admin/orders' },
+    // DÀNH CHO API 12 & 13 (ADMIN)
+    { name: t('Đánh giá'), icon: 'reviews', path: '/admin/reviews' },
   ];
 
   const menuItems = roleTitle === 'Admin' ? adminMenuItems : sellerMenuItems;

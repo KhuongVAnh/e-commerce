@@ -23,6 +23,10 @@ const ShopDetail = () => {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     
+    // --- THÊM MỚI: STATE LƯU TỔNG QUAN ĐÁNH GIÁ CỦA SHOP ---
+    const [shopRatingSummary, setShopRatingSummary] = useState(null);
+    // -------------------------------------------------------
+
     const [loadingShop, setLoadingShop] = useState(true);
     const [loadingProducts, setLoadingProducts] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -91,9 +95,21 @@ const ShopDetail = () => {
             }
         };
 
+        // --- THÊM MỚI: GỌI API 3 ĐỂ LẤY TỔNG QUAN ĐÁNH GIÁ SHOP ---
+        const fetchShopRatingSummary = async () => {
+            try {
+                const res = await axiosClient.get(`/commerce/shops/${id}/reviews/summary`);
+                setShopRatingSummary(res.data?.data || res.data);
+            } catch (err) {
+                console.error(t("Lỗi khi tải tổng quan đánh giá shop:"), err);
+            }
+        };
+        // ----------------------------------------------------------
+
         fetchShopDetail();
         fetchShopProducts();
         fetchCategories();
+        fetchShopRatingSummary(); // Gọi thêm hàm fetch đánh giá
     }, [id, t]);
 
     useEffect(() => {
@@ -177,10 +193,14 @@ const ShopDetail = () => {
                                     <span className="material-symbols-outlined text-[18px]">inventory_2</span> 
                                     {products.length} {t('Sản phẩm')}
                                 </span>
+
+                                {/* --- THAY THẾ CHỖ FIX CỨNG BẰNG DATA THẬT --- */}
                                 <span className="flex items-center gap-1">
                                     <span className="material-symbols-outlined text-yellow-500 text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 
-                                    4.9 {t('Đánh giá')}
+                                    {shopRatingSummary?.averageRating ? shopRatingSummary.averageRating.toFixed(1) : '0.0'} ({shopRatingSummary?.totalReviews || 0} {t('Đánh giá')})
                                 </span>
+                                {/* -------------------------------------------- */}
+
                                 <span className="flex items-center gap-1">
                                     <span className="material-symbols-outlined text-[18px]">calendar_today</span> 
                                     {t('Tham gia:')} {getJoinYear(shop.createdAt)}
@@ -265,10 +285,16 @@ const ShopDetail = () => {
                                                     </h3>
                                                 </Link>
                                             </div>
+                                            
+                                            {/* ĐÃ SỬA TÊN BIẾN THEO CHUẨN API Ở ĐÂY */}
                                             <div className="flex items-center gap-1 mb-4 mt-auto">
                                                 <span className="material-symbols-outlined text-yellow-500 text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                                                <span className="text-sm font-medium text-gray-500">4.9 (124)</span>
+                                                <span className="text-sm font-medium text-gray-500">
+                                                    {product.rating ? Number(product.rating).toFixed(1) : '0.0'} ({product.reviewCount || 0})
+                                                </span>
                                             </div>
+                                            {/* -------------------------------------- */}
+
                                             <div className="flex items-center justify-between border-t border-gray-100 pt-4">
                                                 <div className="flex items-baseline gap-1">
                                                     <span className="text-xl font-black text-[#2b3896]">{formatPrice(product.price)}</span>

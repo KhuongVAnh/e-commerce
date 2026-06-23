@@ -8,6 +8,24 @@ import { wakeService } from '../../services/wakeService';
 
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price);
 
+// THÊM MỚI: HÀM VẼ SAO LẤY DATA TỪ API
+const renderStars = (rating) => {
+  const stars = [];
+  const fullStars = Math.floor(rating || 0);
+  const hasHalfStar = (rating || 0) - fullStars >= 0.5;
+
+  for (let i = 1; i <= 5; i++) {
+    if (i <= fullStars) {
+      stars.push(<span key={i} className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1", color: '#fbbf24' }}>star</span>);
+    } else if (i === fullStars + 1 && hasHalfStar) {
+      stars.push(<span key={i} className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1", color: '#fbbf24' }}>star_half</span>);
+    } else {
+      stars.push(<span key={i} className="material-symbols-outlined text-[14px] text-gray-300" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>);
+    }
+  }
+  return stars;
+};
+
 const Home = () => {
   const { t } = useTranslation();
 
@@ -130,7 +148,7 @@ const Home = () => {
 
     fetchCategories();
     fetchProducts();
-  }, [backendReady]);
+  }, [backendReady, t]); // Thêm t vào dependencies để tránh warning
 
   // HÀM XỬ LÝ THÊM VÀO GIỎ HÀNG TRỰC TIẾP TỪ TRANG CHỦ
   const handleAddToCart = async (e, product) => {
@@ -242,7 +260,7 @@ const Home = () => {
             ))}
           </div>
         ) : categories.length === 0 ? (
-          <div className="text-gray-500 italic">Đang cập nhật danh mục...</div>
+          <div className="text-gray-500 italic">{t('Đang cập nhật danh mục...')}</div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
             {categories.map((category) => (
@@ -280,7 +298,7 @@ const Home = () => {
         {loadingProducts ? (
           <div className="flex flex-col items-center justify-center py-20">
             <span className="material-symbols-outlined animate-spin text-5xl text-[#2b3896]">progress_activity</span>
-            <p className="mt-4 text-gray-500 font-medium">Đang tải sản phẩm...</p>
+            <p className="mt-4 text-gray-500 font-medium">{t('Đang tải sản phẩm...')}</p>
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-24 bg-white rounded-3xl border border-gray-100 shadow-sm">
@@ -299,7 +317,7 @@ const Home = () => {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-[#2b3896]">
-                    Mới
+                    {t('Mới')}
                   </div>
                 </Link>
                 
@@ -309,6 +327,21 @@ const Home = () => {
                       {product.name}
                     </h3>
                   </Link>
+
+                  {/* THÊM MỚI: HIỂN THỊ SAO ĐÁNH GIÁ TỪ API THẬT */}
+                  <div className="flex items-center gap-1.5 mt-1 mb-2">
+                    <div className="flex">
+                      {renderStars(product.rating || 0)}
+                    </div>
+                    <span className="text-xs font-bold text-gray-600">
+                      {product.rating ? Number(product.rating).toFixed(1) : "0.0"}
+                    </span>
+                    <span className="text-[10px] text-gray-400">
+                      ({product.reviewCount || 0})
+                    </span>
+                  </div>
+                  {/* ============================================== */}
+
                   {product.shopName && (
                     <p className="text-xs text-gray-500 mb-3 flex items-center gap-1 font-medium">
                       <span className="material-symbols-outlined text-[14px]">storefront</span>
@@ -323,7 +356,7 @@ const Home = () => {
                     <button 
                       onClick={(e) => handleAddToCart(e, product)}
                       className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-[#2b3896] hover:text-white transition-colors"
-                      title="Thêm vào giỏ hàng"
+                      title={t("Thêm vào giỏ hàng")}
                     >
                       <span className="material-symbols-outlined text-sm">add_shopping_cart</span>
                     </button>
