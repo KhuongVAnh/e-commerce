@@ -108,7 +108,9 @@ export async function findPublicProductDetailById(productId: bigint) {
     return prisma.product.findFirst({
         where: {
             id: productId,
-            status: "ACTIVE",
+            status: {
+                in: ["ACTIVE", "OUT_OF_STOCK"],
+            },
             deletedAt: null,
         },
         select: {
@@ -152,7 +154,9 @@ export async function findPublicProductsByIds(productIds: bigint[]) {
             id: {
                 in: productIds,
             },
-            status: "ACTIVE",
+            status: {
+                in: ["ACTIVE", "OUT_OF_STOCK"],
+            },
             deletedAt: null,
         },
         select: {

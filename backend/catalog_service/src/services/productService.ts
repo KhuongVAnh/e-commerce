@@ -1256,16 +1256,9 @@ export async function listPublicProductsByIds(productIdsInput: unknown) {
     const products = await findPublicProductsByIds(uniqueIds);
     const productMap = new Map(products.map((product) => [product.id.toString(), toPublicProductListItemResponse(product)]));
 
-    const missingIds = uniqueIds.filter((id) => !productMap.has(id.toString()));
-    if (missingIds.length > 0) {
-        throw new HttpError(404, "Sản phẩm không tồn tại", {
-            code: "PRODUCT_NOT_FOUND",
-            details: missingIds.map((id) => `productId=${id.toString()}`),
-            hint: "Kiểm tra lại danh sách productIds",
-        });
-    }
-
-    const orderedProducts = parsedIds.map((id) => productMap.get(id.toString())!);
+    const orderedProducts = parsedIds
+        .map((id) => productMap.get(id.toString()))
+        .filter((p): p is NonNullable<typeof p> => p !== undefined);
 
     return {
         products: orderedProducts,

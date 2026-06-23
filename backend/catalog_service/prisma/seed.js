@@ -28,14 +28,92 @@ const CATEGORIES = [
   { id: 2015n, name: "Máy ảnh & phụ kiện", slug: "may-anh-phu-kien", status: "ACTIVE" },
 ];
 
+const SHOP_PROFILES = {
+  "dien-tu": {
+    segment: "thiết bị công nghệ chính hãng",
+    promise: "đổi mới 7 ngày, bảo hành điện tử và hỗ trợ cài đặt ban đầu",
+    audience: "dân văn phòng, sinh viên, creator và người dùng cần thiết bị bền để làm việc hằng ngày",
+  },
+  "thoi-trang": {
+    segment: "thời trang ứng dụng theo mùa",
+    promise: "kiểm form trước khi giao, hỗ trợ đổi size và gợi ý phối đồ",
+    audience: "khách hàng cần trang phục đi làm, đi học, dạo phố và dự tiệc",
+  },
+  "do-gia-dung": {
+    segment: "đồ gia dụng thông minh",
+    promise: "sản phẩm tiết kiệm điện, hướng dẫn sử dụng rõ ràng và bảo hành tại hãng",
+    audience: "gia đình trẻ, căn hộ chung cư và người muốn tối ưu việc nhà",
+  },
+  "lam-dep": {
+    segment: "mỹ phẩm và chăm sóc cá nhân",
+    promise: "cam kết nguồn gốc rõ ràng, hạn dùng xa và tư vấn theo loại da",
+    audience: "người mới skincare, người trang điểm hằng ngày và khách hàng da nhạy cảm",
+  },
+  "the-thao": {
+    segment: "dụng cụ thể thao và outdoor",
+    promise: "chọn size đúng, chất liệu bền và phù hợp cường độ tập luyện",
+    audience: "người chạy bộ, tập gym, chơi bóng, yoga và dã ngoại cuối tuần",
+  },
+  "sach-van-phong-pham": {
+    segment: "sách, học liệu và văn phòng phẩm",
+    promise: "sách mới, giấy đẹp, đóng gói chống cong góc và giao nhanh cho trường/lớp",
+    audience: "học sinh, sinh viên, nhân viên văn phòng và người đọc sách thường xuyên",
+  },
+  "me-va-be": {
+    segment: "sản phẩm mẹ và bé an toàn",
+    promise: "ưu tiên chất liệu lành tính, thông tin độ tuổi rõ ràng và tư vấn theo giai đoạn phát triển",
+    audience: "phụ huynh có trẻ sơ sinh, trẻ nhỏ và gia đình chuẩn bị đón em bé",
+  },
+  "thu-cung": {
+    segment: "đồ dùng chăm sóc thú cưng",
+    promise: "sản phẩm dễ dùng, an toàn cho vật nuôi và phù hợp thói quen chăm sóc tại nhà",
+    audience: "người nuôi chó, mèo và các shop grooming nhỏ",
+  },
+  "o-to-xe-may": {
+    segment: "phụ kiện ô tô xe máy",
+    promise: "lắp đặt đơn giản, tăng tiện nghi và hỗ trợ bảo vệ phương tiện",
+    audience: "người đi làm bằng xe máy, chủ ô tô gia đình và tài xế dịch vụ",
+  },
+  "suc-khoe": {
+    segment: "thiết bị và sản phẩm chăm sóc sức khỏe",
+    promise: "thông số minh bạch, dễ theo dõi tại nhà và phù hợp sử dụng định kỳ",
+    audience: "gia đình có người lớn tuổi, người tập luyện và người cần theo dõi sức khỏe cá nhân",
+  },
+  "thuc-pham-do-uong": {
+    segment: "thực phẩm, đồ uống và quà biếu",
+    promise: "ngày sản xuất mới, đóng gói chắc chắn và phân loại rõ dùng hằng ngày/quà tặng",
+    audience: "gia đình, văn phòng, người bận rộn và khách mua theo combo tiết kiệm",
+  },
+  "nha-cua-vuon": {
+    segment: "đồ nhà cửa, trang trí và làm vườn",
+    promise: "vật liệu bền, dễ lắp đặt và phù hợp nhiều diện tích nhà",
+    audience: "người sống căn hộ, nhà phố và khách thích chăm cây/trang trí không gian",
+  },
+  "phu-kien-mobile": {
+    segment: "phụ kiện điện thoại và tablet",
+    promise: "tương thích rõ model, bảo vệ thiết bị tốt và hỗ trợ đổi nếu không vừa",
+    audience: "người dùng smartphone, tablet, game mobile và làm việc di động",
+  },
+  "do-choi-giai-tri": {
+    segment: "đồ chơi giáo dục và giải trí gia đình",
+    promise: "ưu tiên chất liệu an toàn, tăng tương tác và phù hợp nhiều độ tuổi",
+    audience: "trẻ em, gia đình, nhóm bạn và người sưu tầm mô hình",
+  },
+  "may-anh-phu-kien": {
+    segment: "máy ảnh, quay phim và phụ kiện studio",
+    promise: "tư vấn đúng nhu cầu chụp/quay, bảo quản chống ẩm và hỗ trợ kiểm tra thiết bị",
+    audience: "nhiếp ảnh gia, vlogger, studio nhỏ và người mới bắt đầu làm nội dung",
+  },
+};
+
 const SHOPS = CATEGORIES.map((c, i) => ({
   id: BigInt(3001 + i),
   sellerId: BigInt(1101 + i),
   name: `Đại lý chính hãng ${c.name}`,
   slug: `dai-ly-chinh-hang-${c.slug}`,
-  logoUrl: `https://loremflickr.com/300/300/logo,store,${c.slug}/all?lock=${3001 + i}`,
+  logoUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=2b3896&color=ffffff&size=300&bold=true`,
   address: `${10 + i} Nguyễn Huệ, Quận 1, TP.HCM`,
-  description: `Cửa hàng chuyên phân phối chính hãng các sản phẩm ${c.name}. Cam kết chất lượng và bảo hành toàn quốc.`,
+  description: `Cửa hàng chuyên ${SHOP_PROFILES[c.slug].segment}. ${SHOP_PROFILES[c.slug].promise}. Phù hợp cho ${SHOP_PROFILES[c.slug].audience}.`,
   status: "ACTIVE",
 }));
 
@@ -433,6 +511,435 @@ const PRODUCT_DEFINITIONS = [
 ];
 
 const categoryIdBySlug = new Map(CATEGORIES.map((category) => [category.slug, category.id]));
+const categoryNameBySlug = new Map(CATEGORIES.map((category) => [category.slug, category.name]));
+
+const CATEGORY_DEPTH = {
+  "dien-tu": {
+    specs: ["hàng chính hãng", "cấu hình rõ ràng", "phụ kiện đi kèm đầy đủ", "bảo hành điện tử"],
+    useCases: ["làm việc đa nhiệm", "học online", "giải trí chất lượng cao", "sáng tạo nội dung"],
+    care: "Kiểm tra serial và kích hoạt bảo hành trước khi sử dụng.",
+  },
+  "thoi-trang": {
+    specs: ["form dễ mặc", "đường may chắc", "chất liệu chọn lọc", "màu sắc dễ phối"],
+    useCases: ["đi làm", "đi học", "dạo phố", "du lịch cuối tuần"],
+    care: "Nên giặt nhẹ, phơi nơi thoáng mát để giữ phom và màu vải.",
+  },
+  "do-gia-dung": {
+    specs: ["tiết kiệm điện", "dễ vệ sinh", "vận hành ổn định", "thiết kế phù hợp căn hộ"],
+    useCases: ["nấu nướng hằng ngày", "dọn dẹp nhà cửa", "chăm sóc không gian sống", "tiết kiệm thời gian"],
+    care: "Đọc hướng dẫn trước khi dùng và vệ sinh định kỳ để tăng tuổi thọ.",
+  },
+  "lam-dep": {
+    specs: ["kết cấu dễ dùng", "nguồn gốc rõ ràng", "phù hợp dùng hằng ngày", "đóng gói chắc chắn"],
+    useCases: ["skincare cơ bản", "trang điểm đi làm", "chăm sóc tóc và cơ thể", "làm quà tặng"],
+    care: "Nên thử trên vùng da nhỏ trước khi dùng toàn mặt nếu da nhạy cảm.",
+  },
+  "the-thao": {
+    specs: ["chất liệu bền", "thiết kế hỗ trợ vận động", "trọng lượng hợp lý", "dễ mang theo"],
+    useCases: ["tập luyện tại nhà", "đến phòng gym", "thi đấu phong trào", "hoạt động ngoài trời"],
+    care: "Lau khô sau khi sử dụng và bảo quản nơi khô thoáng.",
+  },
+  "sach-van-phong-pham": {
+    specs: ["nội dung chọn lọc", "giấy in rõ", "đóng gáy chắc", "phù hợp học tập và làm việc"],
+    useCases: ["đọc cá nhân", "học tập", "làm việc văn phòng", "tặng bạn bè/đồng nghiệp"],
+    care: "Bảo quản nơi khô, tránh cong mép và ánh nắng trực tiếp.",
+  },
+  "me-va-be": {
+    specs: ["chất liệu an toàn", "thông tin độ tuổi rõ", "thiết kế dễ vệ sinh", "ưu tiên sự thoải mái"],
+    useCases: ["chăm sóc trẻ hằng ngày", "đi học", "đi chơi", "chuẩn bị đồ sơ sinh"],
+    care: "Vệ sinh trước lần dùng đầu tiên và kiểm tra định kỳ khi trẻ sử dụng.",
+  },
+  "thu-cung": {
+    specs: ["dễ vệ sinh", "chất liệu thân thiện", "kích thước thực dụng", "phù hợp dùng trong nhà"],
+    useCases: ["chăm sóc chó mèo", "vệ sinh chuồng trại", "huấn luyện cơ bản", "đi dạo"],
+    care: "Làm sạch thường xuyên để hạn chế mùi và vi khuẩn.",
+  },
+  "o-to-xe-may": {
+    specs: ["lắp đặt đơn giản", "vật liệu bền", "tăng tiện nghi", "phù hợp di chuyển hằng ngày"],
+    useCases: ["đi làm", "đi phượt", "chăm sóc xe tại nhà", "nâng cấp phụ kiện"],
+    care: "Kiểm tra độ tương thích với dòng xe trước khi lắp đặt.",
+  },
+  "suc-khoe": {
+    specs: ["dễ thao tác", "thông số dễ theo dõi", "thiết kế gọn", "phù hợp sử dụng định kỳ"],
+    useCases: ["theo dõi sức khỏe tại nhà", "phục hồi sau vận động", "chăm sóc người lớn tuổi", "tập luyện cá nhân"],
+    care: "Sản phẩm không thay thế tư vấn y tế chuyên môn khi có triệu chứng bất thường.",
+  },
+  "thuc-pham-do-uong": {
+    specs: ["hạn dùng rõ", "đóng gói kỹ", "hương vị ổn định", "dễ bảo quản"],
+    useCases: ["bữa ăn gia đình", "ăn nhẹ văn phòng", "tiệc nhỏ", "làm quà biếu"],
+    care: "Bảo quản theo hướng dẫn trên bao bì sau khi mở.",
+  },
+  "nha-cua-vuon": {
+    specs: ["dễ lắp đặt", "vật liệu bền", "tối ưu không gian", "phù hợp khí hậu Việt Nam"],
+    useCases: ["trang trí nhà", "chăm vườn ban công", "sắp xếp đồ đạc", "sửa chữa nhỏ"],
+    care: "Vệ sinh định kỳ và tránh để ngoài trời quá lâu nếu sản phẩm không chuyên outdoor.",
+  },
+  "phu-kien-mobile": {
+    specs: ["tương thích nhiều thiết bị", "thiết kế gọn", "độ bền cao", "hỗ trợ sử dụng di động"],
+    useCases: ["sạc nhanh", "bảo vệ thiết bị", "làm việc di động", "chơi game và giải trí"],
+    care: "Kiểm tra model thiết bị trước khi đặt mua để đảm bảo vừa khít.",
+  },
+  "do-choi-giai-tri": {
+    specs: ["màu sắc bắt mắt", "tăng tương tác", "chất liệu an toàn", "phù hợp chơi nhóm"],
+    useCases: ["giải trí gia đình", "phát triển tư duy", "sưu tầm", "quà sinh nhật"],
+    care: "Cất gọn sau khi chơi và tránh để trẻ nhỏ dùng chi tiết quá bé nếu không phù hợp độ tuổi.",
+  },
+  "may-anh-phu-kien": {
+    specs: ["thông số rõ ràng", "độ hoàn thiện tốt", "hỗ trợ workflow quay chụp", "dễ mang theo"],
+    useCases: ["chụp chân dung", "quay vlog", "làm studio nhỏ", "du lịch và sự kiện"],
+    care: "Bảo quản trong môi trường khô, dùng túi chống ẩm với thân máy và ống kính.",
+  },
+};
+
+function unsplashPhoto(photoId) {
+  return `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=800&h=800&q=80`;
+}
+
+const REAL_IMAGE_POOLS = {
+  default: [
+    unsplashPhoto("photo-1523275335684-37898b6baf30"),
+    unsplashPhoto("photo-1516321318423-f06f85e504b3"),
+    unsplashPhoto("photo-1542291026-7eec264c27ff"),
+    unsplashPhoto("photo-1526170375885-4d8ecf77b99f"),
+  ],
+  "dien-tu": [
+    unsplashPhoto("photo-1511707171634-5f897ff02aa9"),
+    unsplashPhoto("photo-1496181133206-80ce9b88a853"),
+    unsplashPhoto("photo-1505740420928-5e560c06d30e"),
+    unsplashPhoto("photo-1546868871-7041f2a55e12"),
+    unsplashPhoto("photo-1527443224154-c4a3942d3acf"),
+    unsplashPhoto("photo-1588872657578-7efd1f1555ed"),
+  ],
+  "thoi-trang": [
+    unsplashPhoto("photo-1521572163474-6864f9cf17ab"),
+    unsplashPhoto("photo-1542272604-787c3835535d"),
+    unsplashPhoto("photo-1523381210434-271e8be1f52b"),
+    unsplashPhoto("photo-1543163521-1bf539c55dd2"),
+    unsplashPhoto("photo-1515886657613-9f3515b0c78f"),
+    unsplashPhoto("photo-1496747611176-843222e1e57c"),
+  ],
+  "do-gia-dung": [
+    unsplashPhoto("photo-1556911220-bff31c812dba"),
+    unsplashPhoto("photo-1556909114-f6e7ad7d3136"),
+    unsplashPhoto("photo-1584622650111-993a426fbf0a"),
+    unsplashPhoto("photo-1560185007-c5ca9d2c014d"),
+    unsplashPhoto("photo-1556228453-efd6c1ff04f6"),
+    unsplashPhoto("photo-1583847268964-b28dc8f51f92"),
+  ],
+  "lam-dep": [
+    unsplashPhoto("photo-1596462502278-27bfdc403348"),
+    unsplashPhoto("photo-1522335789203-aabd1fc54bc9"),
+    unsplashPhoto("photo-1571781926291-c477ebfd024b"),
+    unsplashPhoto("photo-1556228720-195a672e8a03"),
+    unsplashPhoto("photo-1612817288484-6f916006741a"),
+    unsplashPhoto("photo-1580870069867-74c57ee1bb07"),
+  ],
+  "the-thao": [
+    unsplashPhoto("photo-1542291026-7eec264c27ff"),
+    unsplashPhoto("photo-1517836357463-d25dfeac3438"),
+    unsplashPhoto("photo-1571019613454-1cb2f99b2d8b"),
+    unsplashPhoto("photo-1518611012118-696072aa579a"),
+    unsplashPhoto("photo-1517649763962-0c623066013b"),
+    unsplashPhoto("photo-1530549387789-4c1017266635"),
+  ],
+  "sach-van-phong-pham": [
+    unsplashPhoto("photo-1512820790803-83ca734da794"),
+    unsplashPhoto("photo-1495446815901-a7297e633e8d"),
+    unsplashPhoto("photo-1455390582262-044cdead277a"),
+    unsplashPhoto("photo-1516321318423-f06f85e504b3"),
+    unsplashPhoto("photo-1507842217343-583bb7270b66"),
+    unsplashPhoto("photo-1516979187457-637abb4f9353"),
+  ],
+  "me-va-be": [
+    unsplashPhoto("photo-1515488042361-ee00e0ddd4e4"),
+    unsplashPhoto("photo-1522771930-78848d9293e8"),
+    unsplashPhoto("photo-1503454537195-1dcabb73ffb9"),
+    unsplashPhoto("photo-1519689680058-324335c77eba"),
+    unsplashPhoto("photo-1546015720-b8b30df5aa27"),
+    unsplashPhoto("photo-1515488764276-beab7607c1e6"),
+  ],
+  "thu-cung": [
+    unsplashPhoto("photo-1514888286974-6c03e2ca1dba"),
+    unsplashPhoto("photo-1552053831-71594a27632d"),
+    unsplashPhoto("photo-1548199973-03cce0bbc87b"),
+    unsplashPhoto("photo-1583337130417-3346a1be7dee"),
+    unsplashPhoto("photo-1537151608828-ea2b11777ee8"),
+    unsplashPhoto("photo-1543852786-1cf6624b9987"),
+  ],
+  "o-to-xe-may": [
+    unsplashPhoto("photo-1503376780353-7e6692767b70"),
+    unsplashPhoto("photo-1558981806-ec527fa84c39"),
+    unsplashPhoto("photo-1511919884226-fd3cad34687c"),
+    unsplashPhoto("photo-1525609004556-c46c7d6cf023"),
+    unsplashPhoto("photo-1542362567-b07e54358753"),
+    unsplashPhoto("photo-1449426468159-d96dbf08f19f"),
+  ],
+  "suc-khoe": [
+    unsplashPhoto("photo-1505751172876-fa1923c5c528"),
+    unsplashPhoto("photo-1516574187841-cb9cc2ca948b"),
+    unsplashPhoto("photo-1576091160399-112ba8d25d1d"),
+    unsplashPhoto("photo-1584308666744-24d5c474f2ae"),
+    unsplashPhoto("photo-1512069772995-ec65ed45afd6"),
+    unsplashPhoto("photo-1559757148-5c350d0d3c56"),
+  ],
+  "thuc-pham-do-uong": [
+    unsplashPhoto("photo-1504674900247-0877df9cc836"),
+    unsplashPhoto("photo-1498837167922-ddd27525d352"),
+    unsplashPhoto("photo-1546069901-ba9599a7e63c"),
+    unsplashPhoto("photo-1512621776951-a57141f2eefd"),
+    unsplashPhoto("photo-1495474472287-4d71bcdd2085"),
+    unsplashPhoto("photo-1481391319762-47dff72954d9"),
+  ],
+  "nha-cua-vuon": [
+    unsplashPhoto("photo-1484154218962-a197022b5858"),
+    unsplashPhoto("photo-1586023492125-27b2c045efd7"),
+    unsplashPhoto("photo-1493809842364-78817add7ffb"),
+    unsplashPhoto("photo-1416879595882-3373a0480b5b"),
+    unsplashPhoto("photo-1466692476868-aef1dfb1e735"),
+    unsplashPhoto("photo-1523413651479-597eb2da0ad6"),
+  ],
+  "phu-kien-mobile": [
+    unsplashPhoto("photo-1511707171634-5f897ff02aa9"),
+    unsplashPhoto("photo-1583394838336-acd977736f90"),
+    unsplashPhoto("photo-1609091839311-d5365f9ff1c5"),
+    unsplashPhoto("photo-1587033411391-5d9e51cce126"),
+    unsplashPhoto("photo-1598327105666-5b89351aff97"),
+    unsplashPhoto("photo-1601784551446-20c9e07cdbdb"),
+  ],
+  "do-choi-giai-tri": [
+    unsplashPhoto("photo-1558060370-d644479cb6f7"),
+    unsplashPhoto("photo-1596461404969-9ae70f2830c1"),
+    unsplashPhoto("photo-1500995617113-cf789362a3e1"),
+    unsplashPhoto("photo-1618842676088-c4d48a6a7c9d"),
+    unsplashPhoto("photo-1511512578047-dfb367046420"),
+    unsplashPhoto("photo-1587654780291-39c9404d746b"),
+  ],
+  "may-anh-phu-kien": [
+    unsplashPhoto("photo-1516035069371-29a1b244cc32"),
+    unsplashPhoto("photo-1502920917128-1aa500764cbd"),
+    unsplashPhoto("photo-1526170375885-4d8ecf77b99f"),
+    unsplashPhoto("photo-1452587925148-ce544e77e70d"),
+    unsplashPhoto("photo-1495121553079-4c61bcce1894"),
+    unsplashPhoto("photo-1500530855697-b586d89ba3ee"),
+  ],
+};
+
+const SPECIFIC_IMAGE_POOLS = {
+  smartphone: [
+    unsplashPhoto("photo-1511707171634-5f897ff02aa9"),
+    unsplashPhoto("photo-1598327105666-5b89351aff97"),
+    unsplashPhoto("photo-1580910051074-3eb694886505"),
+    unsplashPhoto("photo-1601784551446-20c9e07cdbdb"),
+    unsplashPhoto("photo-1567581935884-3349723552ca"),
+    unsplashPhoto("photo-1585060544812-6b45742d762f"),
+  ],
+  laptop: [
+    unsplashPhoto("photo-1496181133206-80ce9b88a853"),
+    unsplashPhoto("photo-1516321318423-f06f85e504b3"),
+    unsplashPhoto("photo-1588872657578-7efd1f1555ed"),
+    unsplashPhoto("photo-1484788984921-03950022c9ef"),
+    unsplashPhoto("photo-1541807084-5c52b6b3adef"),
+    unsplashPhoto("photo-1531297484001-80022131f5a1"),
+  ],
+  earbuds: [
+    unsplashPhoto("photo-1606220588913-b3aacb4d2f46"),
+    unsplashPhoto("photo-1590658268037-6bf12165a8df"),
+    unsplashPhoto("photo-1608156639585-b3a032ef9689"),
+    unsplashPhoto("photo-1629367494173-c78a56567877"),
+  ],
+  headphones: [
+    unsplashPhoto("photo-1505740420928-5e560c06d30e"),
+    unsplashPhoto("photo-1484704849700-f032a568e944"),
+    unsplashPhoto("photo-1546435770-a3e426bf472b"),
+    unsplashPhoto("photo-1583394838336-acd977736f90"),
+  ],
+  smartwatch: [
+    unsplashPhoto("photo-1546868871-7041f2a55e12"),
+    unsplashPhoto("photo-1579586337278-3befd40fd17a"),
+    unsplashPhoto("photo-1523275335684-37898b6baf30"),
+    unsplashPhoto("photo-1434493789847-2f02dc6ca35d"),
+  ],
+  tablet: [
+    unsplashPhoto("photo-1544244015-0df4b3ffc6b0"),
+    unsplashPhoto("photo-1585790050230-5dd28404ccb9"),
+    unsplashPhoto("photo-1561154464-82e9adf32764"),
+    unsplashPhoto("photo-1527698266440-12104e498b76"),
+  ],
+  keyboard: [
+    unsplashPhoto("photo-1587829741301-dc798b83add3"),
+    unsplashPhoto("photo-1618384887929-16ec33fab9ef"),
+    unsplashPhoto("photo-1595225476474-87563907a212"),
+    unsplashPhoto("photo-1541140532154-b024d705b90a"),
+  ],
+  speaker: [
+    unsplashPhoto("photo-1545454675-3531b543be5d"),
+    unsplashPhoto("photo-1608043152269-423dbba4e7e1"),
+    unsplashPhoto("photo-1542193810-9007c21cd37e"),
+    unsplashPhoto("photo-1564424224827-cd24b8915874"),
+  ],
+  monitor: [
+    unsplashPhoto("photo-1527443224154-c4a3942d3acf"),
+    unsplashPhoto("photo-1593640408182-31c70c8268f5"),
+    unsplashPhoto("photo-1497366754035-f200968a6e72"),
+    unsplashPhoto("photo-1547082299-de196ea013d6"),
+  ],
+  mouse: [
+    unsplashPhoto("photo-1527814050087-3793815479db"),
+    unsplashPhoto("photo-1615663245857-ac93bb7c39e7"),
+    unsplashPhoto("photo-1563297007-0686b7003af7"),
+    unsplashPhoto("photo-1613141411244-0e4ac259d217"),
+  ],
+  console: [
+    unsplashPhoto("photo-1606813907291-d86efa9b94db"),
+    unsplashPhoto("photo-1606144042614-b2417e99c4e3"),
+    unsplashPhoto("photo-1586182987320-4f376d39d787"),
+    unsplashPhoto("photo-1493711662062-fa541adb3fc8"),
+  ],
+  camera: [
+    unsplashPhoto("photo-1516035069371-29a1b244cc32"),
+    unsplashPhoto("photo-1502920917128-1aa500764cbd"),
+    unsplashPhoto("photo-1526170375885-4d8ecf77b99f"),
+    unsplashPhoto("photo-1452587925148-ce544e77e70d"),
+  ],
+  lens: [
+    unsplashPhoto("photo-1495707902641-75cac588d2e9"),
+    unsplashPhoto("photo-1617005082133-548c4dd27f35"),
+    unsplashPhoto("photo-1520390138845-fd2d229dd553"),
+    unsplashPhoto("photo-1519183071298-a2962be96f83"),
+  ],
+  shoes: [
+    unsplashPhoto("photo-1542291026-7eec264c27ff"),
+    unsplashPhoto("photo-1549298916-b41d501d3772"),
+    unsplashPhoto("photo-1460353581641-37baddab0fa2"),
+    unsplashPhoto("photo-1491553895911-0055eca6402d"),
+  ],
+  bag: [
+    unsplashPhoto("photo-1548036328-c9fa89d128fa"),
+    unsplashPhoto("photo-1590874103328-eac38a683ce7"),
+    unsplashPhoto("photo-1584917865442-de89df76afd3"),
+    unsplashPhoto("photo-1566150905458-1bf1fc113f0d"),
+  ],
+  watch: [
+    unsplashPhoto("photo-1524592094714-0f0654e20314"),
+    unsplashPhoto("photo-1523275335684-37898b6baf30"),
+    unsplashPhoto("photo-1533139502658-0198f920d8e8"),
+    unsplashPhoto("photo-1434056886845-dac89ffe9b56"),
+  ],
+};
+
+const TAG_IMAGE_POOLS = {
+  iphone: SPECIFIC_IMAGE_POOLS.smartphone,
+  smartphone: SPECIFIC_IMAGE_POOLS.smartphone,
+  samsung: SPECIFIC_IMAGE_POOLS.smartphone,
+  macbook: SPECIFIC_IMAGE_POOLS.laptop,
+  dell: SPECIFIC_IMAGE_POOLS.laptop,
+  laptop: SPECIFIC_IMAGE_POOLS.laptop,
+  airpods: SPECIFIC_IMAGE_POOLS.earbuds,
+  earpods: SPECIFIC_IMAGE_POOLS.earbuds,
+  earbuds: SPECIFIC_IMAGE_POOLS.earbuds,
+  headphones: SPECIFIC_IMAGE_POOLS.headphones,
+  applewatch: SPECIFIC_IMAGE_POOLS.smartwatch,
+  galaxywatch: SPECIFIC_IMAGE_POOLS.smartwatch,
+  smartwatch: SPECIFIC_IMAGE_POOLS.smartwatch,
+  ipad: SPECIFIC_IMAGE_POOLS.tablet,
+  tablet: SPECIFIC_IMAGE_POOLS.tablet,
+  keyboard: SPECIFIC_IMAGE_POOLS.keyboard,
+  speaker: SPECIFIC_IMAGE_POOLS.speaker,
+  marshall: SPECIFIC_IMAGE_POOLS.speaker,
+  monitor: SPECIFIC_IMAGE_POOLS.monitor,
+  mouse: SPECIFIC_IMAGE_POOLS.mouse,
+  logitech: SPECIFIC_IMAGE_POOLS.mouse,
+  ps5: SPECIFIC_IMAGE_POOLS.console,
+  playstation: SPECIFIC_IMAGE_POOLS.console,
+  nintendo: SPECIFIC_IMAGE_POOLS.console,
+  fashion: REAL_IMAGE_POOLS["thoi-trang"],
+  dress: REAL_IMAGE_POOLS["thoi-trang"],
+  shoes: SPECIFIC_IMAGE_POOLS.shoes,
+  sneaker: SPECIFIC_IMAGE_POOLS.shoes,
+  handbag: SPECIFIC_IMAGE_POOLS.bag,
+  backpack: SPECIFIC_IMAGE_POOLS.bag,
+  bag: SPECIFIC_IMAGE_POOLS.bag,
+  watch: SPECIFIC_IMAGE_POOLS.watch,
+  kitchen: REAL_IMAGE_POOLS["do-gia-dung"],
+  home: REAL_IMAGE_POOLS["do-gia-dung"],
+  appliance: REAL_IMAGE_POOLS["do-gia-dung"],
+  skincare: REAL_IMAGE_POOLS["lam-dep"],
+  makeup: REAL_IMAGE_POOLS["lam-dep"],
+  perfume: REAL_IMAGE_POOLS["lam-dep"],
+  sports: REAL_IMAGE_POOLS["the-thao"],
+  fitness: REAL_IMAGE_POOLS["the-thao"],
+  gym: REAL_IMAGE_POOLS["the-thao"],
+  book: REAL_IMAGE_POOLS["sach-van-phong-pham"],
+  stationery: REAL_IMAGE_POOLS["sach-van-phong-pham"],
+  baby: REAL_IMAGE_POOLS["me-va-be"],
+  pet: REAL_IMAGE_POOLS["thu-cung"],
+  car: REAL_IMAGE_POOLS["o-to-xe-may"],
+  motorcycle: REAL_IMAGE_POOLS["o-to-xe-may"],
+  health: REAL_IMAGE_POOLS["suc-khoe"],
+  food: REAL_IMAGE_POOLS["thuc-pham-do-uong"],
+  drink: REAL_IMAGE_POOLS["thuc-pham-do-uong"],
+  garden: REAL_IMAGE_POOLS["nha-cua-vuon"],
+  decor: REAL_IMAGE_POOLS["nha-cua-vuon"],
+  cable: REAL_IMAGE_POOLS["phu-kien-mobile"],
+  charger: REAL_IMAGE_POOLS["phu-kien-mobile"],
+  toy: REAL_IMAGE_POOLS["do-choi-giai-tri"],
+  camera: SPECIFIC_IMAGE_POOLS.camera,
+  lens: SPECIFIC_IMAGE_POOLS.lens,
+  gimbal: SPECIFIC_IMAGE_POOLS.camera,
+};
+
+function pickByIndex(values, index, offset = 0) {
+  return values[(index + offset) % values.length];
+}
+
+function buildRichDescription(baseDescription, categorySlug, productIndex, price) {
+  const depth = CATEGORY_DEPTH[categorySlug];
+  const categoryName = categoryNameBySlug.get(categorySlug);
+  const specOne = pickByIndex(depth.specs, productIndex);
+  const specTwo = pickByIndex(depth.specs, productIndex, 2);
+  const useCaseOne = pickByIndex(depth.useCases, productIndex, 1);
+  const useCaseTwo = pickByIndex(depth.useCases, productIndex, 3);
+  const priceTier = price >= 5000000
+    ? "phân khúc cao cấp"
+    : price >= 1000000
+      ? "phân khúc tầm trung"
+      : "phân khúc dễ tiếp cận";
+
+  return [
+    baseDescription,
+    `Thuộc nhóm ${categoryName}, sản phẩm nằm ở ${priceTier}, nổi bật nhờ ${specOne} và ${specTwo}.`,
+    `Phù hợp cho nhu cầu ${useCaseOne} hoặc ${useCaseTwo}.`,
+    depth.care,
+  ].join(" ");
+}
+
+function buildProductStatus(productGlobalIndex, originalStock) {
+  const ordinal = productGlobalIndex + 1;
+
+  if (ordinal % 37 === 0) {
+    return { status: "OUT_OF_STOCK", stockQuantity: 0 };
+  }
+
+  if (ordinal % 29 === 0) {
+    return { status: "INACTIVE", stockQuantity: originalStock };
+  }
+
+  return { status: "ACTIVE", stockQuantity: originalStock };
+}
+
+function buildRating(productGlobalIndex, status) {
+  if (status === "INACTIVE") {
+    return { rating: 0, reviewCount: 0 };
+  }
+
+  const reviewCount = 8 + ((productGlobalIndex * 17) % 420);
+  const rating = Math.min(5, 3.8 + ((productGlobalIndex * 13) % 12) / 10);
+
+  return {
+    rating: Number(rating.toFixed(1)),
+    reviewCount,
+  };
+}
 
 function nameToSlug(value) {
   return value
@@ -446,8 +953,9 @@ function nameToSlug(value) {
 }
 
 function imageUrl(tags, productId, imageIndex) {
-  const keyword = tags.join(",");
-  return `https://loremflickr.com/800/800/${encodeURIComponent(keyword)}/all?lock=${productId}${imageIndex}`;
+  const poolKey = tags.find((tag) => TAG_IMAGE_POOLS[tag] || REAL_IMAGE_POOLS[tag]);
+  const pool = TAG_IMAGE_POOLS[poolKey] || REAL_IMAGE_POOLS[poolKey] || REAL_IMAGE_POOLS.default;
+  return pool[(productId + imageIndex) % pool.length];
 }
 
 function buildProducts() {
@@ -459,21 +967,29 @@ function buildProducts() {
       throw new Error(`Missing category for slug ${group.categorySlug}`);
     }
 
-    for (const item of group.products) {
+    for (let productIndex = 0; productIndex < group.products.length; productIndex += 1) {
+      const item = group.products[productIndex];
       const id = BigInt(4001 + products.length);
+      const productGlobalIndex = products.length;
       const [name, description, price, stockQuantity, tags] = item;
+      const { status, stockQuantity: seededStockQuantity } = buildProductStatus(productGlobalIndex, stockQuantity);
+      const { rating, reviewCount } = buildRating(productGlobalIndex, status);
+      const enrichedTags = [...tags, group.categorySlug];
+
       products.push({
         id,
         shopId: group.shopId,
         categoryId,
         name,
         slug: nameToSlug(name),
-        description,
+        description: buildRichDescription(description, group.categorySlug, productIndex, price),
         price: Number(price).toFixed(2),
-        stockQuantity,
-        thumbnailUrl: imageUrl(tags, Number(id), 0),
-        status: "ACTIVE",
-        imageTags: tags,
+        stockQuantity: seededStockQuantity,
+        thumbnailUrl: imageUrl(enrichedTags, Number(id), 0),
+        status,
+        rating,
+        reviewCount,
+        imageTags: enrichedTags,
       });
     }
   }
@@ -555,7 +1071,7 @@ async function main() {
       })),
     });
 
-    // 300 products * 4 images = 1200 images
+    // 300 products * 4 images = 1200 stable real-photo URLs.
     for (const product of PRODUCTS) {
       await tx.productImage.createMany({
         data: [0, 1, 2, 3].map((imageIndex) => ({
@@ -567,7 +1083,7 @@ async function main() {
     }
   });
 
-  console.log(`Seeded catalog_service with ${CATEGORIES.length} categories, ${SHOPS.length} shops, and ${PRODUCTS.length} products (4 real images each).`);
+  console.log(`Seeded catalog_service with ${CATEGORIES.length} categories, ${SHOPS.length} shops, and ${PRODUCTS.length} products (4 stable real-photo URLs each).`);
   console.table(
     SHOPS.map((shop) => ({
       shopId: shop.id.toString(),

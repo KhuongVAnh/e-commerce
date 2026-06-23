@@ -91,12 +91,7 @@ const DashboardLayout = ({ roleTitle }) => {
               {item.name}
             </NavLink>
           ))}
-
-          {roleTitle === 'Seller' && user?.role === 'ADMIN' && (
-            <NavLink to="/admin" className="flex items-center gap-4 px-4 py-3 text-red-600 font-bold hover:bg-red-50 rounded-xl mt-6 transition-all">
-              <span className="material-symbols-outlined text-[20px]">arrow_back</span> {t('Quay lại Admin')}
-            </NavLink>
-          )}
+          {/* Removed Quay lại Admin button as Admins are now blocked from seller pages */}
         </nav>
 
         <div className="p-6 border-t border-slate-50">
