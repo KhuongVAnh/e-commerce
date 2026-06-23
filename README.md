@@ -7,7 +7,7 @@ Hệ thống hỗ trợ nhiều shop, quản lý sản phẩm, giỏ hàng, đơ
 
 Tài liệu kiến trúc backend hiện nằm tại:
 
-- [backend/system-architecture.md](c:/Users/Dell/OneDrive/Desktop/cnweb/backend/system-architecture.md)
+- [backend/system-architecture.md](./backend/system-architecture.md)
 
 ## Mục tiêu đề tài
 
@@ -27,15 +27,20 @@ backend/
 frontend/
 ```
 
-## Chạy backend
-
-Từ thư mục gốc project:
+Di chuyển vào thư mục `backend`:
 
 ```bash
-npm run dev:backend
+cd backend
+npm run dev
 ```
 
-Lệnh này sẽ chạy song song 4 backend service: API Gateway, Auth, Catalog và Commerce.
+Hoặc trên Windows, bạn có thể chạy trực tiếp file script:
+
+```bash
+.\start-backend.cmd
+```
+
+Lệnh này sẽ chạy song song 4 backend service trong các cửa sổ CMD riêng biệt: API Gateway, Auth, Catalog và Commerce.
 
 ## Công nghệ sử dụng
 
@@ -51,10 +56,22 @@ Lệnh này sẽ chạy song song 4 backend service: API Gateway, Auth, Catalog 
 
 ### Frontend
 
-Hiện tại frontend **chưa được khởi tạo code thực tế** trong repo.
-Dự kiến:
- - React + Vite
- - tailwindcss
+Frontend đã được khởi tạo trong thư mục `frontend/` với cấu hình:
+
+- React 19 + Vite
+- Tailwind CSS 3
+- Zustand (Quản lý state)
+- React Router DOM v7
+- Axios (Gọi API)
+
+#### Chạy frontend
+
+Di chuyển vào thư mục `frontend`:
+
+```bash
+cd frontend
+npm run dev
+```
 
 ## Quy tắc commit chung
 
